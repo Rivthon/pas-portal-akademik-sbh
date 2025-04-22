@@ -1,0 +1,58 @@
+/* Styling Halaman Login */
+
+/* Ukuran Logo di Kolom Kiri */
+.logo-login {
+    max-height: 120px;
+    max-width: 100%;
+}
+
+/* Card Responsif */
+.row {
+    border-radius: 12px; /* Sudut membulat */
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15); /* Shadow lebih halus */
+    overflow: hidden;
+}
+
+/* Gradasi di Kolom Kiri */
+.bg-primary {
+    background: linear-gradient(135deg, #9e0c9e, #ac1cff); /* Gradasi warna */
+}
+
+/* Kolom Kanan */
+.bg-white {
+    background-color: #ffffff;
+}
+
+/* Input Style */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 12px 16px;
+    font-size: 16px;
+}
+
+/* Button Style */
+.btn-primary {
+    background: linear-gradient(135deg, #6f42c1, #b586ff);
+    border: none;
+    padding: 10px 16px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5a35a9, #9c6fe2);
+}
+
+/* Responsif */
+@media (max-width: 768px) {
+    .row {
+        flex-direction: column;
+    }
+
+    .bg-primary {
+        text-align: center;
+    }
+}

@@ -1,0 +1,83 @@
+/* Global Styles */
+body {
+    font-family: 'Nunito', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9;
+}
+
+/* Navbar */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.navbar-brand img {
+    height: 50px;
+    max-width: 100px;
+}
+.navbar-light.bg-warning {
+    background: linear-gradient(135deg, #f1c40f, #f39c12); /* Gradasi warna kuning */
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+.dropdown-menu a {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+}
+.dropdown-menu a i {
+    margin-right: 8px;
+}
+
+/* Card Styles */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.navbar-toggler {
+    border: none;
+}
+.navbar-toggler-icon {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+}
+
+/* Footer */
+.footer {
+    background: #f2f2f2;
+    color: #000;
+    padding: 20px 0;
+}
+.footer img {
+    max-height: 40px;
+    margin-right: 10px;
+}
+.footer a {
+    color: #9b59b6; /* Warna ungu modern */
+    text-decoration: none;
+}
+.footer a:hover {
+    text-decoration: underline;
+}
+
+/* Utility Classes */
+.text-center {
+    text-align: center;
+}
+.py-3 {
+    padding: 1rem 0;
+}
+.py-4 {
+    padding: 1.5rem 0;
+}
+.mt-2 {
+    margin-top: 0.5rem;
+}
+.mt-4 {
+    margin-top: 1.5rem;
+}

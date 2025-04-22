@@ -1,0 +1,675 @@
+<?php
+
+namespace App\Http\Controllers\Dosen;
+
+use App\Models\Jadwal;
+use App\Models\Absensi;
+use App\Models\Mahasiswa;
+use App\Models\Pertemuan;
+use Illuminate\Http\Request;
+use App\Models\JadwalPraktik;
+use App\Models\TahunAkademik;
+use App\Models\AbsensiPraktik;
+use App\Models\PertemuanPraktik;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use RealRashid\SweetAlert\Facades\Alert;
+
+class PerkuliahanDosenController extends Controller
+{
+    public function jadwalIndex()
+    {
+        // Ambil dosen yang sedang login dari guard 'dosen'
+        $dosen = auth('dosen')->user();
+        // Pastikan ada dosen yang login
+        if (!$dosen) {
+            return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
+        }
+         $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        if (!$activeTA) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+        // Ambil jadwal kuliah berdasarkan kurikulum yang diajar oleh dosen
+        $dosen = auth('dosen')->user();
+        $jadwalList = Jadwal::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
+        $query->where('ta_id', $activeTA->ta_id)
+              ->where('jurusan_id', $dosen->jurusan_id);
+            })
+            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+                $query->where('dosen_id', $dosen->dosen_id);
+            })
+            ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
+            ->get()
+            ->groupBy(function ($jadwal) {
+                return $jadwal->hari ?? 'Tidak Ada Hari'; // Kelompokkan berdasarkan hari
+            })
+            ->map(function ($jadwalPerHari) {
+                return $jadwalPerHari->map(function ($jadwal) {
+                    return [
+                        'jadwal_id' => $jadwal->id,
+                        'hari' => $jadwal->hari ?? 'Tidak ada data',
+                        'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                        'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                        'kode_matakuliah' => $jadwal->kurikulum->mataKuliah->matakuliah_id ?? null,
+                        'nama_matakuliah' => $jadwal->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
+                        'semester_matkul' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak ada data',
+                        'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                        'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
+                        'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
+                            return [
+                                'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
+                                'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
+                                'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                 'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
+                            ];
+                             })->filter(function ($dosen) {
+                            return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
+                        })->unique('id')->values(),
+                    ];
+                });
+            });
+
+        return view('pages-dosen.jadwal.index', compact('jadwalList','activeTA'));
+    }
+
+    public function search(Request $request)
+    {
+            $query = $request->search;
+            $dosen = auth('dosen')->user();
+            $activeTA = TahunAkademik::where('status_ta', 1)->first();
+
+            if (!$activeTA) {
+                return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+            }
+
+            $jadwalList = Jadwal::whereHas('kurikulum', function ($q) use ($activeTA, $dosen) {
+            $q->where('ta_id', $activeTA->ta_id)
+            ->where('jurusan_id', $dosen->jurusan_id);
+            })
+            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+                $query->where('dosen_id', $dosen->dosen_id);
+            })
+            ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
+            ->get()
+            ->groupBy(function ($jadwal) {
+                return $jadwal->hari ?? 'Tidak Ada Hari';
+            })
+            ->map(function ($jadwalPerHari) {
+                return $jadwalPerHari->map(function ($jadwal) {
+                    return [
+                        'jadwal_id' => $jadwal->id,
+                        'hari' => $jadwal->hari ?? 'Tidak ada data',
+                        'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                        'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                        'kode_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->matakuliah_id ?? null,
+                        'nama_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->nama ?? 'Tidak ada data',
+                        'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                        'ruangan' => optional($jadwal->ruangan)->nama ?? 'Tidak ada data',
+                        'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
+                            return [
+                                'id' => optional($dosenToMatakuliah->dosen)->dosen_id ?? null,
+                                'nama' => optional($dosenToMatakuliah->dosen)->nama ?? 'Tidak ada data',
+                                'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
+                            ];
+                        })->filter(function ($dosen) {
+                            return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
+                        })->unique('id')->values(),
+                    ];
+                });
+            });
+
+    // Jika ada query pencarian, filter data berdasarkan nama mata kuliah atau nama dosen
+    if (!empty($query)) {
+        $jadwalList = $jadwalList->map(function ($jadwalPerHari) use ($query) {
+            return $jadwalPerHari->filter(function ($item) use ($query) {
+                return stripos($item['nama_matakuliah'], $query) !== false ||
+                    collect($item['dosen'])->contains(function ($dosen) use ($query) {
+                        return stripos($dosen['nama'], $query) !== false;
+                    });
+            });
+        })->filter(function ($jadwalPerHari) {
+            return $jadwalPerHari->isNotEmpty();
+        });
+    }
+
+        return view('pages-dosen.jadwal.partial_list', compact('jadwalList'));
+    }
+    public function PraktikIndex()
+    {
+        // Ambil dosen yang sedang login dari guard 'dosen'
+        $dosen = auth('dosen')->user();
+
+        // Pastikan ada dosen yang login
+        if (!$dosen) {
+            return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
+        }
+        $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        if (!$activeTA) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+        // Ambil jadwal kuliah berdasarkan kurikulum yang diajar oleh dosen
+        $jadwalList = JadwalPraktik::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
+            $query->where('ta_id', $activeTA->ta_id)
+                  ->where('jurusan_id', $dosen->jurusan_id);
+        })
+        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+            $query->where('dosen_id', $dosen->dosen_id)
+                  ->where('jenis_dosen', 'praktik'); // Periksa jenis_dosen praktik
+        })
+        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
+        ->get()
+        ->groupBy(function ($jadwal) {
+            return $jadwal->hari ?? 'Tidak Ada Hari'; // Kelompokkan berdasarkan hari
+        })
+        ->map(function ($jadwalPerHari) {
+            return $jadwalPerHari->map(function ($jadwal) {
+                return [
+                    'jadwal_praktik_id' => $jadwal->id,
+                    'hari' => $jadwal->hari ?? 'Tidak ada data',
+                    'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                    'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                    'kode_matakuliah' => $jadwal->kurikulum->mataKuliah->matakuliah_id ?? null,
+                    'nama_matakuliah' => $jadwal->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
+                    'semester_matkul' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak ada data',
+                    'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                    'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
+                    'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
+                        return [
+                            'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
+                            'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
+                            'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                            'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
+                        ];
+                    })->filter(function ($dosen) {
+                        return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                    })->unique('id')->values(),
+                ];
+            });
+        });
+
+        return view('pages-dosen.jadwal-praktik.index', compact('jadwalList', 'activeTA'));
+    }
+
+    public function searchPraktik(Request $request)
+    {
+        $query = $request->search;
+        $dosen = auth('dosen')->user();
+        $activeTA = TahunAkademik::where('status_ta', 1)->first();
+
+        if (!$activeTA) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+
+        $jadwalList = JadwalPraktik::whereHas('kurikulum', function ($q) use ($activeTA, $dosen) {
+            $q->where('ta_id', $activeTA->ta_id)
+              ->where('jurusan_id', $dosen->jurusan_id);
+        })
+        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+            $query->where('dosen_id', $dosen->dosen_id)
+                  ->where('jenis_dosen', 'praktik'); // Periksa jenis_dosen praktik
+        })
+        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
+        ->get()
+        ->groupBy(function ($jadwal) {
+            return $jadwal->hari ?? 'Tidak Ada Hari';
+        })
+        ->map(function ($jadwalPerHari) {
+            return $jadwalPerHari->map(function ($jadwal) {
+                return [
+                    'jadwal_praktik_id' => $jadwal->id,
+                    'hari' => $jadwal->hari ?? 'Tidak ada data',
+                    'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                    'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                    'kode_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->matakuliah_id ?? null,
+                    'nama_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->nama ?? 'Tidak ada data',
+                    'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                    'ruangan' => optional($jadwal->ruangan)->nama ?? 'Tidak ada data',
+                    'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
+                        return [
+                            'id' => optional($dosenToMatakuliah->dosen)->dosen_id ?? null,
+                            'nama' => optional($dosenToMatakuliah->dosen)->nama ?? 'Tidak ada data',
+                            'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                            'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
+                        ];
+                    })->filter(function ($dosen) {
+                        return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                    })->unique('id')->values(),
+                ];
+            });
+        });
+
+        // Jika ada query pencarian, filter data berdasarkan nama mata kuliah atau nama dosen
+        if (!empty($query)) {
+            $jadwalList = $jadwalList->map(function ($jadwalPerHari) use ($query) {
+                return $jadwalPerHari->filter(function ($item) use ($query) {
+                    return stripos($item['nama_matakuliah'], $query) !== false ||
+                        collect($item['dosen'])->contains(function ($dosen) use ($query) {
+                            return stripos($dosen['nama'], $query) !== false;
+                        });
+                });
+            })->filter(function ($jadwalPerHari) {
+                return $jadwalPerHari->isNotEmpty();
+            });
+        }
+
+        return view('pages-dosen.jadwal-praktik.partial_list', compact('jadwalList'));
+    }
+
+
+    public function indexAbsensi()
+    {
+        // Ambil dosen yang sedang login dari guard 'dosen'
+        $dosen = auth('dosen')->user();
+
+        // Pastikan ada dosen yang login
+        if (!$dosen) {
+            return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
+        }
+        $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        if (!$activeTA) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+        // Ambil jadwal kuliah berdasarkan kurikulum yang diajar oleh dosen
+        $dosen = auth('dosen')->user();
+        $absensiList = Jadwal::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
+            $query->where('ta_id', $activeTA->ta_id)
+              ->where('jurusan_id', $dosen->jurusan_id);
+        })
+        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+            $query->where('dosen_id', $dosen->dosen_id);
+        })
+        // ->where('jenis_kelas', $dosen->jenis_kelas)
+        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
+        ->get()
+        ->groupBy(function ($jadwal) {
+            return $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak Ada Semester';
+        })
+        ->map(function ($jadwalPerSemester) {
+            return $jadwalPerSemester->map(function ($jadwal) {
+                return [
+                    'jadwal_id' => $jadwal->id,
+                    'hari' => $jadwal->hari ?? 'Tidak ada data',
+                    'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                    'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                    'semester' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak Ada Semester',
+                    'kode_matakuliah' => $jadwal->kurikulum->mataKuliah->matakuliah_id ?? null,
+                    'nama_matakuliah' => $jadwal->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
+                    'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
+                     'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                    'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
+                        return [
+                            'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
+                            'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
+                            'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                        ];
+                    })->unique('id')->values(),
+                ];
+            });
+        });
+
+        return view('pages-dosen.absensi.index', compact('absensiList', 'activeTA'));
+    }
+
+    public function searchAbsen(Request $request)
+    {
+        $query = $request->search;
+        $dosen = auth('dosen')->user();
+        $activeTA = TahunAkademik::where('status_ta', 1)->first();
+
+        if (!$activeTA) {
+            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+
+        $absensiList = Jadwal::whereHas('kurikulum', function ($q) use ($activeTA, $dosen) {
+            $q->where('ta_id', $activeTA->ta_id)
+              ->where('jurusan_id', $dosen->jurusan_id);
+
+        })
+        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
+                    $query->where('dosen_id', $dosen->dosen_id);
+                })
+        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
+        ->get()
+        ->groupBy(function ($jadwal) {
+            return optional($jadwal->kurikulum->mataKuliah)->smt ?? 'Tidak Ada Semester';
+        })
+        ->map(function ($jadwalPerSemester) {
+            return $jadwalPerSemester->map(function ($jadwal) {
+                return [
+                    'jadwal_id' => $jadwal->id,
+                    'hari' => $jadwal->hari ?? 'Tidak ada data',
+                    'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
+                    'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
+                    'semester' => optional($jadwal->kurikulum->mataKuliah)->smt ?? 'Tidak Ada Semester',
+                    'kode_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->matakuliah_id ?? null,
+                    'nama_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->nama ?? 'Tidak ada data',
+                    'ruangan' => optional($jadwal->ruangan)->nama ?? 'Tidak ada data',
+                    'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                    'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
+                    'dosen' => optional($jadwal->kurikulum->dosenToMatakuliah)->map(function ($dosenToMatakuliah) {
+                        return [
+                            'id' => optional($dosenToMatakuliah->dosen)->dosen_id ?? null,
+                            'nama' => optional($dosenToMatakuliah->dosen)->nama ?? 'Tidak ada data',
+                            'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                        ];
+                    })->unique('id')->values() ?? [],
+                ];
+            });
+        });
+
+        if ($query) {
+            $absensiList = $absensiList->map(function ($jadwalPerSemester) use ($query) {
+                return $jadwalPerSemester->filter(function ($item) use ($query) {
+                    return stripos($item['nama_matakuliah'], $query) !== false ||
+                        collect($item['dosen'])->contains(function ($dosen) use ($query) {
+                            return stripos($dosen['nama'], $query) !== false;
+                        });
+                });
+            })->filter(function ($jadwalPerSemester) {
+                return $jadwalPerSemester->isNotEmpty();
+            });
+        }
+
+        return view('pages-dosen.absensi.partial_list', compact('absensiList'));
+    }
+
+
+    public function storePertemuan(Request $request)
+    {
+        $request->validate([
+            'jadwal_id' => 'required|exists:jadwal,id',
+            'tanggal_pertemuan' => 'required|date',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'topik' => 'required|string|max:255',
+            'sub_topik' => 'required|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Simpan pertemuan baru
+            $pertemuan = Pertemuan::create([
+                'jadwal_id' => $request->jadwal_id,
+                'tanggal_pertemuan' => $request->tanggal_pertemuan,
+                'jam_mulai' => $request->jam_mulai,
+                'jam_selesai' => $request->jam_selesai,
+                'topik' => $request->topik,
+                'sub_topik' => $request->sub_topik,
+                'dosen_id' => auth('dosen')->user()->dosen_id, // Menyimpan dosen_id dari user yang login
+            ]);
+
+            // Ambil jadwal beserta relasi ke kurikulum dan matakuliah
+            $jadwal = Jadwal::with('kurikulum.matakuliah')->find($request->jadwal_id);
+
+            if (!$jadwal || !$jadwal->kurikulum || !$jadwal->kurikulum->matakuliah) {
+                return response()->json(['message' => 'Jadwal atau mata kuliah tidak ditemukan'], 404);
+            }
+
+            $matakuliah = $jadwal->kurikulum->matakuliah;
+            $semester = $matakuliah->smt;
+            $jurusan_id = $matakuliah->jurusan_id;
+
+            // Tarik mahasiswa berdasarkan semester, jurusan, status aktif, dan jenis kelas
+            $mahasiswaList = Mahasiswa::where('semester', $semester)
+                ->where('jurusan_id', $jurusan_id)
+                ->where('status_mhs', 'aktif') // Tambahkan kondisi status_mhs aktif
+                ->when($jadwal->jenis_kelas === 'reguler', function ($query) {
+                    return $query->where('kelas', 'pagi'); // Cocokan dengan kelas yang ada di mahasiswa pagi
+                })
+                ->when($jadwal->jenis_kelas === 'karyawan', function ($query) {
+                    return $query->where('kelas', 'karyawan'); // Cocokan dengan kelas yang ada di mahasiswa karyawan
+                })
+                ->pluck('mahasiswa_id'); // Ambil hanya ID untuk efisiensi
+
+            if ($mahasiswaList->isEmpty()) {
+                return response()->json(['message' => 'Tidak ada mahasiswa yang cocok'], 404);
+            }
+
+            // Data absensi yang akan dimasukkan
+            $absensiData = $mahasiswaList->map(function ($mahasiswa_id) use ($pertemuan, $request) {
+                return [
+                    'pertemuan_id' => $pertemuan->pertemuan_id,
+                    'jadwal_id' => $request->jadwal_id,
+                    'mahasiswa_id' => $mahasiswa_id,
+                    'status' => 'tidak hadir',
+                    'keterangan' => null,
+                    'tanggal' => now(),
+                ];
+            })->toArray();
+
+            // Insert batch absensi
+            Absensi::insert($absensiData);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Pertemuan dan absensi berhasil disimpan',
+                'pertemuan_id' => $pertemuan->pertemuan_id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal menyimpan pertemuan dan absensi: ' . $e->getMessage());
+             return response()->json([
+        'message' => 'Terjadi kesalahan saat menyimpan pertemuan dan absensi',
+        'error' => $e->getMessage(), // Tampilkan pesan error
+        'line' => $e->getLine(), // Tampilkan baris kode yang error
+        'file' => $e->getFile() // Tampilkan file yang error
+    ], 500);
+        }
+    }
+
+    public function listPertemuan($jadwal_id)
+    {
+        $pertemuan = Pertemuan::where('jadwal_id', $jadwal_id)->orderBy('tanggal_pertemuan', 'desc')->get();
+        return response()->json($pertemuan);
+    }
+
+   public function lihat($pertemuan_id)
+    {
+        // Ambil data pertemuan beserta relasi lengkap
+        $pertemuan = Pertemuan::with('jadwal.kurikulum.mataKuliah')->findOrFail($pertemuan_id);
+
+        // Ambil data absensi berdasarkan pertemuan
+        $absensi = Absensi::where('pertemuan_id', $pertemuan_id)
+            ->with('mahasiswa') // Pastikan ada relasi ke Mahasiswa
+            ->get();
+
+        $mahasiswaAbsensi = Absensi::where('pertemuan_id', $pertemuan_id)->pluck('mahasiswa_id');
+         // Ambil semua mahasiswa berdasarkan jurusan yang belum ada di absensi
+        $mahasiswaTambahan = Mahasiswa::where('jurusan_id', $pertemuan->jadwal->kurikulum->jurusan_id)
+        ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
+        ->get();
+        return view('pages-dosen.absensi.absen', compact('pertemuan', 'absensi','mahasiswaTambahan'));
+    }
+    public function store(Request $request)
+    {
+        // Validasi input
+        $request->validate([
+            'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
+            'status' => 'required|array',
+            'status.*' => 'in:hadir,izin,sakit,tidak hadir',
+            'keterangan' => 'nullable|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Looping dengan collect() untuk optimalisasi
+            collect($request->status)->each(function ($status, $mahasiswa_id) use ($request) {
+                Absensi::updateOrCreate(
+                    [
+                        'pertemuan_id' => $request->pertemuan_id,
+                        'mahasiswa_id' => $mahasiswa_id
+                    ],
+                    [
+                        'status' => $status,
+                        'keterangan' => $request->keterangan[$mahasiswa_id] ?? null
+                    ]
+                );
+            });
+
+            DB::commit();
+            Alert::success('Berhasil', 'Absensi berhasil disimpan');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal menyimpan absensi: ' . $e->getMessage());
+            Alert::error('Gagal', 'Terjadi kesalahan saat menyimpan absensi.');
+        }
+
+        return redirect()->back();
+    }
+
+
+     public function storePertemuanPraktik(Request $request)
+    {
+       $request->validate([
+            // 'jadwal_id' => 'required|exists:jadwal,id',
+            'tanggal_pertemuan' => 'required|date',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'topik' => 'required|string|max:255',
+            'sub_topik' => 'required|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Simpan pertemuan baru
+            $pertemuan = PertemuanPraktik::create([
+                'jadwal_praktik_id' => $request->jadwal_praktik_id,
+                'tanggal_pertemuan' => $request->tanggal_pertemuan,
+                'jam_mulai' => $request->jam_mulai,
+                'jam_selesai' => $request->jam_selesai,
+                'topik' => $request->topik,
+                'sub_topik' => $request->sub_topik,
+                'dosen_id' => auth('dosen')->user()->dosen_id, // Menyimpan dosen_id dari user yang login
+            ]);
+
+            // Ambil jadwal beserta relasi ke kurikulum dan matakuliah
+            $jadwal = JadwalPraktik::with('kurikulum.matakuliah')->find($request->jadwal_praktik_id);
+
+            if (!$jadwal || !$jadwal->kurikulum || !$jadwal->kurikulum->matakuliah) {
+                return response()->json(['message' => 'Jadwal atau mata kuliah tidak ditemukan'], 404);
+            }
+
+            $matakuliah = $jadwal->kurikulum->matakuliah;
+            $semester = $matakuliah->smt;
+            $jurusan_id = $matakuliah->jurusan_id;
+
+            // Tarik mahasiswa berdasarkan semester, jurusan, status aktif, dan jenis kelas
+            $mahasiswaList = Mahasiswa::where('semester', $semester)
+                ->where('jurusan_id', $jurusan_id)
+                ->where('status_mhs', 'aktif') // Tambahkan kondisi status_mhs aktif
+                ->when($jadwal->jenis_kelas === 'reguler', function ($query) {
+                    return $query->where('kelas', 'pagi'); // Cocokan dengan kelas yang ada di mahasiswa pagi
+                })
+                ->when($jadwal->jenis_kelas === 'karyawan', function ($query) {
+                    return $query->where('kelas', 'karyawan'); // Cocokan dengan kelas yang ada di mahasiswa karyawan
+                })
+                ->pluck('mahasiswa_id'); // Ambil hanya ID untuk efisiensi
+
+            if ($mahasiswaList->isEmpty()) {
+                return response()->json(['message' => 'Tidak ada mahasiswa yang cocok'], 404);
+            }
+
+            // Data absensi yang akan dimasukkan
+            $absensiData = $mahasiswaList->map(function ($mahasiswa_id) use ($pertemuan, $request) {
+                return [
+                    'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
+                    'jadwal_praktik_id' => $request->jadwal_praktik_id,
+                    'mahasiswa_id' => $mahasiswa_id,
+                    'status' => 'tidak hadir',
+                    'keterangan' => null,
+                    'tanggal' => now(),
+                ];
+            })->toArray();
+
+            // Insert batch absensi
+            AbsensiPraktik::insert($absensiData);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Pertemuan dan absensi berhasil disimpan',
+                'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal menyimpan pertemuan dan absensi: ' . $e->getMessage());
+             return response()->json([
+        'message' => 'Terjadi kesalahan saat menyimpan pertemuan dan absensi',
+        'error' => $e->getMessage(), // Tampilkan pesan error
+        'line' => $e->getLine(), // Tampilkan baris kode yang error
+        'file' => $e->getFile() // Tampilkan file yang error
+    ], 500);
+        }
+    }
+
+    public function listPertemuanPraktik($jadwal_praktik_id)
+    {
+        $pertemuan = PertemuanPraktik::where('jadwal_praktik_id', $jadwal_praktik_id)->orderBy('tanggal_pertemuan', 'desc')->get();
+        return response()->json($pertemuan);
+    }
+
+   public function lihatPraktik($pertemuan_praktik_id)
+    {
+        // Ambil data pertemuan beserta relasi lengkap
+        $pertemuan = PertemuanPraktik::with('jadwal.kurikulum.mataKuliah')->findOrFail($pertemuan_praktik_id);
+        // Ambil data absensi berdasarkan pertemuan
+        $absensi = AbsensiPraktik::where('pertemuan_praktik_id', $pertemuan_praktik_id)
+            ->with('mahasiswa') // Pastikan ada relasi ke Mahasiswa
+            ->get();
+
+        $mahasiswaAbsensi = AbsensiPraktik::where('pertemuan_praktik_id', $pertemuan_praktik_id)->pluck('mahasiswa_id');
+         // Ambil semua mahasiswa berdasarkan jurusan yang belum ada di absensi
+        $mahasiswaTambahan = Mahasiswa::where('jurusan_id', $pertemuan->jadwal->kurikulum->jurusan_id)
+        ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
+        ->get();
+        return view('pages-dosen.absensi.absensi-praktik', compact('pertemuan', 'absensi','mahasiswaTambahan'));
+    }
+    public function storePraktik(Request $request)
+    {
+        // Validasi input
+        $request->validate([
+            'pertemuan_praktik_id' => 'required|exists:pertemuan_praktik,pertemuan_praktik_id',
+            'status' => 'required|array',
+            'status.*' => 'in:hadir,izin,sakit,tidak hadir',
+            'keterangan' => 'nullable|array',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Looping dengan collect() untuk optimalisasi
+            collect($request->status)->each(function ($status, $mahasiswa_id) use ($request) {
+                AbsensiPraktik::updateOrCreate(
+                    [
+                        'pertemuan_praktik_id' => $request->pertemuan_praktik_id,
+                        'mahasiswa_id' => $mahasiswa_id
+                    ],
+                    [
+                        'status' => $status,
+                        'keterangan' => $request->keterangan[$mahasiswa_id] ?? null
+                    ]
+                );
+            });
+
+            DB::commit();
+            Alert::success('Berhasil', 'Absensi berhasil disimpan');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal menyimpan absensi: ' . $e->getMessage());
+            Alert::error('Gagal', 'Terjadi kesalahan saat menyimpan absensi.');
+        }
+
+        return redirect()->back();
+    }
+
+
+
+}
