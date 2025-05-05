@@ -28,4 +28,16 @@ class Permintaan extends Model
     {
         return $this->belongsTo(Mahasiswa::class);
     }
+    public function mahasiswa()
+    {
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+    }
+    public function scopeStatus($query, $status)
+    {
+        return $query->where('status', $status);
+    }
+    public function updateStatus(string $newStatus)
+    {
+        $this->update(['status' => $newStatus]);
+    }
 }

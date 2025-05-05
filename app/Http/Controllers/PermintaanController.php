@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permintaan;
+use Illuminate\Http\Request;
 use App\Http\Requests\StorePermintaanRequest;
 use App\Http\Requests\UpdatePermintaanRequest;
 
@@ -11,60 +12,44 @@ class PermintaanController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-          $permintaans = PermintaanPerubahan::where('mahasiswa_id', auth()->id())
+   public function index(Request $request)
+{
+    $query = Permintaan::with('mahasiswa');
 
-        ->get();
-
-        return view('students.permintaan.index', compact('permintaans'));
+    if ($request->has('search')) {
+        $query->whereHas('mahasiswa', function ($q) use ($request) {
+            $q->where('nama', 'like', '%' . $request->search . '%');
+        });
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+    $permintaan = $query->orderByDesc('created_at')->paginate(10);
+
+    if ($request->ajax()) {
+        return view('permintaan.table', compact('permintaan'))->render();
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(StorePermintaanRequest $request)
+    return view('permintaan.index', compact('permintaan'));
+}
+
+
+    public function show($id)
     {
-        //
+        $permintaan = Permintaan::with('mahasiswa')->findOrFail($id);
+        return view('permintaan.show', compact('permintaan'));
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Permintaan $permintaan)
+    public function updateStatus(Request $request, $id)
     {
-        //
-    }
+        $request->validate([
+            'status' => 'required|in:pending,diproses,selesai,ditolak'
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Permintaan $permintaan)
-    {
-        //
-    }
+        $permintaan = Permintaan::findOrFail($id);
+        $permintaan->status = $request->status;
+        $permintaan->komentar_admin = $request->komentar_admin;
+        $permintaan->save();
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdatePermintaanRequest $request, Permintaan $permintaan)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Permintaan $permintaan)
-    {
-        //
+        Allert::success('Status permintaan berhasil diperbarui.');
+        return redirect()->route('admin.helpdesk.index');
     }
 }

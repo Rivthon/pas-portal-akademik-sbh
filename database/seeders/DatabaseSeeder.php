@@ -16,11 +16,8 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         $this->call([
-            PermissionTableSeeder::class,
-            // KalenderAkademikSeeder::class,
-            //  TenorPembayaranSeeder::class,
-            // PermissionTableSeeder::class,
-            // Tambahkan seeder lainnya di sini jika ada
-        ]);
+        PermintaanSeeder::class,
+    ]);
+
     }
 }

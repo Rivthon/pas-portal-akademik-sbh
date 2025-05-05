@@ -176,7 +176,7 @@
 
         {{-- Manajemen Penilaian --}}
         <li
-            class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.nilai.index') || Route::is('admin.input-nilai.index')) active open @endif">
+            class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.nilai.index') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bxs-file-archive"></i>
                 <div data-i18n="Barang">Manajemen Penilaian</div>
@@ -283,7 +283,7 @@
         </li>
         <!-- Akademik -->
         <li
-            class="menu-item @if(Route::is('admin.tahun-ajaran.index') || Route::is('admin.settings.edit')) active open @endif">
+            class="menu-item @if(Route::is('admin.tahun-ajaran.index') || Route::is('admin.settings.edit') || Route::is('admin.helpdesk.index')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-cog"></i>
                 <div data-i18n="Barang">Pengaturan</div>
@@ -292,6 +292,11 @@
                 <li class="menu-item @if(Route::is('admin.tahun-ajaran.index')) active @endif">
                     <a href="{{ route('admin.tahun-ajaran.index') }}" class="menu-link">
                         <div data-i18n="Program">Tahun Ajaran </div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('admin.helpdesk.index')) active @endif">
+                    <a href="{{ route('admin.helpdesk.index') }}" class="menu-link">
+                        <div data-i18n="Program">Helpdesk </div>
                     </a>
                 </li>
                 <li class="menu-item @if(Route::is('admin.settings.edit')) active @endif">

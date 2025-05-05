@@ -6,8 +6,10 @@ use App\Models\Krs;
 use App\Models\Dosen;
 use App\Models\Jadwal;
 use App\Models\Absensi;
+use App\Models\Permintaan;
 use App\Models\ProgramStudi;
 use App\Models\TagihanMahasiswa;
+use App\Models\PengajuanTranskrip;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -150,4 +152,13 @@ class Mahasiswa extends Authenticatable
     {
         return $this->belongsTo(Gelombang::class, 'gelombang_id');
     }
+    public function permintaan()
+    {
+        return $this->hasMany(Permintaan::class);
+    }
+    public function pengajuanTranskrip()
+    {
+        return $this->hasMany(PengajuanTranskrip::class);
+    }
+
 }

@@ -712,7 +712,72 @@ document.getElementById('form-nilai').addEventListener('submit', async function 
 });
 
 
+ $(document).ready(function () {
+        function fetchPengajuan(page = 1, search = '') {
+            $('#loading-spinner').show(); // tampilkan spinner sebelum request
 
+            $.ajax({
+                url: "{{ route('admin.transkrip.index') }}?page=" + page + "&search=" + search,
+                success: function (data) {
+                    $('#table-container').html(data);
+                },
+                error: function () {
+                    alert('Gagal memuat data pengajuan.');
+                },
+                complete: function () {
+                    $('#loading-spinner').hide(); // sembunyikan spinner setelah selesai
+                }
+            });
+        }
+
+        $('#search-pengajuan').on('keyup', function () {
+            let query = $(this).val();
+            fetchPengajuan(1, query);
+        });
+
+        $(document).on('click', '.pagination a', function (e) {
+            e.preventDefault();
+            let page = $(this).attr('href').split('page=')[1];
+            let query = $('#search-pengajuan').val();
+            fetchPengajuan(page, query);
+        });
+    });
+    $(document).ready(function () {
+    function fetchPermintaan(page = 1, search = '') {
+    $('#loading-spinner').show();
+
+    $.ajax({
+    url: "{{ route('admin.helpdesk.index') }}?page=" + page + "&search=" + search,
+    success: function (data) {
+    $('#table-container').html(data);
+    },
+    error: function () {
+    $('#table-container').html('<div class="alert alert-danger text-center">Gagal memuat data.</div>');
+    },
+    complete: function () {
+    $('#loading-spinner').hide();
+    }
+    });
+    }
+
+    // Debounced Search
+    let debounce;
+    $('#search-permintaan').on('keyup', function () {
+    clearTimeout(debounce);
+    let query = $(this).val();
+    debounce = setTimeout(() => {
+    fetchPermintaan(1, query);
+    }, 300);
+    });
+
+    // Pagination Click
+    $(document).on('click', '.pagination a', function (e) {
+    e.preventDefault();
+    let page = $(this).attr('href').split('page=')[1];
+    let query = $('#search-permintaan').val();
+    fetchPermintaan(page, query);
+    });
+    });
     </script>
 
 </body>

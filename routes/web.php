@@ -30,6 +30,7 @@ use App\Http\Controllers\PertemuanController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\InputNilaiController;
 use App\Http\Controllers\MatakuliahController;
+use App\Http\Controllers\PermintaanController;
 use App\Http\Controllers\ProgramStudiController;
 use App\Http\Controllers\JadwalPraktikController;
 use App\Http\Controllers\TahunAkademikController;
@@ -313,6 +314,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'update'])->name('pengajuan.update');
         Route::delete('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'destroy'])->name('pengajuan.destroy');
         Route::patch('/pengajuan/{id}/update-status', [PengajuanTranskripController::class, 'updateStatus'])->name('pengajuan.updateStatus');
+
+        Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
+        Route::get('/permintaan/{id}/edit', [PerminataanController::class, 'edit'])->name('permintaan.edit');
+
+        Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
+        Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');
+        Route::put('/helpdesk/permintaan/{id}/status', [PermintaanController::class, 'updateStatus'])->name('helpdesk.updateStatus');
     });
 });
 

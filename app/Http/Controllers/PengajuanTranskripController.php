@@ -25,11 +25,28 @@ class PengajuanTranskripController extends Controller
         $pengajuan = PengajuanTranskrip::with('mahasiswa')->latest()->get();
         return view('students.pengajuan.index', compact('pengajuan','pengajuanTerakhir'));
     }
-    public function indexTransrkip()
+    public function indexTransrkip(Request $request)
     {
-        $pengajuan = PengajuanTranskrip::with('mahasiswa')->latest()->get();
+        $query = PengajuanTranskrip::with('mahasiswa')->latest();
+
+        // Filter pencarian jika ada
+        if ($request->ajax()) {
+            if ($request->has('search') && $request->search != '') {
+                $search = $request->search;
+                $query->whereHas('mahasiswa', function ($q) use ($search) {
+                    $q->where('nama', 'like', '%' . $search . '%');
+                });
+            }
+
+            $pengajuan = $query->paginate(10);
+            return view('pengajuan-transkrip.table', compact('pengajuan'))->render(); // partial view
+        }
+
+        // Initial load
+        $pengajuan = $query->paginate(10);
         return view('pengajuan-transkrip.index', compact('pengajuan'));
     }
+
 
     // Menampilkan form pengajuan transkrip
     public function create()

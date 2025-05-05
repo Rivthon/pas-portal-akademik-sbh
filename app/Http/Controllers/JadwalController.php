@@ -15,30 +15,39 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class JadwalController extends Controller
 {
-    public function index()
-    {
-        try {
-            // Ambil tahun ajaran yang statusnya aktif
-            $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
-            $matakuliah = Matakuliah::all();
-            $programStudi = ProgramStudi::all(); // Ambil semua jurusan
-            $ruangan = Ruangan::all();
-            if (!$tahunAjaran) {
-                return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
-            }
+   public function index()
+{
+    try {
+        // Ambil tahun ajaran yang statusnya aktif
+        $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
 
-            // Ambil semua program studi
-            $programStudi = ProgramStudi::all();
-
-            if ($programStudi->isEmpty()) {
-                return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
-            }
-
-            return view('jadwal.index', compact('programStudi', 'tahunAjaran', 'matakuliah', 'ruangan', 'programStudi'));
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
+        if (!$tahunAjaran) {
+            return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
         }
+
+        // Ambil semua data yang dibutuhkan
+        $matakuliah = Matakuliah::all();
+        $programStudi = ProgramStudi::all();
+        $ruangan = Ruangan::all();
+
+        if ($programStudi->isEmpty()) {
+            return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
+        }
+
+        // Kirim data ke view
+        return view('jadwal.index', compact(
+            'programStudi',
+            'tahunAjaran',
+            'matakuliah',
+            'ruangan'
+        ));
+    } catch (\Exception $e) {
+        \Log::error('Gagal memuat halaman jadwal: ' . $e->getMessage());
+        return abort(500, 'Terjadi kesalahan pada server.');
     }
+}
+
+
 
     public function generatejadwal(Request $request)
     {
@@ -119,7 +128,8 @@ class JadwalController extends Controller
                 'jadwal.jam_selesai',
                 'jadwal.hari',
                 'ruangan.nama as nama_ruangan',
-                'jadwal.jenis_kelas'
+                'jadwal.jenis_kelas',
+                'jadwal.ruangan_id'
             )
             ->join('kurikulum', 'jadwal.kurikulum_id', '=', 'kurikulum.kurikulum_id') // Menghubungkan dengan kurikulum
             ->join('matakuliah', function ($join) use ($semester) {

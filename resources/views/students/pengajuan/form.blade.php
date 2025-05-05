@@ -43,7 +43,18 @@
                 <input type="file" name="bukti" id="bukti" class="form-control" accept="image/*">
             </div>
 
-            <button type="submit" class="btn btn-primary">Ajukan Transkrip</button>
+            <!-- Catatan -->
+            {{-- <div class="mb-3">
+                <label for="catatan" class="form-label">Catatan (opsional):</label>
+                <textarea name="catatan" id="catatan" class="form-control" rows="3"
+                    placeholder="Tambahkan catatan jika diperlukan"></textarea>
+            </div> --}}
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ route('mahasiswa.pengajuan.index') }}" class="btn btn-secondary">Kembali</a>
+                <button type="submit" class="btn btn-primary">Ajukan Transkrip</button>
+            </div>
+
         </form>
     </div>
 </div>
