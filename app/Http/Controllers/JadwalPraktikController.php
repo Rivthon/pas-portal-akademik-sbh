@@ -119,7 +119,8 @@ class JadwalPraktikController extends Controller
                 'jadwal_praktik.jam_selesai',
                 'jadwal_praktik.hari',
                 'ruangan.nama as nama_ruangan',
-                'jadwal_praktik.jenis_kelas'
+                'jadwal_praktik.jenis_kelas',
+                'jadwal_praktik.ruangan_id',
             )
             ->join('kurikulum', 'jadwal_praktik.kurikulum_id', '=', 'kurikulum.kurikulum_id') // Menghubungkan dengan kurikulum
             ->join('matakuliah', function ($join) use ($semester) {

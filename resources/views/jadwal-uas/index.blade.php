@@ -80,9 +80,10 @@
         </div>
     </div>
 </div>
+
 <div class="card mt-4">
     <div class="card-body">
-        <h5 class="card-title">List Jadwal Akhir</h5>
+        <h5 class="card-title">List Jadwal UAS</h5>
         <div id="loading" class="text-center my-3" style="display: none;">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -97,9 +98,10 @@
                     <th>SMT</th>
                     <th>Jam Mulai</th>
                     <th>Jam Selesai</th>
-                    <th>Tanggal</th>
+                    <th>Hari</th>
                     <th>Ruangan</th>
                     <th>Jenis Kelas</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -130,7 +132,7 @@
 
         loading.style.display = "block"; // Tampilkan loading
 
-        fetch(`{{ route('admin.jadwal-uas.filter') }}?programStudi=${programStudi}&semester=${semester}`)
+        fetch(`{{ route('admin.jadwal.filter') }}?programStudi=${programStudi}&semester=${semester}`)
             .then(response => response.json())
             .then(data => {
                 loading.style.display = "none"; // Sembunyikan loading
@@ -150,17 +152,24 @@
                         <td>${jadwal.nama_matakuliah}</td>
                         <td>${jadwal.semester}</td>
 
-                       <!-- Editable Jam -->
+                        <!-- Editable Jam -->
                         <td>
                             <input type="time" class="form-control update-field" data-field="jam_mulai" value="${jadwal.jam_mulai}" />
                         </td>
                         <td>
                             <input type="time" class="form-control update-field" data-field="jam_selesai" value="${jadwal.jam_selesai}" />
                         </td>
-
                         <!-- Editable Tanggal -->
                         <td>
-                            <input type="date" class="form-control update-field" data-field="tanggal" value="${jadwal.tanggal}" />
+                            <select class="form-control update-field" data-field="hari">
+                                <option value="Senin" ${jadwal.hari === 'Senin' ? 'selected' : ''}>Senin</option>
+                                <option value="Selasa" ${jadwal.hari === 'Selasa' ? 'selected' : ''}>Selasa</option>
+                                <option value="Rabu" ${jadwal.hari === 'Rabu' ? 'selected' : ''}>Rabu</option>
+                                <option value="Kamis" ${jadwal.hari === 'Kamis' ? 'selected' : ''}>Kamis</option>
+                                <option value="Jumat" ${jadwal.hari === 'Jumat' ? 'selected' : ''}>Jumat</option>
+                                <option value="Sabtu" ${jadwal.hari === 'Sabtu' ? 'selected' : ''}>Sabtu</option>
+                                <option value="Minggu" ${jadwal.hari === 'Minggu' ? 'selected' : ''}>Minggu</option>
+                            </select>
                         </td>
 
                         <!-- Editable Ruangan -->
@@ -172,6 +181,12 @@
                         </td>
 
                         <td>${jadwal.jenis_kelas}</td>
+                        <!-- Tombol Hapus -->
+                        <td>
+                            <button class="btn btn-danger btn-sm delete-btn" data-id="${jadwal.id}">
+                                <i class="bx bx-trash"></i> Hapus
+                            </button>
+                        </td>
                     </tr>`;
 
                     tbody.innerHTML += row;
@@ -194,12 +209,12 @@
             let field = e.target.getAttribute('data-field');
             let value = e.target.value;
 
-            updateJadwalUAS(id, field, value);
+            updateJadwalUTS(id, field, value);
         }
     });
 
-    function updateJadwalUAS(id, field, value) {
-        fetch(`{{ url('/admin/jadwal-uas/update') }}/${id}`, {
+    function updateJadwalUTS(id, field, value) {
+        fetch(`{{ url('/admin/jadwal-kuliah/update') }}/${id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -236,7 +251,7 @@
         document.getElementById('submitBtngenerate').addEventListener('click', function () {
             Swal.fire({
                 title: 'Konfirmasi',
-                text: "Apakah Anda yakin ingin generate jadwal UAS?",
+                text: "Apakah Anda yakin ingin generate jadwal UTS?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Ya, Lanjutkan!',
@@ -259,5 +274,69 @@
                 showConfirmButton: false
             });
         @endif
+                // Event Listener untuk Hapus Jadwal tanpa reload
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-btn')) {
+        let row = e.target.closest('tr');
+        let id = row.getAttribute('data-id');
+
+        Swal.fire({
+            title: "Apakah Anda yakin?",
+            text: "Data jadwal praktik ini akan dihapus secara permanen!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Ya, Hapus!",
+            cancelButtonText: "Batal"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteJadwalUTS(id, row);
+            }
+        });
+    }
+});
+
+// Fungsi untuk menghapus jadwal praktik tanpa reload
+function deleteJadwalUTS(id, row) {
+    fetch(`/admin/jadwal-uas/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: "Berhasil!",
+                text: data.message,
+                icon: "success",
+                confirmButtonText: "OK"
+            });
+
+            // Efek fade-out sebelum menghapus row
+            row.style.transition = "opacity 0.3s";
+            row.style.opacity = "0";
+
+            setTimeout(() => row.remove(), 300);
+        } else {
+            Swal.fire({
+                title: "Gagal!",
+                text: data.message,
+                icon: "error",
+                confirmButtonText: "OK"
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: "Terjadi Kesalahan!",
+            text: "Gagal menghapus data",
+            icon: "error",
+            confirmButtonText: "OK"
+        });
+    });
+}
 </script>
 @endsection

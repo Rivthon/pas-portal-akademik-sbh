@@ -100,6 +100,7 @@
                     <th>Tanggal</th>
                     <th>Ruangan</th>
                     <th>Jenis Kelas</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -172,6 +173,12 @@
                         </td>
 
                         <td>${jadwal.jenis_kelas}</td>
+                        <!-- Tombol Hapus -->
+                        <td>
+                            <button class="btn btn-danger btn-sm delete-btn" data-id="${jadwal.id}">
+                                <i class="bx bx-trash"></i> Hapus
+                            </button>
+                        </td>
                     </tr>`;
 
                     tbody.innerHTML += row;
@@ -259,5 +266,70 @@
                 showConfirmButton: false
             });
         @endif
+
+        // Event Listener untuk Hapus Jadwal tanpa reload
+document.addEventListener('click', function (e) {
+    if (e.target.classList.contains('delete-btn')) {
+        let row = e.target.closest('tr');
+        let id = row.getAttribute('data-id');
+
+        Swal.fire({
+            title: "Apakah Anda yakin?",
+            text: "Data jadwal praktik ini akan dihapus secara permanen!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Ya, Hapus!",
+            cancelButtonText: "Batal"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteJadwalUTS(id, row);
+            }
+        });
+    }
+});
+
+// Fungsi untuk menghapus jadwal praktik tanpa reload
+function deleteJadwalUTS(id, row) {
+    fetch(`/admin/jadwal-uts/delete/${id}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: "Berhasil!",
+                text: data.message,
+                icon: "success",
+                confirmButtonText: "OK"
+            });
+
+            // Efek fade-out sebelum menghapus row
+            row.style.transition = "opacity 0.3s";
+            row.style.opacity = "0";
+
+            setTimeout(() => row.remove(), 300);
+        } else {
+            Swal.fire({
+                title: "Gagal!",
+                text: data.message,
+                icon: "error",
+                confirmButtonText: "OK"
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: "Terjadi Kesalahan!",
+            text: "Gagal menghapus data",
+            icon: "error",
+            confirmButtonText: "OK"
+        });
+    });
+}
 </script>
 @endsection

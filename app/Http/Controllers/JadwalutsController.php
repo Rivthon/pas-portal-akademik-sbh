@@ -122,7 +122,8 @@ class JadwalUtsController extends Controller
                         'jadwal_uts.jam_selesai',
                         'jadwal_uts.tanggal',
                         'ruangan.nama as nama_ruangan',
-                        'jadwal_uts.jenis_kelas'
+                        'jadwal_uts.jenis_kelas',
+                        'jadwal_uts.ruangan_id'
                     )
                     ->join('matakuliah', function ($join) use ($semester) {
                         $join->on('jadwal_uts.matakuliah_id', '=', 'matakuliah.matakuliah_id')
@@ -170,30 +171,16 @@ class JadwalUtsController extends Controller
                 return response()->json(['success' => true, 'message' => 'Jadwal berhasil diperbarui.']);
             }
 
-        public function destroy($id)
+         public function destroy($id)
         {
-            try {
-                $jadwal = Jadwaluts::find($id);
+            $jadwal = Jadwaluts::find($id);
 
-                if ($jadwal) {
-                    $jadwal->delete();
-                    Alert::toast('Data Jadwal berhasil dihapus.', 'info')
-                        ->position('bottom-end')
-                        ->autoClose(3000);
-
-                    return redirect()->back(); // Sesuaikan dengan kebutuhan
-                } else {
-                    Alert::toast('Data tidak ditemukan.', 'error')
-                        ->position('bottom-end')
-                        ->autoClose(3000);
-
-                    return redirect()->back();
-                }
-            } catch (\Exception $e) {
-                Alert::toast('Gagal menghapus data: ' . $e->getMessage(), 'error')
-                    ->position('bottom-end')
-                    ->autoClose(3000);
-                return redirect()->back();
+            if (!$jadwal) {
+                return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
             }
-    }
+
+            $jadwal->delete();
+
+            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+        }
 }

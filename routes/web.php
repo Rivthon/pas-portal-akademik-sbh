@@ -207,7 +207,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/jadwaluts', [JadwalutsController::class, 'store'])->middleware('permission:jadwal-uts-create')->name('jadwal-uts.store');
         Route::get('/jadwaluts/{id}/edit', [JadwalutsController::class, 'edit'])->middleware('permission:jadwal-uts-edit')->name('jadwal-uts.edit');
         Route::post('/jadwal-uts/update/{id}', [JadwalutsController::class, 'update'])->name('jadwal-uts.update');
-        Route::delete('/jadwaluts/{id}', [JadwalutsController::class, 'destroy'])->middleware('permission:jadwal-uts-delete')->name('jadwal-uts.destroy');
+        Route::delete('/jadwal-uts/delete/{id}', [JadwalutsController::class, 'destroy'])->middleware('permission:jadwal-uts-delete')->name('jadwal-uts.destroy');
 
         Route::get('/jadwaluas', [JadwaluasController::class, 'index'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.index');
         Route::get('/jadwaluas/filter', [JadwaluasController::class, 'filter'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.filter');
@@ -215,8 +215,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/jadwaluas', [JadwaluasController::class, 'store'])->middleware('permission:jadwal-uas-create')->name('jadwal-uas.store');
         Route::get('/jadwaluas/{id}/edit', [JadwaluasController::class, 'edit'])->middleware('permission:jadwal-uas-edit')->name('jadwal-uas.edit');
         Route::post('/jadwal-uas/update/{id}', [JadwaluasController::class, 'update'])->name('jadwal-uas.update');
-        Route::delete('/jadwaluas/{id}', [JadwaluasController::class, 'destroy'])->middleware('permission:jadwal-uas-delete')->name('jadwal-uas.destroy');
         Route::post('/jadwal-uas/generate', [JadwaluasController::class, 'generateJadwalUAS'])->name('jadwal-uas.generate');
+        Route::delete('/jadwal-uas/delete/{id}', [JadwaluasController::class, 'destroy'])->middleware('permission:jadwal-uas-delete')->name('jadwal-uas.destroy');
 
         Route::get('/jadwal', [JadwalController::class, 'index'])->middleware('permission:jadwal-list')->name('jadwal.index');
         Route::get('/jadwal/filter', [JadwalController::class, 'filter'])->middleware('permission:jadwal-list')->name('jadwal.filter');

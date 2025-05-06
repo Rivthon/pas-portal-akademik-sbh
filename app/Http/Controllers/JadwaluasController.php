@@ -40,7 +40,7 @@ class JadwaluasController extends Controller
                 return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
             }
         }
-        public function filter(Request $request)
+     public function filter(Request $request)
         {
             try {
                 $programStudi = $request->query('programStudi');
@@ -57,7 +57,7 @@ class JadwaluasController extends Controller
                     return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
                 }
 
-                // Ambil data jadwal uas dengan filter jurusan_id dan semester dari matakuliah
+                // Ambil data jadwal UTS dengan filter jurusan_id dan semester dari matakuliah
                 $jadwal = Jadwaluas::select(
                     'jadwal_uas.id',
                         'jadwal_uas.ta_id',
@@ -65,10 +65,11 @@ class JadwaluasController extends Controller
                         'matakuliah.nama as nama_matakuliah',
                         'matakuliah.smt as semester',
                         'jadwal_uas.jam_mulai',
-                         'jadwal_uas.jam_selesai',
+                        'jadwal_uas.jam_selesai',
                         'jadwal_uas.tanggal',
                         'ruangan.nama as nama_ruangan',
-                        'jadwal_uas.jenis_kelas'
+                        'jadwal_uas.jenis_kelas',
+                        'jadwal_uas.ruangan_id'
                     )
                     ->join('matakuliah', function ($join) use ($semester) {
                         $join->on('jadwal_uas.matakuliah_id', '=', 'matakuliah.matakuliah_id')
@@ -82,7 +83,7 @@ class JadwaluasController extends Controller
                     ->get();
 
                 if ($jadwal->isEmpty()) {
-                    return response()->json(['message' => 'Tidak ada jadwal uas yang ditemukan untuk program studi dan semester ini.'], 404);
+                    return response()->json(['message' => 'Tidak ada jadwal UTS yang ditemukan untuk program studi dan semester ini.'], 404);
                 }
 
                 return response()->json($jadwal);
@@ -91,69 +92,19 @@ class JadwaluasController extends Controller
             }
         }
 
-          public function generateJadwalUAS(Request $request)
-        {
-            $request->validate([
-                'jurusan_id'  => 'required|exists:program_studi,jurusan_id',
-                'jenis_kelas' => 'required|in:Reguler,Karyawan',
-            ]);
-
-            $kurikulums = Kurikulum::where('jurusan_id', $request->jurusan_id)->get();
-
-            if ($kurikulums->isEmpty()) {
-                return redirect()->back()->with('error', 'Data Kurikulum tidak ditemukan untuk Prodi ini.');
-            }
-
-            $importedCount = 0;
-
-            foreach ($kurikulums as $kurikulum) {
-                $exists = Jadwaluas::where([
-                    'ta_id'         => $kurikulum->ta_id,
-                    'jurusan_id'    => $kurikulum->jurusan_id,
-                    'matakuliah_id' => $kurikulum->matakuliah_id,
-                    'jenis_kelas'   => $request->jenis_kelas,
-                ])->exists();
-
-                if (!$exists) {
-                    Jadwaluas::create([
-                        'ta_id'         => $kurikulum->ta_id,
-                        'jurusan_id'    => $kurikulum->jurusan_id,
-                        'matakuliah_id' => $kurikulum->matakuliah_id,
-                        'ruangan_id'    => null, // Bisa diatur jika diperlukan
-                        'jam_mulai'     => null,
-                        'jam_selesai'     => null,
-                        'tanggal'       => now()->addDays(7), // Jadwal UAS seminggu dari hari ini
-                        'jenis_kelas'   => $request->jenis_kelas,
-                    ]);
-                    $importedCount++;
-                }
-            }
-
-            if ($importedCount > 0) {
-                Alert::toast("$importedCount Jadwal UAS berhasil di-import.", 'success')
-                    ->position('center')
-                    ->autoClose(3000);
-            } else {
-                Alert::toast("Tidak ada data baru yang di-import.", 'warning')
-                    ->position('center')
-                    ->autoClose(3000);
-            }
-
-            return redirect()->back();
-        }
           public function update(Request $request, $id)
             {
-                $jadwal = JadwalUTS::find($id);
+                $jadwal = Jadwaluas::find($id);
 
                 if (!$jadwal) {
                     return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
                 }
 
                 // Validasi input berdasarkan field
-               if ($request->field === 'jam_mulai') {
-                    $request->validate(['value' => 'required']);
+                if ($request->field === 'jam_mulai') {
+                    $request->validate(['value' => 'required|string']);
                 } elseif ($request->field === 'jam_selesai') {
-                    $request->validate(['value' => 'required']);
+                    $request->validate(['value' => 'required|string']);
                 } elseif ($request->field === 'tanggal') {
                     $request->validate(['value' => 'required|date']);
                 } elseif ($request->field === 'ruangan_id') {
@@ -167,28 +118,14 @@ class JadwaluasController extends Controller
             }
         public function destroy($id)
         {
-            try {
-                $jadwal = Jadwaluas::find($id);
+            $jadwal = Jadwaluas::find($id);
 
-                if ($jadwal) {
-                    $jadwal->delete();
-                    Alert::toast('Data Jadwal berhasil dihapus.', 'info')
-                        ->position('bottom-end')
-                        ->autoClose(3000);
-
-                    return redirect()->back(); // Sesuaikan dengan kebutuhan
-                } else {
-                    Alert::toast('Data tidak ditemukan.', 'error')
-                        ->position('bottom-end')
-                        ->autoClose(3000);
-
-                    return redirect()->back();
-                }
-            } catch (\Exception $e) {
-                Alert::toast('Gagal menghapus data: ' . $e->getMessage(), 'error')
-                    ->position('bottom-end')
-                    ->autoClose(3000);
-                return redirect()->back();
+            if (!$jadwal) {
+                return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
             }
-    }
+
+            $jadwal->delete();
+
+            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+        }
 }
