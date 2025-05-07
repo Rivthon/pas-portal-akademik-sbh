@@ -13,23 +13,23 @@ class PermintaanController extends Controller
      * Display a listing of the resource.
      */
    public function index(Request $request)
-{
-    $query = Permintaan::with('mahasiswa');
+    {
+        $query = Permintaan::with('mahasiswa');
 
-    if ($request->has('search')) {
-        $query->whereHas('mahasiswa', function ($q) use ($request) {
-            $q->where('nama', 'like', '%' . $request->search . '%');
-        });
+        if ($request->has('search')) {
+            $query->whereHas('mahasiswa', function ($q) use ($request) {
+                $q->where('nama', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        $permintaan = $query->orderByDesc('created_at')->paginate(10);
+
+        if ($request->ajax()) {
+            return view('permintaan.table', compact('permintaan'))->render();
+        }
+
+        return view('permintaan.index', compact('permintaan'));
     }
-
-    $permintaan = $query->orderByDesc('created_at')->paginate(10);
-
-    if ($request->ajax()) {
-        return view('permintaan.table', compact('permintaan'))->render();
-    }
-
-    return view('permintaan.index', compact('permintaan'));
-}
 
 
     public function show($id)

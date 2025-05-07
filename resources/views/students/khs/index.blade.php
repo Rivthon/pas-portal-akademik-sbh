@@ -8,7 +8,6 @@
     $edom = $user->status_edom;
     @endphp
     @if($edom == 0)
-
     <div class="card shadow-sm mb-4">
         <div class="d-flex align-items-center row g-0">
             <!-- Image Section -->
@@ -54,7 +53,7 @@
 
         </div>
     </div>
-    @else($edom == 1)
+    @elseif($edom == 1)
     <div class="col-md-12">
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center item g-0">
@@ -72,7 +71,6 @@
                         </p>
                         <!-- CTA Button -->
                         <div class="mb-3">
-
                             <a href="{{route('mahasiswa.khs.cetak')}}" class="btn btn-primary">
                                 Cetak Kartu Hasil Studi
                             </a>

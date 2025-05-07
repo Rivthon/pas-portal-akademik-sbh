@@ -54,9 +54,10 @@ class InputNilaiController extends Controller
                 ->join('mahasiswa', 'krs.mahasiswa_id', '=', 'mahasiswa.mahasiswa_id')
                 ->where('krs.ta_id', $tahunAjaranId) // Filter berdasarkan tahun ajaran yang dipilih
                 ->where('kurikulum.matakuliah_id', $matakuliahId)
-                ->where('mahasiswa.status_mhs','aktif')
-                ->select('mahasiswa.mahasiswa_id', 'mahasiswa.nama', 'krs.krs_id', 'krs.uts', 'krs.uas', 'krs.khs', 'krs.akhir')
+                ->where('mahasiswa.status_mhs', 'aktif')
+                ->select('mahasiswa.mahasiswa_id', 'mahasiswa.nama', 'mahasiswa.nim', 'krs.krs_id', 'krs.uts', 'krs.uas', 'krs.khs', 'krs.akhir')
                 ->distinct() // Hindari duplikasi data
+                ->orderBy('mahasiswa.nim', 'asc') // Urutkan berdasarkan NIM naik
                 ->get();
 
             // Jika tidak ada mahasiswa yang ditemukan

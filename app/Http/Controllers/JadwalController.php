@@ -105,9 +105,14 @@ class JadwalController extends Controller
         try {
             $programStudi = $request->query('programStudi');
             $semester = $request->query('semester');
+            $jenisKelas = $request->query('jenis_kelas');
 
             if (!$programStudi || !$semester) {
                 return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
+            }
+
+            if (!$jenisKelas) {
+                return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
             }
 
             // Ambil tahun ajaran yang statusnya aktif
@@ -138,6 +143,7 @@ class JadwalController extends Controller
             })
             ->leftJoin('ruangan', 'jadwal.ruangan_id', '=', 'ruangan.ruangan_id')
             ->where('jadwal.jurusan_id', $programStudi)
+             ->where('jadwal.jenis_kelas', $jenisKelas)
             ->where('jadwal.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
             ->orderBy('jadwal.jam_mulai', 'asc')
             ->get();

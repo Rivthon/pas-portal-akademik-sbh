@@ -53,31 +53,34 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-md-4">
-                <div class="card text-center">
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm border-0 rounded-3">
                     <div class="card-body">
-                        <h5 class="card-title">Total SKS</h5>
-                        <p class="card-text display-4">{{ $totalSks }}</p>
-                        <small>Jumlah SKS yang telah diambil</small>
+                        <i class="bx bx-book-open fs-1 text-primary mb-2"></i>
+                        <h6 class="card-title text-secondary mb-1">Total SKS</h6>
+                        <p class="display-4 fw-bold text-dark mb-0">{{ $totalSks }}</p>
+                        <small class="text-muted">Jumlah SKS yang telah diambil</small>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card text-center">
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm border-0 rounded-3">
                     <div class="card-body">
-                        <h5 class="card-title">IPK</h5>
-                        <p class="card-text display-4">{{ number_format($ipk, 2) }}</p>
-                        <small>Indeks Prestasi Kumulatif</small>
+                        <i class="bx bx-bar-chart fs-1 text-success mb-2"></i>
+                        <h6 class="card-title text-secondary mb-1">IPK</h6>
+                        <p class="display-4 fw-bold text-dark mb-0">{{ number_format($ipk, 2) }}</p>
+                        <small class="text-muted">Indeks Prestasi Kumulatif</small>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card text-center">
+            <div class="col-md-4 mb-3">
+                <div class="card text-center shadow-sm border-0 rounded-3">
                     <div class="card-body">
-                        <h5 class="card-title">Predikat</h5>
-                        <p class="card-text display-4">
+                        <i class="bx bx-award fs-1 text-warning mb-2"></i>
+                        <h6 class="card-title text-secondary mb-1">Predikat</h6>
+                        <p class="fs-4 fw-semibold text-dark mb-0">
                             @if($ipk >= 3.51)
                             Pujian (Cum Laude)
                             @elseif($ipk >= 3.01)
@@ -90,7 +93,7 @@
                             Gagal (Fail)
                             @endif
                         </p>
-                        <small>Predikat berdasarkan IPK</small>
+                        <small class="text-muted">Predikat berdasarkan IPK</small>
                     </div>
                 </div>
             </div>

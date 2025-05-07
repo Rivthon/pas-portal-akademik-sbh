@@ -245,8 +245,9 @@
                         }
                         $("#pertemuanList").html(pertemuanHTML);
                     },
-                    error: function () {
-                        $("#pertemuanList").html('<li class="list-group-item text-danger">Gagal memuat daftar pertemuan.</li>');
+                    error: function (xhr) {
+                        let errorMessage = xhr.responseJSON?.message || "Gagal memuat daftar pertemuan. Silakan coba lagi.";
+                        $("#pertemuanList").html(`<li class="list-group-item text-danger">${errorMessage}</li>`);
                     }
                 });
             }
@@ -271,7 +272,8 @@
                         loadListPertemuan(response.jadwal_id);
                     },
                     error: function (xhr) {
-                        alert("Terjadi kesalahan. Silakan coba lagi.");
+                        let errorMessage = xhr.responseJSON?.message || "Terjadi kesalahan. Silakan coba lagi Pertemuan Teori.";
+                        alert(`Error: ${errorMessage}`);
                     }
                 });
             });
@@ -392,7 +394,6 @@
 
         });
     });
-
         document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("btnTambahMahasiswa").addEventListener("click", function() {
             let select = document.getElementById("selectMahasiswa");
@@ -437,13 +438,14 @@
 
     document.getElementById('jam_mulai').addEventListener('input', function () {
         let time = this.value;
-        document.getElementById('format-jam').innerText = `Jam yang dipilih: ${time}`;
+        document.getElementById('format-jam-mulai').innerText = `Jam yang dipilih: ${time}`;
     });
 
     document.getElementById('jam_selesai').addEventListener('input', function () {
         let time = this.value;
         document.getElementById('format-jam-selesai').innerText = `Jam selesai yang dipilih: ${time}`;
     });
+
     function confirmLogout(event) {
         event.preventDefault();
         Swal.fire({
@@ -523,7 +525,8 @@
                         loadListPertemuan(response.jadwal_praktik_id);
                     },
                     error: function (xhr) {
-                        alert("Terjadi kesalahan. Silakan coba lagi.");
+                        let errorMessage = xhr.responseJSON?.message || "Terjadi kesalahan. Silakan coba lagi.";
+                        alert(`Error: ${errorMessage}`);
                     }
                 });
             });

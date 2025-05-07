@@ -72,8 +72,8 @@
                     <tr>
                         <th style="width: 100px; text-align: center;">UTS</th>
                         <th style="width: 100px; text-align: center;">UAS</th>
-                        <th style="width: 100px; text-align: center;">Akhir</th>
-                        <th style="width: 100px; text-align: center;">KHS</th>
+                        <th style="width: 100px; text-align: center;">Absolute</th>
+                        <th style="width: 100px; text-align: center;">Huruf Mutu</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -17,7 +17,20 @@
                 <td>{{ $item->mahasiswa->nama ?? '-' }}</td>
                 <td>{{ ucfirst($item->jenis_permintaan) }}</td>
                 <td>{{ $item->judul }}</td>
-                <td><span class="badge bg-info">{{ ucfirst($item->status) }}</span></td>
+                <td>
+                    @php
+                    $badgeColors = [
+                    'menunggu' => 'bg-warning',
+                    'disetujui' => 'bg-success',
+                    'ditolak' => 'bg-danger',
+                    'revisi' => 'bg-secondary',
+                    'selesai' => 'bg-primary',
+                    ];
+                    @endphp
+                    <span class="badge {{ $badgeColors[$item->status] ?? 'bg-info' }}">
+                        {{ ucfirst($item->status) }}
+                    </span>
+                </td>
                 <td>
                     <a href="{{ route('admin.helpdesk.show', $item->id) }}" class="btn btn-sm btn-primary">Detail</a>
                 </td>

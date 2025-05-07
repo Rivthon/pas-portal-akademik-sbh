@@ -1,5 +1,5 @@
 <table class="table table-bordered table-striped align-middle">
-    <thead class="bg-primary text-light text-center">
+    <thead class="table-primary">
         <tr>
             <th>Avatar</th>
             <th>Nama</th>

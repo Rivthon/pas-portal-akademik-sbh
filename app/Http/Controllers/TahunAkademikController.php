@@ -20,38 +20,23 @@ class TahunAkademikController extends Controller
         $this->middleware('permission:tahun-ajaran-delete', ['only' => ['destroy']]);
     }
 
-    public function index(Request $request): View|JsonResponse
-{
-    // Ambil input pencarian dari request atau session
-    $search = $request->input('search', session('search_tahun_ajaran', ''));
+    /**
+     * Display a listing of the resource.
+     */
+  public function index(Request $request)
+    {
+        $search = $request->input('search');
 
-    // Simpan nilai pencarian ke session jika ada input baru
-    if ($request->has('search')) {
-        session(['search_tahun_ajaran' => $search]);
+        $tahunAjarans = TahunAkademik::when($search, function ($query, $search) {
+            return $query->where('nama', 'like', "%{$search}%");
+        })->orderBy('ta_id', 'desc')->paginate(10);
+
+        if ($request->ajax()) {
+            return view('tahun-ajaran.table', compact('tahunAjarans'))->render(); // ini file blade AJAX
+        }
+
+        return view('tahun-ajaran.index', compact('tahunAjarans'));
     }
-
-    // Ambil semua data Tahun Akademik (tanpa query builder)
-    $tahunAjarans = TahunAkademik::when(!empty($search), function ($query) use ($search) {
-        return $query->where('nama', 'like', "%$search%")
-                     ->orWhere('semester', 'like', "%$search%");
-    })->paginate(10)->appends(['search' => $search]);
-
-    // Hitung nomor indeks untuk paginasi
-    $pageIndex = ($tahunAjarans->currentPage() - 1) * $tahunAjarans->perPage();
-
-    // Jika request adalah AJAX, kirim hanya partial view
-    if ($request->ajax()) {
-        return response()->json([
-            'html' => view('tahun-ajaran.partials_list', compact('tahunAjarans', 'pageIndex'))->render(),
-        ]);
-    }
-
-    // Jika bukan AJAX, kirim full view
-    return view('tahun-ajaran.index', compact('tahunAjarans', 'pageIndex', 'search'));
-}
-
-
-
 
 
     public function create(): View

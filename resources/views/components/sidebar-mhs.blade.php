@@ -1,11 +1,9 @@
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-    <div class="app-brand demo">
-        <a href="#" class="app-brand-link">
+    <div class="app-brand demo justify-content-center">
+        <a href="#" class="app-brand-link d-flex align-items-center">
             <img src="{{ $settings->logo ? asset('storage/' . $settings->logo) : asset('default/logo.ico') }}"
-                class="navbar-brand-img" width="26" height="26" alt="main_logo">
-            <span class="app-brand-text demo menu-text fw-bold ms-2 fs-6 text-uppercase">{{ $settings->name }}</span>
+                class="navbar-brand-img" style="height: 36px; width: auto;" alt="main_logo">
         </a>
-
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
             <i class="bx bx-chevron-left bx-sm align-middle"></i>

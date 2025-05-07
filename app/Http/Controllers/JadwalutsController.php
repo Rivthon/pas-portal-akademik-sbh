@@ -96,20 +96,25 @@ class JadwalUtsController extends Controller
 
         public function filter(Request $request)
         {
-            try {
-                $programStudi = $request->query('programStudi');
-                $semester = $request->query('semester');
+           try {
+            $programStudi = $request->query('programStudi');
+            $semester = $request->query('semester');
+            $jenisKelas = $request->query('jenis_kelas');
 
-                if (!$programStudi || !$semester) {
-                    return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
-                }
+            if (!$programStudi || !$semester) {
+                return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
+            }
 
-                // Ambil tahun ajaran yang statusnya aktif
-                $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+            if (!$jenisKelas) {
+                return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
+            }
 
-                if (!$tahunAjaran) {
-                    return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
-                }
+            // Ambil tahun ajaran yang statusnya aktif
+            $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+
+            if (!$tahunAjaran) {
+                return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
+            }
 
                 // Ambil data jadwal UTS dengan filter jurusan_id dan semester dari matakuliah
                 $jadwal = Jadwaluts::select(
@@ -123,7 +128,8 @@ class JadwalUtsController extends Controller
                         'jadwal_uts.tanggal',
                         'ruangan.nama as nama_ruangan',
                         'jadwal_uts.jenis_kelas',
-                        'jadwal_uts.ruangan_id'
+                        'jadwal_uts.ruangan_id',
+                        'jadwal_uts.jenis_kelas'
                     )
                     ->join('matakuliah', function ($join) use ($semester) {
                         $join->on('jadwal_uts.matakuliah_id', '=', 'matakuliah.matakuliah_id')
@@ -131,6 +137,7 @@ class JadwalUtsController extends Controller
                     })
                     ->leftJoin('ruangan', 'jadwal_uts.ruangan_id', '=', 'ruangan.ruangan_id')
                     ->where('jadwal_uts.jurusan_id', $programStudi)
+                      ->where('jadwal_uts.jenis_kelas', $jenisKelas)
                     ->where('jadwal_uts.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
                     ->orderBy('jadwal_uts.tanggal', 'asc')
                     ->orderBy('jadwal_uts.jam_mulai', 'asc')

@@ -47,6 +47,13 @@
                             @endfor
                     </select>
                 </div>
+                <div class="form-group mt-3">
+                    <label for="jenis_kelas" class="form-label">Pilih Jenis Kelas:</label>
+                    <select name="jenis_kelas" id="jenis_kelas_cari" class="form-select" required>
+                        <option value="reguler">Reguler</option>
+                        <option value="karyawan">Karyawan</option>
+                    </select>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mt-4">
                     <button id="search-btn" class="btn btn-primary">Lihat Jadwal</button>
                 </div>
@@ -112,6 +119,7 @@
     document.getElementById('search-btn').addEventListener('click', function () {
         let programStudi = document.getElementById('program-studi').value;
         let semester = document.getElementById('semester').value;
+        let jenis_kelas = document.getElementById('jenis_kelas_cari').value;
         let alertContainer = document.getElementById('alert-container');
         let loading = document.getElementById('loading');
         let table = document.getElementById('jadwal-table');
@@ -122,14 +130,24 @@
         table.style.display = "none";
         tbody.innerHTML = "";
 
-        if (!programStudi || !semester) {
-            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih program studi dan semester terlebih dahulu.</div>`;
+        if (!programStudi) {
+            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih program studi terlebih dahulu.</div>`;
+            return;
+        }
+
+        if (!semester) {
+            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih semester terlebih dahulu.</div>`;
+            return;
+        }
+
+        if (!jenis_kelas) {
+            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih jenis kelas terlebih dahulu.</div>`;
             return;
         }
 
         loading.style.display = "block"; // Tampilkan loading
 
-        fetch(`{{ route('admin.jadwal.filter') }}?programStudi=${programStudi}&semester=${semester}`)
+        fetch(`{{ route('admin.jadwal.filter') }}?programStudi=${programStudi}&semester=${semester}&jenis_kelas=${jenis_kelas}`)
             .then(response => response.json())
             .then(data => {
                 loading.style.display = "none"; // Sembunyikan loading
@@ -177,7 +195,10 @@
                             </select>
                         </td>
 
-                        <td>${jadwal.jenis_kelas}</td>
+                        <td>
+                            <span class="badge bg-primary">${jadwal.jenis_kelas}</span>
+                        </td>
+
                     </tr>`;
 
                     tbody.innerHTML += row;

@@ -389,7 +389,6 @@ class PerkuliahanDosenController extends Controller
 
         try {
             DB::beginTransaction();
-
             // Simpan pertemuan baru
             $pertemuan = Pertemuan::create([
                 'jadwal_id' => $request->jadwal_id,
@@ -425,7 +424,21 @@ class PerkuliahanDosenController extends Controller
                 ->pluck('mahasiswa_id'); // Ambil hanya ID untuk efisiensi
 
             if ($mahasiswaList->isEmpty()) {
-                return response()->json(['message' => 'Tidak ada mahasiswa yang cocok'], 404);
+                Log::error('Daftar mahasiswa kosong berdasarkan filter yang diberikan', [
+                    'semester' => $semester,
+                    'jurusan_id' => $jurusan_id,
+                    'jenis_kelas' => $jadwal->jenis_kelas,
+                ]);
+
+                return response()->json([
+                    'message' => 'Tidak ada mahasiswa yang cocok',
+                    'error' => 'Daftar mahasiswa kosong berdasarkan filter yang diberikan',
+                    'details' => [
+                        'semester' => $semester,
+                        'jurusan_id' => $jurusan_id,
+                        'jenis_kelas' => $jadwal->jenis_kelas,
+                    ]
+                ], 404);
             }
 
             // Data absensi yang akan dimasukkan
@@ -453,13 +466,13 @@ class PerkuliahanDosenController extends Controller
             DB::rollBack();
             Log::error('Gagal menyimpan pertemuan dan absensi: ' . $e->getMessage());
              return response()->json([
-        'message' => 'Terjadi kesalahan saat menyimpan pertemuan dan absensi',
-        'error' => $e->getMessage(), // Tampilkan pesan error
-        'line' => $e->getLine(), // Tampilkan baris kode yang error
-        'file' => $e->getFile() // Tampilkan file yang error
-    ], 500);
+            'message' => 'Terjadi kesalahan saat menyimpan pertemuan dan absensi',
+            'error' => $e->getMessage(), // Tampilkan pesan error
+            'line' => $e->getLine(), // Tampilkan baris kode yang error
+            'file' => $e->getFile() // Tampilkan file yang error
+        ], 500);
+            }
         }
-    }
 
     public function listPertemuan($jadwal_id)
     {
@@ -571,11 +584,23 @@ class PerkuliahanDosenController extends Controller
                     return $query->where('kelas', 'karyawan'); // Cocokan dengan kelas yang ada di mahasiswa karyawan
                 })
                 ->pluck('mahasiswa_id'); // Ambil hanya ID untuk efisiensi
-
             if ($mahasiswaList->isEmpty()) {
-                return response()->json(['message' => 'Tidak ada mahasiswa yang cocok'], 404);
-            }
+                Log::error('Daftar mahasiswa kosong berdasarkan filter yang diberikan', [
+                    'semester' => $semester,
+                    'jurusan_id' => $jurusan_id,
+                    'jenis_kelas' => $jadwal->jenis_kelas,
+                ]);
 
+                return response()->json([
+                    'message' => 'Tidak ada mahasiswa yang cocok',
+                    'error' => 'Daftar mahasiswa kosong berdasarkan filter yang diberikan',
+                    'details' => [
+                        'semester' => $semester,
+                        'jurusan_id' => $jurusan_id,
+                        'jenis_kelas' => $jadwal->jenis_kelas,
+                    ]
+                ], 404);
+            }
             // Data absensi yang akan dimasukkan
             $absensiData = $mahasiswaList->map(function ($mahasiswa_id) use ($pertemuan, $request) {
                 return [

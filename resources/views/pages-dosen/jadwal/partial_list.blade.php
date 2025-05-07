@@ -82,18 +82,14 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="jam_selesai" class="form-label">Jam Selesai</label>
-                            <input type="time" class="form-control" id="jam_selesai" name="jam_selesai" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
                             <label for="jam_mulai" class="form-label">Jam Mulai</label>
                             <input type="time" class="form-control" id="jam_mulai" name="jam_mulai" required>
+                            <p id="format-jam-mulai" class="text-muted small mt-1"></p>
                         </div>
-
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 d-flex align-items-end">
-                            <p id="format-jam" class="text-muted small"></p>
+                        <div class="col-md-6 mb-3">
+                            <label for="jam_selesai" class="form-label">Jam Selesai</label>
+                            <input type="time" class="form-control" id="jam_selesai" name="jam_selesai" required>
+                            <p id="format-jam-selesai" class="text-muted small mt-1"></p>
                         </div>
                     </div>
 
@@ -117,7 +113,7 @@
                 <div class="card mt-3 shadow-sm border-0">
                     <div class="card-body">
                         <h6 class="mb-3"><i class="fas fa-list"></i> Daftar Pertemuan</h6>
-                        <ul id="absensiList" class="list-group">
+                        <ul id="pertemuanList" class="list-group">
                             <li class="list-group-item text-muted">Memuat data...</li>
                         </ul>
                     </div>

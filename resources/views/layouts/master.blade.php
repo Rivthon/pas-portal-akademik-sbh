@@ -242,7 +242,6 @@
         { form: '#search-jadwal-uas', list: '#jadwal-uas-list', route: "{{ route('admin.jadwal-uas.index') }}" },
         { form: '#search-aktivasi', list: '#aktivasi-list', route: "{{ route('admin.aktivasi.index') }}" },
         { form: '#search-uap', list: '#uap-list', route: "{{ route('admin.jadwal-uap.index') }}" },
-        { form: '#tahun-ajaran', list: '#tahun-ajaran-list', route: "{{ route('admin.tahun-ajaran.index') }}" },
         { form: '#search-tarif', list: '#tarif-list', route: "{{ route('admin.tarif.index') }}" },
         { form: '#search-tenor', list: '#tenor-list', route: "{{ route('admin.tenor-pembayaran.index') }}" },
         { form: '#search-tagihan', list: '#tagihan-list', route: "{{ route('admin.tagihan-mahasiswa.index') }}" },
@@ -480,8 +479,8 @@ $(document).ready(function() {
                             value="${mhs.uas ?? ''}">
                     </td>
                     <td>
-                        <input type="number" name="akhir[${mhs.mahasiswa_id}]" class="form-control" min="0" max="100"
-                            value="${mhs.akhir ?? ''}">
+                        <input type="text" name="akhir[${mhs.mahasiswa_id}]" class="form-control" pattern="^\d+(\.\d{1,2})?$"
+                            value="${mhs.akhir ?? ''}" title="Masukkan angka dengan format desimal (contoh: 80.5)">
                     </td>
                     <td>
                         <div class="d-flex">
@@ -609,7 +608,7 @@ document.getElementById('form-nilai').addEventListener('submit', async function 
             var status = $('#status').val();
 
             // Menampilkan loading indicator
-            $('#table-container').html('<div class="text-center my-3"><i class="bx bx-loader bx-spin bx-lg"></i> Memuat data...</div>');
+            $('#table-container').html('<div class="text-center my-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Memuat data...</div>');
 
             $.ajax({
                 url: url,
@@ -710,76 +709,83 @@ document.getElementById('form-nilai').addEventListener('submit', async function 
         setTimeout(() => alertBox.removeClass("d-block").addClass("d-none"), 5000);
     }
 });
+    </script>
+    <script>
+        function handleAjaxTable({ sectionId, searchInputId, url }) {
+        const $section = $(sectionId);
+        const $searchInput = $(searchInputId);
+        const $spinner = $('#loading-spinner');
 
-
- $(document).ready(function () {
-        function fetchPengajuan(page = 1, search = '') {
-            $('#loading-spinner').show(); // tampilkan spinner sebelum request
+        function fetchData(page = 1, search = '') {
+            $spinner.show();
 
             $.ajax({
-                url: "{{ route('admin.transkrip.index') }}?page=" + page + "&search=" + search,
+                url: `${url}?page=${page}&search=${search}`,
                 success: function (data) {
-                    $('#table-container').html(data);
+                    $section.find('#table-container').html(data);
                 },
                 error: function () {
-                    alert('Gagal memuat data pengajuan.');
+                    $section.find('#table-container').html(
+                        '<div class="alert alert-danger text-center">Gagal memuat data.</div>'
+                    );
                 },
                 complete: function () {
-                    $('#loading-spinner').hide(); // sembunyikan spinner setelah selesai
+                    $spinner.hide();
                 }
             });
         }
 
-        $('#search-pengajuan').on('keyup', function () {
-            let query = $(this).val();
-            fetchPengajuan(1, query);
+        // Debounced Search Handler
+        let debounce;
+        $searchInput.on('keyup', function () {
+            clearTimeout(debounce);
+            const query = $(this).val();
+            debounce = setTimeout(() => {
+                fetchData(1, query);
+            }, 300);
         });
 
-        $(document).on('click', '.pagination a', function (e) {
+        // Pagination Handler
+        $section.on('click', '.pagination a', function (e) {
             e.preventDefault();
-            let page = $(this).attr('href').split('page=')[1];
-            let query = $('#search-pengajuan').val();
-            fetchPengajuan(page, query);
+            const page = $(this).attr('href').split('page=')[1];
+            const query = $searchInput.val();
+            fetchData(page, query);
         });
-    });
+
+        // Return fetchData if needed
+        return { fetchData };
+    }
+
     $(document).ready(function () {
-    function fetchPermintaan(page = 1, search = '') {
-    $('#loading-spinner').show();
+        // Transkrip section
+        if ($('#transkrip-section').length) {
+            handleAjaxTable({
+                sectionId: '#transkrip-section',
+                searchInputId: '#search-pengajuan',
+                url: "{{ route('admin.transkrip.index') }}"
+            });
+        }
 
-    $.ajax({
-    url: "{{ route('admin.helpdesk.index') }}?page=" + page + "&search=" + search,
-    success: function (data) {
-    $('#table-container').html(data);
-    },
-    error: function () {
-    $('#table-container').html('<div class="alert alert-danger text-center">Gagal memuat data.</div>');
-    },
-    complete: function () {
-    $('#loading-spinner').hide();
-    }
-    });
-    }
+        // Tahun Ajaran section
+        if ($('#tahun-ajaran-section').length) {
+            handleAjaxTable({
+                sectionId: '#tahun-ajaran-section',
+                searchInputId: '#search-tahun-ajaran',
+                url: "{{ route('admin.tahun-ajaran.index') }}"
+            });
+        }
 
-    // Debounced Search
-    let debounce;
-    $('#search-permintaan').on('keyup', function () {
-    clearTimeout(debounce);
-    let query = $(this).val();
-    debounce = setTimeout(() => {
-    fetchPermintaan(1, query);
-    }, 300);
-    });
-
-    // Pagination Click
-    $(document).on('click', '.pagination a', function (e) {
-    e.preventDefault();
-    let page = $(this).attr('href').split('page=')[1];
-    let query = $('#search-permintaan').val();
-    fetchPermintaan(page, query);
-    });
+        // Permintaan Helpdesk section
+        if ($('#permintaan-section').length) {
+            handleAjaxTable({
+                sectionId: '#permintaan-section',
+                searchInputId: '#search-permintaan',
+                url: "{{ route('admin.helpdesk.index') }}"
+            });
+        }
     });
     </script>
-
 </body>
 
 </html>

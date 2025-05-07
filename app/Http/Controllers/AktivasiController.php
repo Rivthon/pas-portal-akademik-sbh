@@ -14,7 +14,9 @@ class AktivasiController extends Controller
         $search = $request->input('search');
 
         // Query data mahasiswa dengan relasi program studi
-        $query = Mahasiswa::with('programStudi')->where('status_mhs', 'aktif');
+        $query = Mahasiswa::with('programStudi')
+            ->where('status_mhs', 'aktif')
+            ->orderBy('semester', 'asc'); // Tambahkan order_by semester dari 1 - 8
 
         // Filter pencarian jika input ada
         if ($search) {

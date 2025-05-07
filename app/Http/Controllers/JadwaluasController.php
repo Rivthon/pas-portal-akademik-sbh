@@ -42,12 +42,17 @@ class JadwaluasController extends Controller
         }
      public function filter(Request $request)
         {
-            try {
+                try {
                 $programStudi = $request->query('programStudi');
                 $semester = $request->query('semester');
+                $jenisKelas = $request->query('jenis_kelas');
 
                 if (!$programStudi || !$semester) {
                     return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
+                }
+
+                if (!$jenisKelas) {
+                    return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
                 }
 
                 // Ambil tahun ajaran yang statusnya aktif
@@ -56,7 +61,6 @@ class JadwaluasController extends Controller
                 if (!$tahunAjaran) {
                     return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
                 }
-
                 // Ambil data jadwal UTS dengan filter jurusan_id dan semester dari matakuliah
                 $jadwal = Jadwaluas::select(
                     'jadwal_uas.id',
@@ -69,7 +73,8 @@ class JadwaluasController extends Controller
                         'jadwal_uas.tanggal',
                         'ruangan.nama as nama_ruangan',
                         'jadwal_uas.jenis_kelas',
-                        'jadwal_uas.ruangan_id'
+                        'jadwal_uas.ruangan_id',
+                        'jadwal_uas.jenis_kelas'
                     )
                     ->join('matakuliah', function ($join) use ($semester) {
                         $join->on('jadwal_uas.matakuliah_id', '=', 'matakuliah.matakuliah_id')
@@ -77,6 +82,7 @@ class JadwaluasController extends Controller
                     })
                     ->leftJoin('ruangan', 'jadwal_uas.ruangan_id', '=', 'ruangan.ruangan_id')
                     ->where('jadwal_uas.jurusan_id', $programStudi)
+                    ->where('jadwal_uas.jenis_kelas', $jenisKelas)
                     ->where('jadwal_uas.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
                     ->orderBy('jadwal_uas.tanggal', 'asc')
                     ->orderBy('jadwal_uas.jam_mulai', 'asc')
@@ -91,6 +97,57 @@ class JadwaluasController extends Controller
                 return response()->json(['message' => 'Terjadi kesalahan pada server.', 'error' => $e->getMessage()], 500);
             }
         }
+        public function generateJadwalUAS(Request $request)
+            {
+                $request->validate([
+                    'jurusan_id'  => 'required|exists:program_studi,jurusan_id',
+                    'jenis_kelas' => 'required|in:Reguler,Karyawan',
+                ]);
+
+                $kurikulums = Kurikulum::where('jurusan_id', $request->jurusan_id)->get();
+
+                if ($kurikulums->isEmpty()) {
+                    return redirect()->back()->with('error', 'Data Kurikulum tidak ditemukan untuk Prodi ini.');
+                }
+
+                $importedCount = 0;
+
+                foreach ($kurikulums as $kurikulum) {
+                    $exists = Jadwaluas::where([
+                        'ta_id'         => $kurikulum->ta_id,
+                        'jurusan_id'    => $kurikulum->jurusan_id,
+                        'matakuliah_id' => $kurikulum->matakuliah_id,
+                        'jenis_kelas'   => $request->jenis_kelas,
+                    ])->exists();
+
+                    if (!$exists) {
+                        Jadwaluas::create([
+                            'ta_id'         => $kurikulum->ta_id,
+                            'jurusan_id'    => $kurikulum->jurusan_id,
+                            'matakuliah_id' => $kurikulum->matakuliah_id,
+                            'ruangan_id'    => null, // Bisa diatur jika diperlukan
+                            'jam_mulai'           => null,
+                            'jam_selesai'         => null,
+                            'tanggal'       => now()->addDays(7), // Jadwal UTS seminggu dari hari ini
+                            'jenis_kelas'   => $request->jenis_kelas,
+                        ]);
+                        $importedCount++;
+                    }
+                }
+
+                if ($importedCount > 0) {
+                    Alert::toast("$importedCount Jadwal UTS berhasil di-import.", 'success')
+                        ->position('center')
+                        ->autoClose(3000);
+                } else {
+                    Alert::toast("Tidak ada data baru yang di-import.", 'warning')
+                        ->position('center')
+                        ->autoClose(3000);
+                }
+
+                return redirect()->back();
+            }
+
 
           public function update(Request $request, $id)
             {

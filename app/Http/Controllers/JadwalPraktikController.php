@@ -96,9 +96,14 @@ class JadwalPraktikController extends Controller
         try {
             $programStudi = $request->query('programStudi');
             $semester = $request->query('semester');
+            $jenisKelas = $request->query('jenis_kelas');
 
             if (!$programStudi || !$semester) {
                 return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
+            }
+
+            if (!$jenisKelas) {
+                return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
             }
 
             // Ambil tahun ajaran yang statusnya aktif
@@ -121,6 +126,7 @@ class JadwalPraktikController extends Controller
                 'ruangan.nama as nama_ruangan',
                 'jadwal_praktik.jenis_kelas',
                 'jadwal_praktik.ruangan_id',
+                'jadwal_praktik.jenis_kelas'
             )
             ->join('kurikulum', 'jadwal_praktik.kurikulum_id', '=', 'kurikulum.kurikulum_id') // Menghubungkan dengan kurikulum
             ->join('matakuliah', function ($join) use ($semester) {
@@ -129,6 +135,7 @@ class JadwalPraktikController extends Controller
             })
             ->leftJoin('ruangan', 'jadwal_praktik.ruangan_id', '=', 'ruangan.ruangan_id')
             ->where('jadwal_praktik.jurusan_id', $programStudi)
+            ->where('jadwal_praktik.jenis_kelas', $jenisKelas)
             ->where('jadwal_praktik.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
             ->orderBy('jadwal_praktik.jam_mulai', 'asc')
             ->get();

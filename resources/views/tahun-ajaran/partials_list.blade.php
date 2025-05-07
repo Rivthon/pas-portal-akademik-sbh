@@ -76,7 +76,7 @@
 
     @if ($tahunAjarans->hasPages())
     <div class="d-flex justify-content-center mt-3 pagination-links">
-        {{ $tahunAjarans->links('pagination::bootstrap-4') }}
+        {{ $tahunAjarans->links('pagination::bootstrap-5') }}
     </div>
     @endif
 </div>

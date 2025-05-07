@@ -6,6 +6,7 @@
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
+                                <th>NIM</th>
                                 <th>Nama Mahasiswa</th>
                                 <th>Status KRS</th>
                                 <th>Jadwal UTS</th>
@@ -18,6 +19,8 @@
                         <tbody>
                             @forelse ($mahasiswa as $m)
                             <tr>
+                                <!-- NIM -->
+                                <td>{{ $m->nim }}</td>
                                 <!-- Nama Mahasiswa -->
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -81,7 +84,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center">Tidak ada data ditemukan.</td>
+                                <td colspan="8" class="text-center">Tidak ada data ditemukan.</td>
                             </tr>
                             @endforelse
                         </tbody>

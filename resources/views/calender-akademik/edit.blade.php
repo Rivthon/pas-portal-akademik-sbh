@@ -2,7 +2,7 @@
 @section('title', 'Edit Calender Akademik')
 @section('content')
 <div class="row">
-    <div class="col-lg-10 col-md-12 mx-auto">
+    <div class="col-lg-12 col-md-12 mx-auto">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">Edit Calender Akademik</h5>
@@ -66,9 +66,13 @@
                         </select>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+                    <div class="col-12 text-center mt-4">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan
+                        </button>
+                        <a href="{{ url()->previous() }}" class="btn btn-secondary">
+                            <i class="fa-solid fa-arrow-left"></i> Kembali
+                        </a>
                     </div>
 
                 </form>
