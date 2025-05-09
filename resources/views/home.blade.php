@@ -35,108 +35,35 @@
     <!-- Kolom Statistik Mahasiswa -->
     <div class="col-12 mt-4 col-md-8 order-1">
         <div class="row">
-            <!-- Total Mahasiswa Aktif -->
-            <div class="col-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between mb-4">
-                            <div class="avatar flex-shrink-0 bg-primary text-white rounded-circle p-2">
-                                <i class="bx bx-user-check fs-4"></i>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOptActive" data-bs-toggle="dropdown"
-                                    aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded text-muted"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOptActive">
-                                    <a class="dropdown-item" href="javascript:void(0);">View Details</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-                                </div>
-                            </div>
+            @php
+            $cards = [
+            ['title' => 'Total', 'value' => $totalMahasiswa, 'icon' => 'bx-user', 'bg' => 'bg-info'],
+            ['title' => 'Aktif', 'value' => $totalMahasiswaAktif, 'icon' => 'bx-user-check', 'bg' => 'bg-primary'],
+            ['title' => 'Non Aktif', 'value' => $totalMahasiswaTidakAktif, 'icon' => 'bx-user-x', 'bg' =>
+            'bg-danger'],
+            ['title' => 'Lulus', 'value' => $totalMahasiswaLulus, 'icon' => 'bxs-graduation', 'bg' => 'bg-success'],
+            ];
+            @endphp
+
+            @foreach($cards as $card)
+            <div class="col-md-6 col-xl-3 mb-4">
+                <div class="card h-100 text-center">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <div class="icon mb-3">
+                            <i class="bx {{ $card['icon'] }} {{ $card['bg'] }} p-3 rounded-circle text-white"></i>
                         </div>
-                        <p class="mb-1">Total Mahasiswa Aktif</p>
-                        <h4 class="card-title mb-3">{{ $totalMahasiswaAktif }}</h4>
-                        <small class="text-success fw-medium">
-                            <i class="bx bx-up-arrow-alt"></i> +5.6%
-                        </small>
+                        <h3 class="fw-bold mb-0">{{ $card['value'] }}</h3>
+                        <p class="mb-1 text-muted">{{ $card['title'] }}</p>
                     </div>
                 </div>
             </div>
+            @endforeach
 
-            <!-- Total Mahasiswa Tidak Aktif -->
-            <div class="col-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between mb-4">
-                            <div class="avatar flex-shrink-0 bg-danger text-white rounded-circle p-2">
-                                <i class="bx bx-user-x fs-4"></i>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOptInactive" data-bs-toggle="dropdown"
-                                    aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded text-muted"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOptInactive">
-                                    <a class="dropdown-item" href="javascript:void(0);">View Details</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="mb-1">Total Mahasiswa Tidak Aktif</p>
-                        <h4 class="card-title mb-3">{{ $totalMahasiswaTidakAktif }}</h4>
-                        <small class="text-danger fw-medium">
-                            <i class="bx bx-down-arrow-alt"></i> -3.2%
-                        </small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between mb-4">
-                            <div class="avatar flex-shrink-0 bg-success text-white rounded-circle p-2">
-                                <i class="bx bxs-graduation"></i>
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn p-0" type="button" id="cardOptGraduated" data-bs-toggle="dropdown"
-                                    aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded text-muted"></i>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOptInactive">
-                                    <a class="dropdown-item" href="javascript:void(0);">View Details</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="mb-1">Total Mahasiswa Lulus</p>
-                        <h4 class="card-title mb-3">{{ $totalMahasiswaLulus }}</h4>
-                        <small class="text-primary fw-medium">
-                            <i class="bx bx-check-circle"></i> No Change
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Total Mahasiswa Lulus -->
             <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
-                        <div class="card-title d-flex align-items-start justify-content-between mb-4">
-
-                            <div class="dropdown">
-                                {{-- <button class="btn p-0" type="button" id="cardOptGraduated"
-                                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                    <i class="bx bx-dots-vertical-rounded text-muted"></i>
-                                </button> --}}
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="cardOptGraduated">
-                                    <a class="dropdown-item" href="javascript:void(0);">View Details</a>
-                                    <a class="dropdown-item" href="javascript:void(0);">Refresh</a>
-                                </div>
-                            </div>
-                        </div>
-                        <h5>Mahasiswa Berdasarkan Tahun Masuk</h5>
-                        <canvas id="mahasiswaBarChart"></canvas>
+                        <h5 class="card-title">Total Mahasiswa Berdasarkan Tahun Masuk</h5>
+                        <canvas id="mahasiswaBarChart" height="120"></canvas>
                     </div>
                 </div>
             </div>

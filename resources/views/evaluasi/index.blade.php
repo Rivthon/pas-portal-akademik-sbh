@@ -48,7 +48,7 @@
                 <tr>
                     <th width="200px">No</th>
                     <th>Nama</th>
-                    <th>Kategori</th>
+                    {{-- <th>Kategori</th> --}}
                     <th width="200px">Aksi</th>
                 </tr>
             </thead>
@@ -57,7 +57,7 @@
                 <tr>
                     <td>{{ ++$i }}</td>
                     <td>{{ $r->nama }}</td>
-                    <td><span class="badge bg-label-success">{{ $r->kategori }}</span></td>
+                    {{-- <td><span class="badge bg-label-success">{{ $r->kategori }}</span></td> --}}
                     <td>
                         <form action="{{ route('admin.evaluasi.destroy',$r->eval_id) }}" method="POST"
                             style="display:inline;">

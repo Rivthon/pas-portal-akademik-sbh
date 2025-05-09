@@ -194,7 +194,7 @@ class PerkuliahanController extends Controller
             ->where('ta_id', $activeTA->ta_id)
               ->where(function ($query) {
                 $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+                if ($jenisKelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
                 } elseif ($jenisKelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
@@ -237,7 +237,7 @@ class PerkuliahanController extends Controller
             ->where('ta_id', $activeTA->ta_id)
               ->where(function ($query) {
                 $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+                if ($jenisKelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
                 } elseif ($jenisKelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
@@ -306,13 +306,12 @@ class PerkuliahanController extends Controller
                     $ttd = base64_encode(file_get_contents($logoPath));
                 }
             }
-             // Query awal dengan eager loading
             // Query awal dengan eager loading
             $jadwalUts = Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
               ->where(function ($query) {
                 $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+                if ($jenisKelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
                 } elseif ($jenisKelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
@@ -371,7 +370,7 @@ class PerkuliahanController extends Controller
             ->where('ta_id', $activeTA->ta_id)
               ->where(function ($query) {
                 $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+                if ($jenisKelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
                 } elseif ($jenisKelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');

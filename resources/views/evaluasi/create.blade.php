@@ -31,7 +31,7 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-                        <div class="col-md-12 mb-3">
+                        {{-- <div class="col-md-12 mb-3">
                             <label for="kategori" class="form-label"><strong>Kategori:</strong></label>
                             <select name="kategori" id="kategori"
                                 class="form-select @error('kategori') is-invalid @enderror">
@@ -42,7 +42,7 @@
                             @error('kategori')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                        </div>
+                        </div> --}}
                         <!-- Buttons -->
                         <div class="col-12 text-center mt-4">
                             <button type="submit" class="btn btn-primary me-2">

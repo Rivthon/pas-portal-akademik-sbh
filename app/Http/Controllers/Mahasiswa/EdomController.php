@@ -61,7 +61,7 @@ class EdomController extends Controller
                     'kode_matakuliah' => $krs->kurikulum->mataKuliah->matakuliah_id ?? null,
                     'nama_matakuliah' => $krs->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
                     'dosen' => $krs->kurikulum->dosenToMatakuliah
-                        ->where('jenis_kelas', $mahasiswa->kelas) // Filter jenis_kelas di sini
+                        ->where('jenis_kelas', $mahasiswa->kelas === 'pagi' ? 'reguler' : $mahasiswa->kelas) // Filter jenis_kelas berdasarkan kondisi
                         ->map(function ($dosenToMatakuliah) use ($mahasiswa, $krs) {
                             $isAlreadyRated = \DB::table('penilaian')
                                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)

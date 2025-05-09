@@ -19,7 +19,6 @@ class Evaluasi extends Model
     protected $fillable = [
         'eval_id',
         'nama',
-        'kategori',
     ];
         public function penilaian()
     {

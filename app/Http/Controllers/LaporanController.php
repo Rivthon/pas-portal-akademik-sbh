@@ -27,41 +27,7 @@ class LaporanController extends Controller
         ]);
     }
 
-    // public function generatePdf(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'jadwal_id' => 'required',
-    //         'start_date' => 'required|date',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //     ]);
 
-    //     $jadwalId = $validated['jadwal_id'];
-    //     $startDate = $validated['start_date'];
-    //     $endDate = $validated['end_date'];
-
-    //     // Query data absensi sesuai jadwal dan rentang tanggal
-    //     $absensi = Absensi::with(['mahasiswa', 'jadwal'])
-    //     ->where('jadwal_id', $jadwalId)
-    //         ->whereBetween('tanggal', [$startDate, $endDate])
-    //         ->get();
-
-    //     // Ambil informasi jadwal
-    //     $jadwal = Jadwal::with('mataKuliah')->findOrFail($jadwalId);
-
-    //     // Kirim data ke view untuk laporan
-    //     $data = [
-    //         'absensi' => $absensi,
-    //         'jadwal' => $jadwal,
-    //         'start_date' => $startDate,
-    //         'end_date' => $endDate,
-    //     ];
-
-    //     // Generate PDF
-    //     $pdf = PDF::loadView('laporan.pdf_2', $data);
-
-    //     // Download file PDF
-    //     return $pdf->download('Laporan-Absensi.pdf');
-    // }
     public function generatePDF(Request $request)
     {
         // Validasi input

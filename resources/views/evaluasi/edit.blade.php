@@ -33,7 +33,7 @@
                             @enderror
                         </div>
                         <!-- Input untuk Nama Evaluasi -->
-                        <div class="col-md-12 mb-3">
+                        {{-- <div class="col-md-12 mb-3">
                             <label for="kategori" class="form-label"><strong>Kategori:</strong></label>
                             <select name="kategori" id="kategori"
                                 class="form-select @error('kategori') is-invalid @enderror">
@@ -55,7 +55,7 @@
                                     <i class="fa-solid fa-arrow-left"></i> Kembali
                                 </a>
                             </div>
-                        </div>
+                        </div> --}}
                 </form>
             </div>
         </div>

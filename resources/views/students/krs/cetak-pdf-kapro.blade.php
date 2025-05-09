@@ -107,10 +107,13 @@
 <body>
     <div class="watermark"></div>
     <div class="header">
-        <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Image"
-            style="width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="text-align: center; margin: 0;">Form Kartu Rencana Studi Kaprodi</h1>
-        <h3 style="text-align: center; margin: 0;">Tahun Ajaran {{ $ta->nama }} ( {{ $ta->semester }}) </h3>
+        {{-- <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Image"
+            style="width: 100%; height: auto; margin-bottom: 20px;"> --}}
+        @if (isset($headerKrs) && $headerKrs)
+        <img src="data:image/png;base64,{{ $headerKrs }}" alt="header krs" style="width: 100%; height: auto;">
+        @endif
+        {{-- <h1 style="text-align: center; margin: 0;">Form Kartu Rencana Studi Kaprodi</h1>
+        <h3 style="text-align: center; margin: 0;">Tahun Ajaran {{ $ta->nama }} ( {{ $ta->semester }}) </h3> --}}
     </div>
 
     <div class="info">

@@ -39,7 +39,7 @@ class EvaluasiController extends Controller
         // Validasi input
         $request->validate([
             'nama' => 'required|string|max:255',
-            'kategori' => 'required|in:teori,praktik',
+            // 'kategori' => 'required|in:teori,praktik',
         ]);
 
         // Simpan data ke database
@@ -68,7 +68,7 @@ class EvaluasiController extends Controller
         // Validasi input
         $request->validate([
             'nama' => 'required',
-            'kategori' => 'required|in:teori,praktik',
+            // 'kategori' => 'required|in:teori,praktik',
         ]);
 
         // Update data

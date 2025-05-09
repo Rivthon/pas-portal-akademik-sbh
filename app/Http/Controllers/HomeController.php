@@ -33,6 +33,7 @@ class HomeController extends Controller
     {
        $dataMahasiswa = DB::table('mahasiswa')
         ->select(DB::raw('tahun_masuk, COUNT(*) as total','jurusan_id'))
+        //  ->where('status_mhs', 'aktif')
         ->groupBy('tahun_masuk')
         ->orderBy('tahun_masuk', 'asc')
         ->get();
@@ -51,6 +52,8 @@ class HomeController extends Controller
         $programStudiCounts = $programStudiData->pluck('mahasiswa_count')->toArray();
 
         // Menghitung total mahasiswa berdasarkan status
+
+        $totalMahasiswa = Mahasiswa::count();
         $totalMahasiswaAktif = Mahasiswa::where('status_mhs', 'aktif')->count();
         $totalMahasiswaTidakAktif = Mahasiswa::where('status_mhs', 'nonaktif')->count();
         $totalMahasiswaLulus = Mahasiswa::where('status_mhs', 'lulus')->count();
@@ -59,6 +62,7 @@ class HomeController extends Controller
 
       return view('home', [
             'totalMahasiswaAktif' => $totalMahasiswaAktif,
+            'totalMahasiswa' => $totalMahasiswa,
             'totalMahasiswaTidakAktif' => $totalMahasiswaTidakAktif,
             'totalMahasiswaLulus' => $totalMahasiswaLulus,
             'totalMahasiswaCuti' => $totalMahasiswaCuti,

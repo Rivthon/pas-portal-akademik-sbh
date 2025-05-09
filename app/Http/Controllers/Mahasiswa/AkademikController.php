@@ -55,60 +55,60 @@ class AkademikController extends Controller
 
 
        public function nyimpenKrs(Request $request)
-{
-    // Ambil ID mahasiswa yang sedang login
-    $mahasiswa = Auth::guard('mahasiswa')->user();
-    if (!$mahasiswa) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Mahasiswa tidak ditemukan.',
-        ], 401);
-    }
+        {
+            // Ambil ID mahasiswa yang sedang login
+            $mahasiswa = Auth::guard('mahasiswa')->user();
+            if (!$mahasiswa) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Mahasiswa tidak ditemukan.',
+                ], 401);
+            }
 
-    // Ambil Tahun Akademik Aktif
-    $ta = TahunAkademik::where('status_ta', 1)->first();
-    if (!$ta) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Tahun Akademik Aktif tidak ditemukan.',
-        ], 400);
-    }
+            // Ambil Tahun Akademik Aktif
+            $ta = TahunAkademik::where('status_ta', 1)->first();
+            if (!$ta) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tahun Akademik Aktif tidak ditemukan.',
+                ], 400);
+            }
 
-    // Validasi input data
-    $validated = $request->validate([
-        'krs' => 'required|array|min:1',       // Harus array dan minimal ada 1 item
-        'krs.*' => 'integer|exists:kurikulum,kurikulum_id', // Setiap item harus integer dan ada di tabel 'kurikulums'
-    ]);
+            // Validasi input data
+            $validated = $request->validate([
+                'krs' => 'required|array|min:1',       // Harus array dan minimal ada 1 item
+                'krs.*' => 'integer|exists:kurikulum,kurikulum_id', // Setiap item harus integer dan ada di tabel 'kurikulums'
+            ]);
 
-    try {
-        foreach ($validated['krs'] as $kurikulumId) {
-            // Periksa apakah data KRS sudah ada
-            $existingKrs = Krs::where('kurikulum_id', $kurikulumId)
-                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->where('ta_id', $ta->ta_id)
-                ->first();
+            try {
+                foreach ($validated['krs'] as $kurikulumId) {
+                    // Periksa apakah data KRS sudah ada
+                    $existingKrs = Krs::where('kurikulum_id', $kurikulumId)
+                        ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                        ->where('ta_id', $ta->ta_id)
+                        ->first();
 
-            if (!$existingKrs) {
-                // Jika tidak ada, buat entri baru
-                Krs::create([
-                    'kurikulum_id' => $kurikulumId,
-                    'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                    'ta_id' => $ta->ta_id,
+                    if (!$existingKrs) {
+                        // Jika tidak ada, buat entri baru
+                        Krs::create([
+                            'kurikulum_id' => $kurikulumId,
+                            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                            'ta_id' => $ta->ta_id,
+                        ]);
+                    }
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'KRS berhasil disimpan.',
                 ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat menyimpan KRS: ' . $e->getMessage(),
+                ], 500);
             }
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'KRS berhasil disimpan.',
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan saat menyimpan KRS: ' . $e->getMessage(),
-        ], 500);
-    }
-}
 
 
     public function tampilkanKrs()
