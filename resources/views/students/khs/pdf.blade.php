@@ -140,9 +140,9 @@
 <body>
     <!-- Header Section -->
     <div class="header">
-        <img src="{{ public_path('assets/img/header/header_kop_utama1.jpg') }}" alt="Header Image"
+        <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Image"
             style="width: 100%; height: auto; margin-bottom: 20px;">
-        <h1 style="text-align: center; margin: 0;">Formulir Hasil Studi</h1>
+        <h1 style="text-align: center; margin: 0;">Kartu Hasil Studi</h1>
         <h3 style="text-align: center; margin: 5;">Tahun Ajaran : {{ $ta->nama }} - {{ $ta->semester }}</h3>
         <table class="info-table" style="margin-top: 20px;">
             <tbody>
@@ -260,19 +260,18 @@
             <td colspan="4" style="text-align: center; padding: 10px; border: none;">{{ number_format($ips, 2) }}</td>
         </tr> --}}
         <tr>
-
-            <td colspan="3" style="text-align: left; padding: 10px; border: none;">IPK (Indeks Prestasi Kumulatif)</td>
-            <td colspan="3" style="text-align: left; padding: 10px; border: none;">: {{ number_format($ipk, 2) }}</td>
-            <td colspan="1" style="text-align: left; padding: 10px; border: none;"></td>
+            <td style="text-align: left; padding: 10px 8px 10px 0; border: none; width: 32%;">IPK (Indeks Prestasi
+                Kumulatif)</td>
+            <td style="text-align: left; padding: 10px 0 10px 4px; border: none; width: 5%;">:</td>
+            <td style="text-align: left; padding: 10px 0 10px 4px; border: none; width: 25%;">{{ number_format($ipk, 2)
+                }}</td>
+            <td style="border: none;" colspan="1"></td>
         </tr>
-        <tr>
-
-            <td colspan="3" style="text-align: left; padding: 10px; border: none;">Predikat</td>
-            <td colspan="3" style="text-align: left; padding: 10px; border: none;">:
-                {{ getPredikat($ipk) }}
-            </td>
-            <td colspan="1" style="text-align: left; padding: 10px; border: none;"></td>
-
+        <tr></tr>
+        <td style="text-align: left; padding: 10px 8px 10px 0; border: none;">Predikat</td>
+        <td style="text-align: left; padding: 10px 0 10px 4px; border: none;">:</td>
+        <td style="text-align: left; padding: 10px 0 10px 4px; border: none;">{{ getPredikat($ipk) }}</td>
+        <td style="border: none;" colspan="2"></td>
         </tr>
     </table>
 

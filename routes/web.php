@@ -318,6 +318,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
         Route::get('/permintaan/{id}/edit', [PerminataanController::class, 'edit'])->name('permintaan.edit');
 
+        Route::get('/aktivitas/prestasi', [SkpiController::class, 'index'])->name('skpi.index');
+
         Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');
         Route::put('/helpdesk/permintaan/{id}/status', [PermintaanController::class, 'updateStatus'])->name('helpdesk.updateStatus');
