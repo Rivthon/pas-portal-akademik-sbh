@@ -36,6 +36,7 @@ use App\Http\Controllers\JadwalPraktikController;
 use App\Http\Controllers\TahunAkademikController;
 use App\Http\Controllers\DosenKurikulumController;
 use App\Http\Controllers\Mahasiswa\EdomController;
+use App\Http\Controllers\Mahasiswa\SkpiController;
 use App\Http\Controllers\Mahasiswa\UjianController;
 use App\Http\Controllers\TenorPembayaranController;
 use App\Http\Controllers\CalenderAkademikController;
@@ -123,6 +124,47 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/pengajuan/create', [PengajuanTranskripController::class, 'create'])->name('pengajuan.create');
         Route::post('/pengajuan', [PengajuanTranskripController::class, 'store'])->name('pengajuan.store');
         Route::get('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'show'])->name('pengajuan.show');
+
+        Route::get('/aktivitas/prestasi', [SkpiController::class, 'index'])->name('skpi.index');
+
+        Route::get('/skpi/sertifikasi', [SkpiController::class, 'sertifikasi'])->name('skpi.sertifikasi');
+        Route::post('sertifikasi', [SkpiController::class, 'store_sertifikasi'])->name('sertifikasi.store');
+        Route::get('edit-sertifikasi/{id}/edit', [SkpiController::class, 'edit_sertifikasi'])->name('edit.sertifikasi');
+        Route::put('update-sertifikasi/{id}', [SkpiController::class, 'update_sertifikasi'])->name('update.sertifikasi');
+        Route::delete('delete-sertifikasi/{id}', [SkpiController::class, 'destroy_sertifikasi'])->name('delete.sertifikasi');
+
+        Route::get('/skpi/bahasa', [SkpiController::class, 'bahasa'])->name('skpi.bahasa');
+        Route::post('bahasa', [SkpiController::class, 'store_bahasa'])->name('bahasa.store');
+        Route::get('edit-bahasa/{id}/edit', [SkpiController::class, 'edit_bahasa'])->name('edit.bahasa');
+        Route::put('update-bahasa/{id}', [SkpiController::class, 'update_bahasa'])->name('update.bahasa');
+        Route::delete('delete-bahasa/{id}', [SkpiController::class, 'destroy_bahasa'])->name('delete.bahasa');
+
+
+        Route::get('/skpi/wirausaha', [SkpiController::class, 'wirausaha'])->name('skpi.wirausaha');
+        Route::post('wirausaha', [SkpiController::class, 'store_wirausaha'])->name('wirausaha.store');
+        Route::get('edit-wirausaha/{id}/edit', [SkpiController::class, 'edit_wirausaha'])->name('edit.wirausaha');
+        Route::put('update-wirausaha/{id}', [SkpiController::class, 'update_wirausaha'])->name('update.wirausaha');
+        Route::delete('delete-wirausaha/{id}', [SkpiController::class, 'destroy_wirausaha'])->name('delete.wirausaha');
+
+
+        Route::get('/skpi/pkm', [SkpiController::class, 'pkm'])->name('skpi.pkm');
+        Route::post('pkm', [SkpiController::class, 'store_pkm'])->name('pkm.store');
+        Route::get('edit-pkm/{id}/edit', [SkpiController::class, 'edit_pkm'])->name('edit.pkm');
+        Route::put('update-pkm/{id}', [SkpiController::class, 'update_pkm'])->name('update.pkm');
+        Route::delete('delete-pkm/{id}', [SkpiController::class, 'destroy_pkm'])->name('delete.pkm');
+
+
+        Route::get('/skpi/ppsm', [SkpiController::class, 'ppsm'])->name('skpi.ppsm');
+        Route::post('ppsm', [SkpiController::class, 'store_ppsm'])->name('ppsm.store');
+        Route::get('edit-ppsm/{id}/edit', [SkpiController::class, 'edit_ppsm'])->name('edit.ppsm');
+        Route::put('update-ppsm/{id}', [SkpiController::class, 'update_ppsm'])->name('update.ppsm');
+        Route::delete('delete-ppsm/{id}', [SkpiController::class, 'destroy_ppsm'])->name('delete.ppsm');
+
+        Route::get('/skpi/tambahan', [SkpiController::class, 'tambahan'])->name('skpi.tambahan');
+        Route::get('edit-tambahan/{id}/edit', [SkpiController::class, 'edit_tambahan'])->name('edit.tambahan');
+        Route::put('update-tambahan/{id}', [SkpiController::class, 'update_tambahan'])->name('update.tambahan');
+        Route::delete('delete-tambahan/{id}', [SkpiController::class, 'destroy_tambahan'])->name('delete.tambahan');
+        Route::post('tambahan', [SkpiController::class, 'store_tambahan'])->name('tambahan.store');
 
         Route::get('/transkrip/download', [PengajuanTranskripController::class, 'downloadTranskrip'])
          ->name('pengajuan.cetak');
@@ -317,8 +359,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
         Route::get('/permintaan/{id}/edit', [PerminataanController::class, 'edit'])->name('permintaan.edit');
-
-        Route::get('/aktivitas/prestasi', [SkpiController::class, 'index'])->name('skpi.index');
 
         Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');

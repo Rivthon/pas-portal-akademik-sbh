@@ -74,8 +74,6 @@
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="{{ asset('dashboard_assets/assets/js/config.js') }}"></script>
-
-
     @stack('head')
 </head>
 
@@ -126,42 +124,42 @@
 
     <!-- Core JS -->
     <!-- build:js assets/vendor/js/core.js -->
+</body>
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/jquery/jquery.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/popper/popper.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/js/bootstrap.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/js/menu.js') }}"></script>
 
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/jquery/jquery.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/popper/popper.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/js/bootstrap.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/js/menu.js') }}"></script>
+<!-- endbuild -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Vendors JS -->
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/chartjs/chartjs.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/chartjs/charts-chartjs.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-    <!-- endbuild -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- Vendors JS -->
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/apex-charts/apexcharts.js') }}"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/chartjs/chartjs.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/chartjs/charts-chartjs.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+{{-- Select2 JS --}}
+<script src="{{ asset('dashboard_assets/assets/vendor/libs/select2/js/select2.full.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
-    {{-- Select2 JS --}}
-    <script src="{{ asset('dashboard_assets/assets/vendor/libs/select2/js/select2.full.min.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<!-- Main JS -->
+<script src="{{ asset('dashboard_assets/assets/js/main.js') }}"></script>
+<script src="{{ asset('dashboard_assets/assets/js/custom.js') }}"></script>
 
-    <!-- Main JS -->
-    <script src="{{ asset('dashboard_assets/assets/js/main.js') }}"></script>
-    <script src="{{ asset('dashboard_assets/assets/js/custom.js') }}"></script>
+<!-- Page JS -->
+<script src="{{ asset('dashboard_assets/assets/js/dashboards-analytics.js') }}"></script>
+@include('sweetalert::alert', ['cdn' => "https://cdn.jsdelivr.net/npm/sweetalert2@9"])
 
-    <!-- Page JS -->
-    <script src="{{ asset('dashboard_assets/assets/js/dashboards-analytics.js') }}"></script>
-    @include('sweetalert::alert', ['cdn' => "https://cdn.jsdelivr.net/npm/sweetalert2@9"])
+<!-- Place this tag in your head or just before your close body tag. -->
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Place this tag in your head or just before your close body tag. -->
-    <script async defer src="https://buttons.github.io/buttons.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    {{-- @include('components.notification') --}}
-    @stack('script')
-    <script>
-        $(document).ready(function () {
+{{-- @include('components.notification') --}}
+@stack('script')
+<script>
+    $(document).ready(function () {
     $('#saveKrs').on('click', function (e) {
         e.preventDefault();
 
@@ -227,11 +225,9 @@
         });
     });
 });
-
-
-    </script>
-    <script>
-        $('#form-permintaan').on('submit', function (e) {
+</script>
+<script>
+    $('#form-permintaan').on('submit', function (e) {
             e.preventDefault();
 
             let form = this;
@@ -285,9 +281,9 @@
                 }
             });
         });
-    </script>
-    <script>
-        function confirmDelete(url) {
+</script>
+<script>
+    function confirmDelete(url) {
             Swal.fire({
                 title: 'Yakin ingin menghapus?',
                 text: "Data yang dihapus tidak bisa dikembalikan!",
@@ -321,7 +317,156 @@
                 }
             });
         }
-    </script>
+</script>
+<script>
+    // Konfirmasi sebelum menghapus sertifikasi
+            document.querySelectorAll('.btn-delete-sertifikasi').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus Sertifikasi?',
+                        text: 'Apakah Anda yakin ingin menghapus sertifikasi ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+            // Konfirmasi sebelum menghapus Bahasa Asing
+            document.querySelectorAll('.btn-delete-bahasa').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus Penguasaan Bahasa Asing?',
+                        text: 'Apakah Anda yakin ingin menghapus Bahasa Asing ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+              // Konfirmasi sebelum menghapus Bahasa Asing
+              document.querySelectorAll('.btn-delete-bahasa').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus Penguasaan Bahasa Asing?',
+                        text: 'Apakah Anda yakin ingin menghapus Bahasa Asing ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+              // Konfirmasi sebelum menghapus Wirausaha
+              document.querySelectorAll('.btn-delete-wirausaha').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus Program Wirusaha?',
+                        text: 'Apakah Anda yakin ingin menghapus ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+              // Konfirmasi sebelum menghapus PPSM
+              document.querySelectorAll('.btn-delete-ppsm').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus PPSM?',
+                        text: 'Apakah Anda yakin ingin menghapus ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+              // Konfirmasi sebelum menghapus PKM
+              document.querySelectorAll('.btn-delete-pkm').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus PKM?',
+                        text: 'Apakah Anda yakin ingin menghapus ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+              // Konfirmasi sebelum menghapus Tambahan
+              document.querySelectorAll('.btn-delete-tambahan').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const form = this.closest('form');
+                    Swal.fire({
+                        title: 'Hapus Kegiatan Tambahan?',
+                        text: 'Apakah Anda yakin ingin menghapus ini?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+</script>
 </body>
 
 </html>

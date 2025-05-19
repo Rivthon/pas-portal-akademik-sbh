@@ -1,8 +1,7 @@
 @extends('layouts.mahasiswa')
 @section('title', 'Daftar Permintaan Mahasiswa')
-
 @section('content')
-<div class="container">
+<div class="flex-grow-1 container-p-y ">
     <!-- Card Section -->
     <div class="card shadow-sm mb-4">
         <div class="d-flex align-items-center item g-0">
@@ -31,7 +30,7 @@
                     </p>
                     <!-- CTA Button -->
                     <div class="mb-3">
-                        <a href="#" class="btn btn-success">Syarat dan Ketentuan</a>
+                        <a href="#" class="btn btn-primary">Cetak Rekap Penilaian</a>
                     </div>
                 </div>
             </div>
@@ -49,6 +48,133 @@
     @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-</div>
 
+
+    <div class="row">
+        @php
+        $menus = [
+        ['title' => 'Sertifikasi / Kompetensi', 'route' => route('mahasiswa.skpi.sertifikasi')],
+        ['title' => 'Penguasaan bahasa asing', 'route' => route('mahasiswa.skpi.bahasa')],
+        ['title' => 'Program Pembinaan Mahasiswa Wirausaha', 'route' => route('mahasiswa.skpi.wirausaha')],
+        ['title' => 'Program Kreativitas Mahasiswa', 'route' => route('mahasiswa.skpi.pkm')],
+        ['title' => 'PPSM', 'route' => route('mahasiswa.skpi.ppsm')],
+        ['title' => 'Kegiatan Tambahan', 'route' => route('mahasiswa.skpi.tambahan')],
+        ];
+        $icons = [
+        'Sertifikasi / Kompetensi' => 'cert',
+        'Penguasaan bahasa asing' => 'globe',
+        'Program Pembinaan Mahasiswa Wirausaha' => 'briefcase',
+        'Program Kreativitas Mahasiswa' => 'bulb',
+        'PPSM' => 'group',
+        'Kegiatan Tambahan' => 'plus',
+        ];
+        @endphp
+
+        @foreach ($menus as $menu)
+        @php
+        $icon = $icons[$menu['title']] ?? 'file';
+        @endphp
+        <style>
+            .transition-transform {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .hover-translate:hover {
+                transform: translateY(-5px);
+            }
+
+            .hover-shadow-lg:hover {
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15) !important;
+            }
+
+            .card-hover:hover {
+                border: 2px solid #6366F1;
+                background-color: #f8f9ff;
+            }
+        </style>
+        <div class="col-md-4 col-sm-6 mb-4">
+            <a href="{{ $menu['route'] }}" class="text-decoration-none">
+                <div
+                    class="card card-hover h-100 text-center shadow-sm transition-transform hover-translate hover-shadow-lg">
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        @if($icon == 'cert')
+                        <!-- Sertifikasi / Kompetensi SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="16" y="12" width="64" height="72" rx="6" stroke="#377DFF" stroke-width="4"
+                                fill="white" />
+                            <circle cx="48" cy="40" r="16" fill="#FFC542" stroke="#377DFF" stroke-width="4" />
+                            <path d="M48 31.2l3.8 7.3 8.1 1.2-5.9 5.7 1.4 8.1-7.4-3.9-7.4 3.9 1.4-8.1-5.9-5.7 8.1-1.2z"
+                                fill="white" />
+                        </svg>
+                        @elseif($icon == 'globe')
+                        <!-- Penguasaan bahasa asing SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="48" cy="48" r="28" stroke="#00B894" stroke-width="4" />
+                            <path d="M20 48h56M48 20a28 28 0 010 56M37 20a28 28 0 000 56" stroke="#00B894"
+                                stroke-width="4" stroke-linecap="round" />
+                            <rect x="58" y="60" width="18" height="12" rx="3" fill="#00B894" />
+                            <path d="M66 72l3 6 3-6" fill="#00B894" />
+                        </svg>
+                        @elseif($icon == 'briefcase')
+                        <!-- Program Pembinaan Mahasiswa Wirausaha SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M48 16a18 18 0 0118 18c0 6.9-3.9 12.9-9.6 16H39.6C33.9 46.9 30 40.9 30 34a18 18 0 0118-18z"
+                                stroke="#FF6B6B" stroke-width="4" fill="white" />
+                            <rect x="40" y="37" width="4" height="9" fill="#FF6B6B" />
+                            <rect x="48" y="33" width="4" height="13" fill="#FFD93D" />
+                            <rect x="56" y="29" width="4" height="17" fill="#FF6B6B" />
+                            <rect x="40" y="58" width="16" height="6" rx="2" fill="#FF6B6B" />
+                            <rect x="38" y="64" width="20" height="6" rx="3" fill="#FF6B6B" />
+                        </svg>
+                        @elseif($icon == 'bulb')
+                        <!-- Program Kreativitas Mahasiswa SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M36 30a12 12 0 1124 0h2a10 10 0 110 20h-2v4h2a8 8 0 110 16H36a8 8 0 110-16h2v-4h-2a10 10 0 110-20h2z"
+                                stroke="#A55EEA" stroke-width="4" fill="white" />
+                            <circle cx="32" cy="44" r="6" stroke="#4ECDC4" stroke-width="3" />
+                            <path d="M32 38v12M26 44h12" stroke="#4ECDC4" stroke-width="3" stroke-linecap="round" />
+                            <circle cx="64" cy="60" r="6" stroke="#4ECDC4" stroke-width="3" />
+                            <path d="M64 54v12M58 60h12" stroke="#4ECDC4" stroke-width="3" stroke-linecap="round" />
+                        </svg>
+                        @elseif($icon == 'group')
+                        <!-- PPSM SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M48 18l20 8v18c0 20-20 28-20 28s-20-8-20-28V26l20-8z" stroke="#F57F17"
+                                stroke-width="4" fill="white" />
+                            <circle cx="38" cy="44" r="6" fill="#F57F17" />
+                            <path d="M32 56c0-6 4-10 6-10s6 4 6 10v6H32v-6z" fill="#F57F17" />
+                            <circle cx="58" cy="44" r="6" fill="#F57F17" />
+                            <path d="M52 56c0-6 4-10 6-10s6 4 6 10v6H52v-6z" fill="#F57F17" />
+                        </svg>
+                        @elseif($icon == 'plus')
+                        <!-- Kegiatan Tambahan SVG -->
+                        <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="44" y="24" width="8" height="48" rx="2" fill="#6366F1" />
+                            <rect x="24" y="44" width="48" height="8" rx="2" fill="#6366F1" />
+                            <circle cx="48" cy="16" r="4" fill="#10B981" />
+                            <circle cx="48" cy="80" r="4" fill="#10B981" />
+                            <circle cx="16" cy="48" r="4" fill="#10B981" />
+                            <circle cx="80" cy="48" r="4" fill="#10B981" />
+                            <circle cx="24" cy="24" r="4" fill="#10B981" />
+                            <circle cx="72" cy="24" r="4" fill="#10B981" />
+                            <circle cx="24" cy="72" r="4" fill="#10B981" />
+                            <circle cx="72" cy="72" r="4" fill="#10B981" />
+                        </svg>
+                        @else
+                        <!-- Default SVG -->
+                        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" class="mb-3"
+                            viewBox="0 0 24 24">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                        </svg>
+                        @endif
+                        <h6 class="mb-0">{{ $menu['title'] }}</h6>
+                    </div>
+                </div>
+            </a>
+        </div>
+        @endforeach
+    </div>
+</div>
 @endsection

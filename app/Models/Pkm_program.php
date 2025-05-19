@@ -9,4 +9,25 @@ class Pkm_program extends Model
 {
     /** @use HasFactory<\Database\Factories\PkmProgramFactory> */
     use HasFactory;
+    protected $table = 'pkm';
+
+    protected $fillable = [
+        'mahasiswa_id',
+        'judul_kegiatan',
+        'jenis_pkm',
+        'penyelenggara',
+        'tanggal',
+        'prestasi',
+        'file_laporan',
+        'file_lampiran',
+        'status_validasi',
+        'catatan_validator',
+        'bobot',
+    ];
+
+    /* ──────── Relasi ──────── */
+    public function mahasiswa()
+    {
+        return $this->belongsTo(Mahasiswa::class);
+    }
 }

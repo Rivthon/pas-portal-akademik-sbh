@@ -142,6 +142,14 @@
                 </li>
             </ul>
         </li>
+
+
+        <li class="menu-item @if(Route::is('mahasiswa.skpi.index')) active @endif">
+            <a href="{{ route('mahasiswa.skpi.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-award"></i>
+                <span class="menu-text">Aktivitas Dan Prestasi</span>
+            </a>
+        </li>
         <li class="menu-header small text-uppercase">
             <span class="menu-header-text">Pengaturan & Informasi
             </span>
