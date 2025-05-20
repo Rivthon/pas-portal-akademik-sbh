@@ -166,6 +166,9 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::delete('delete-tambahan/{id}', [SkpiController::class, 'destroy_tambahan'])->name('delete.tambahan');
         Route::post('tambahan', [SkpiController::class, 'store_tambahan'])->name('tambahan.store');
 
+        Route::get('/skpi/cetak', [SkpiController::class, 'cetak'])->name('skpi.cetak');
+        Route::get('/skpi/download', [SkpiController::class, 'download'])->name('skpi.download');
+
         Route::get('/transkrip/download', [PengajuanTranskripController::class, 'downloadTranskrip'])
          ->name('pengajuan.cetak');
         Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
@@ -363,6 +366,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');
         Route::put('/helpdesk/permintaan/{id}/status', [PermintaanController::class, 'updateStatus'])->name('helpdesk.updateStatus');
+
+        
+
     });
 });
 

@@ -9,11 +9,13 @@ use App\Models\Sertifikasi;
 use App\Models\P2mw_program;
 use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
+use App\Models\KegiatanTambahan;
 use App\Models\PenguasaanBahasa;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use RealRashid\SweetAlert\Facades\Alert;
+use PDF;
 
 class SkpiController extends Controller
 {
@@ -281,7 +283,7 @@ class SkpiController extends Controller
         $data['mahasiswa_id'] = $mahasiswa->mahasiswa_id;      // atau $request->user()->id
         $data['status_validasi'] = 'Menunggu';        // default
         $data['bobot']           = 0;                 // belum diisi validator
-        PenguasaanBahasa::where('id', $id)->update($data);
+        P2mw_program::where('id', $id)->update($data);
         Alert::success('Wirausaha berhasil diubah')
             ->autoclose(3000);
         return redirect()->route('mahasiswa.skpi.wirausaha');
@@ -418,7 +420,7 @@ class SkpiController extends Controller
         Ppsm::create($data);
         Alert::success('PPSM berhasil ditambahkan')
             ->autoclose(3000);
-        return redirect()->route('mahasiswa.skpi.pkm');
+        return redirect()->route('mahasiswa.skpi.ppsm');
     }
     public function edit_ppsm($id)
     {
@@ -546,15 +548,58 @@ class SkpiController extends Controller
         KegiatanTambahan::where('id', $id)->update($data);
         Alert::success('PPSM berhasil diubah')
             ->autoclose(3000);
-        return redirect()->route('mahasiswa.skpi.ppsm');
+        return redirect()->route('mahasiswa.skpi.tambahan');
     }
     public function destroy_tambahan($id)
     {
         $pkm = KegiatanTambahan::findOrFail($id);
         $pkm->delete();
-        Alert::success('PPSM berhasil dihapus')
+        Alert::success('Kegiatan Tambahan berhasil dihapus')
             ->autoclose(3000);
-        return redirect()->route('mahasiswa.skpi.ppsm');
+        return redirect()->route('mahasiswa.skpi.tambahan');
+    }
+
+    public function cetak()
+    {
+        $settings = Setting::first();
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+
+        if (!$mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+
+        $ta = TahunAkademik::where('status_ta', 1)->first();
+        $logoBase64 = null;
+
+        if ($settings && $settings->logo) {
+            $logoPath = public_path('storage/' . $settings->logo);
+            if (file_exists($logoPath)) {
+                $logoBase64 = base64_encode(file_get_contents($logoPath));
+            }
+        }
+
+        // Kegiatan Wajib
+        $sertifikasi = Sertifikasi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $ppsm = Ppsm::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $bahasa = PenguasaanBahasa::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $p2mw = P2mw_program::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $pkm = Pkm_program::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+
+        // Kegiatan Tambahan
+        $tambahan = KegiatanTambahan::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->get();
+
+        // Hitung total skor
+        $totalWajib = $sertifikasi->sum('bobot') + $ppsm->sum('bobot') + $bahasa->sum('bobot') + $p2mw->sum('bobot') + $pkm->sum('bobot');
+        $totalTambahan = $tambahan->sum('bobot');
+        $totalSkor = $totalWajib + $totalTambahan;
+
+        $pdf = Pdf::loadView('students.skpi.cetak-skpi', compact(
+            'mahasiswa', 'ta', 'logoBase64',
+            'sertifikasi', 'ppsm', 'bahasa', 'p2mw', 'pkm',
+            'tambahan', 'totalWajib', 'totalTambahan', 'totalSkor'
+        ))->setPaper('A4', 'portrait');
+
+        return $pdf->stream('laporan-skpi-' . $mahasiswa->nama . '.pdf');
     }
 
 }

@@ -25,6 +25,7 @@ class Pkm_program extends Model
         'bobot',
     ];
 
+
     /* ──────── Relasi ──────── */
     public function mahasiswa()
     {

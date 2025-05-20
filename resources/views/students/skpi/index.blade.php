@@ -30,15 +30,28 @@
                     </p>
                     <!-- CTA Button -->
                     <div class="mb-3">
-                        <a href="#" class="btn btn-primary">Cetak Rekap Penilaian</a>
+                        <a href="{{ route('mahasiswa.skpi.cetak') }}" class="btn btn-primary">Cetak Rekap Penilaian</a>
                     </div>
                 </div>
             </div>
             <!-- Image Section -->
             <div class="col-md-5 text-center">
                 <div class="p-3">
-                    <img src="{{ asset('assets/img/illustrations/kartu-study.png') }}" class="img-fluid"
-                        alt="Illustration of a schedule" style="max-height: 200px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="180" viewBox="0 0 64 64" fill="none">
+                        <rect width="64" height="64" rx="8" fill="#F5F8FF" />
+                        <path
+                            d="M32 12C35.3137 12 38 14.6863 38 18C38 21.3137 35.3137 24 32 24C28.6863 24 26 21.3137 26 18C26 14.6863 28.6863 12 32 12Z"
+                            fill="#5B7CFA" />
+                        <path
+                            d="M18 34C18 30.6863 20.6863 28 24 28H40C43.3137 28 46 30.6863 46 34V42C46 43.1046 45.1046 44 44 44H20C18.8954 44 18 43.1046 18 42V34Z"
+                            fill="#AFC4FF" />
+                        <path d="M32 46C35.866 46 39 49.134 39 53H25C25 49.134 28.134 46 32 46Z" fill="#5B7CFA" />
+                        <path d="M24 19H40" stroke="#1E3A8A" stroke-width="2" stroke-linecap="round" />
+                        <path d="M26 22H38" stroke="#1E3A8A" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="50" cy="14" r="4" fill="#34D399" />
+                        <path d="M52 13L50.5 15L48 13" stroke="white" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
                 </div>
             </div>
         </div>

@@ -21,7 +21,7 @@ class Sertifikasi extends Model
         'dokumen_pendukung',
         'jenis_sertifikat',
         'file_sertifikat',
-        // 'file_sk',
+
         'status_validasi',
         'catatan_validator',
         'bobot',

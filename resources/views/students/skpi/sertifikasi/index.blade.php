@@ -4,43 +4,93 @@
 @section('content')
 <div class="container">
     <!-- Card Section -->
-    <div class="card shadow-sm mb-4">
-        <div class="d-flex align-items-center item g-0">
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="row g-0 align-items-center">
             <!-- Content Section -->
             <div class="col-md-7">
                 <div class="card-body">
                     <!-- Title -->
-                    <h5 class="card-title text-primary mb-3 fw-bold">
-                        Sertifkasi Kompetensi
-                    </h5>
-                    <p class="text-muted mb-4" style="line-height: 1.6;">
-                        {{-- Bobot Nilai SKPI: 0.5 --}}
-                        <hr>
-                        <strong>{{ $mahasiswa->nama }} <br>
-                            {{ $mahasiswa->programStudi->nama }} Semester {{ $mahasiswa->semester }} - Tahun Ajaran: {{
-                            $ta->nama }} <br> Bobot Nilai <span
-                                class="badge bg-warning text-dark ms-2">0.5</span></strong>
-                        <hr>
+                    <h5 class="text-primary fw-bold mb-3">Sertifikasi Kompetensi</h5>
+                    <!-- Breadcrumbs -->
+                    <nav aria-label="breadcrumb" class="mb-4">
+                        <ol class="breadcrumb small">
+                            <li class="breadcrumb-item">
+                                <a href="{{ route('mahasiswa.dashboard') }}" class="breadcrumb-link">
+                                    <i class="bx bx-home"></i>
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ route('mahasiswa.skpi.index') }}" class="breadcrumb-link">
+                                    Aktivitas & Prestasi
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active" aria-current="page">
+                                <span class="breadcrumb-active"
+                                    style="color: #0d6efd; text-decoration: underline; cursor: pointer;">
+                                    Sertifikasi / Kompetensi
+                                </span>
+                            </li>
 
+                        </ol>
+                    </nav>
+                    <style>
+                        .breadcrumb-link {
+                            transition: color 0.2s;
+                        }
 
-                    </p>
-                    <!-- CTA Button -->
+                        .breadcrumb-link:hover {
+                            color: #0d6efd !important;
+                            text-decoration: underline;
+                        }
+                    </style>
+                    <!-- Mahasiswa Info -->
                     <div class="mb-3">
-                        <a href="#" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#ajukanSertifikasiModal">Ajukan Sertifikasi / Kompetensi</a>
+                        <strong class="fs-5 d-block">{{ $mahasiswa->nama }}</strong>
+                        <span class="text-secondary small">
+                            {{ $mahasiswa->programStudi->nama }} Semester {{ $mahasiswa->semester }} - Tahun Ajaran: {{
+                            $ta->nama }}
+                        </span>
                     </div>
+
+                    <!-- Nilai Bobot -->
+                    <div class="d-flex align-items-center mb-4">
+                        <span class="fw-semibold me-2 text-dark" style="font-size: 1.1rem;">Total Bobot Nilai:</span>
+                        <span class="badge bg-label-primary text-primary fw-bold"
+                            style="font-size: 1.25rem; padding: 0.6em 1.2em;">
+                            {{ $sertifikasi->sum('bobot') ?? 0 }}
+                        </span>
+                        {{-- <small class="text-muted ms-2">(maksimal 30)</small> --}}
+                    </div>
+
+                    <!-- CTA -->
+                    <a href="#" class="btn btn-primary d-inline-flex align-items-center gap-1" data-bs-toggle="modal"
+                        data-bs-target="#ajukanSertifikasiModal">
+                        <i class="bx bx-send"></i> Ajukan Sertifikasi / Kompetensi
+                    </a>
                 </div>
+
             </div>
+
             <!-- Image Section -->
             <div class="col-md-5 text-center">
-                <div class="p-3">
-                    <img src="{{ asset('assets/img/illustrations/kartu-study.png') }}" class="img-fluid"
-                        alt="Illustration of a schedule" style="max-height: 200px;">
+                <div class="p-4">
+                    <svg width="100%" height="180" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg"
+                        style="max-height:180px; object-fit:contain;">
+                        <rect x="16" y="12" width="64" height="72" rx="6" stroke="#377DFF" stroke-width="4"
+                            fill="white" />
+                        <circle cx="48" cy="40" r="16" fill="#FFC542" stroke="#377DFF" stroke-width="4" />
+                        <path d="M48 31.2l3.8 7.3 8.1 1.2-5.9 5.7 1.4 8.1-7.4-3.9-7.4 3.9 1.4-8.1-5.9-5.7 8.1-1.2z"
+                            fill="white" />
+                    </svg>
+
                 </div>
             </div>
+
         </div>
+
     </div>
 </div>
+
 <div class="container">
     <!-- Modal Trigger Button -->
     {{-- <div class="mb-3">
