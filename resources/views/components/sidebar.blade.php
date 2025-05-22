@@ -280,7 +280,16 @@
 
             </ul>
         </li>
-        <!-- Akademik -->
+        {{--
+        Validator Surat Keterangan Pendamping IJazah --}}
+
+        <li class="menu-item @if(Route::is('admin.skpi.index')) active @endif">
+            <a href="{{ route('admin.skpi.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-award"></i>
+                <span class="menu-text">Validator SKPI</span>
+            </a>
+        </li>
+        <!-- Pengaturan -->
         <li
             class="menu-item @if(Route::is('admin.tahun-ajaran.index') || Route::is('admin.settings.edit') || Route::is('admin.helpdesk.index')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">

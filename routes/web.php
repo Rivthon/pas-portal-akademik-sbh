@@ -27,6 +27,7 @@ use App\Http\Controllers\KurikulumController;
 use App\Http\Controllers\MahasiswaController;
 use App\Http\Controllers\PenilaianController;
 use App\Http\Controllers\PertemuanController;
+use App\Http\Controllers\ValidatorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\InputNilaiController;
 use App\Http\Controllers\MatakuliahController;
@@ -132,39 +133,6 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('edit-sertifikasi/{id}/edit', [SkpiController::class, 'edit_sertifikasi'])->name('edit.sertifikasi');
         Route::put('update-sertifikasi/{id}', [SkpiController::class, 'update_sertifikasi'])->name('update.sertifikasi');
         Route::delete('delete-sertifikasi/{id}', [SkpiController::class, 'destroy_sertifikasi'])->name('delete.sertifikasi');
-
-        Route::get('/skpi/bahasa', [SkpiController::class, 'bahasa'])->name('skpi.bahasa');
-        Route::post('bahasa', [SkpiController::class, 'store_bahasa'])->name('bahasa.store');
-        Route::get('edit-bahasa/{id}/edit', [SkpiController::class, 'edit_bahasa'])->name('edit.bahasa');
-        Route::put('update-bahasa/{id}', [SkpiController::class, 'update_bahasa'])->name('update.bahasa');
-        Route::delete('delete-bahasa/{id}', [SkpiController::class, 'destroy_bahasa'])->name('delete.bahasa');
-
-
-        Route::get('/skpi/wirausaha', [SkpiController::class, 'wirausaha'])->name('skpi.wirausaha');
-        Route::post('wirausaha', [SkpiController::class, 'store_wirausaha'])->name('wirausaha.store');
-        Route::get('edit-wirausaha/{id}/edit', [SkpiController::class, 'edit_wirausaha'])->name('edit.wirausaha');
-        Route::put('update-wirausaha/{id}', [SkpiController::class, 'update_wirausaha'])->name('update.wirausaha');
-        Route::delete('delete-wirausaha/{id}', [SkpiController::class, 'destroy_wirausaha'])->name('delete.wirausaha');
-
-
-        Route::get('/skpi/pkm', [SkpiController::class, 'pkm'])->name('skpi.pkm');
-        Route::post('pkm', [SkpiController::class, 'store_pkm'])->name('pkm.store');
-        Route::get('edit-pkm/{id}/edit', [SkpiController::class, 'edit_pkm'])->name('edit.pkm');
-        Route::put('update-pkm/{id}', [SkpiController::class, 'update_pkm'])->name('update.pkm');
-        Route::delete('delete-pkm/{id}', [SkpiController::class, 'destroy_pkm'])->name('delete.pkm');
-
-
-        Route::get('/skpi/ppsm', [SkpiController::class, 'ppsm'])->name('skpi.ppsm');
-        Route::post('ppsm', [SkpiController::class, 'store_ppsm'])->name('ppsm.store');
-        Route::get('edit-ppsm/{id}/edit', [SkpiController::class, 'edit_ppsm'])->name('edit.ppsm');
-        Route::put('update-ppsm/{id}', [SkpiController::class, 'update_ppsm'])->name('update.ppsm');
-        Route::delete('delete-ppsm/{id}', [SkpiController::class, 'destroy_ppsm'])->name('delete.ppsm');
-
-        Route::get('/skpi/tambahan', [SkpiController::class, 'tambahan'])->name('skpi.tambahan');
-        Route::get('edit-tambahan/{id}/edit', [SkpiController::class, 'edit_tambahan'])->name('edit.tambahan');
-        Route::put('update-tambahan/{id}', [SkpiController::class, 'update_tambahan'])->name('update.tambahan');
-        Route::delete('delete-tambahan/{id}', [SkpiController::class, 'destroy_tambahan'])->name('delete.tambahan');
-        Route::post('tambahan', [SkpiController::class, 'store_tambahan'])->name('tambahan.store');
 
         Route::get('/skpi/cetak', [SkpiController::class, 'cetak'])->name('skpi.cetak');
         Route::get('/skpi/download', [SkpiController::class, 'download'])->name('skpi.download');
@@ -367,7 +335,59 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');
         Route::put('/helpdesk/permintaan/{id}/status', [PermintaanController::class, 'updateStatus'])->name('helpdesk.updateStatus');
 
-        
+
+        //Surat Keterangan Pendamping Ijazah Mahasiswa Validator
+        Route::get('/surat-keterangan-pendamping-ijazah', [ValidatorController::class, 'index'])->name('skpi.index');
+
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi', [ValidatorController::class, 'sertifikasi'])->name('skpi.sertifikasi');
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi/validator', [ValidatorController::class, 'sertifikasiValidator'])->name('skpi.sertifikasi.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi/disetujui', [ValidatorController::class, 'sertifikasiDisetujui'])->name('skpi.sertifikasi.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi/ditolak', [ValidatorController::class, 'sertifikasiDitolak'])->name('skpi.sertifikasi.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi/ditinjau', [ValidatorController::class, 'sertifikasiDitinjau'])->name('skpi.sertifikasi.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/sertifikasi/menunggu', [ValidatorController::class, 'sertifikasiMenunggu'])->name('skpi.sertifikasi.menunggu');
+        Route::put('/sertifikasi/{id}/catatan', [ValidatorController::class, 'updateCatatan'])->name('sertifikasi.catatan');
+
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa', [ValidatorController::class, 'bahasa'])->name('skpi.bahasa');
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa/validator', [ValidatorController::class, 'bahasaValidator'])->name('skpi.bahasa.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa/disetujui', [ValidatorController::class, 'bahasaDisetujui'])->name('skpi.bahasa.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa/ditolak', [ValidatorController::class, 'bahasaDitolak'])->name('skpi.bahasa.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa/ditinjau', [ValidatorController::class, 'bahasaDitinjau'])->name('skpi.bahasa.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/bahasa/menunggu', [ValidatorController::class, 'bahasaMenunggu'])->name('skpi.bahasa.menunggu');
+        Route::put('/penguasaan-bahasa-asing/{id}/catatan', [ValidatorController::class, 'updateCatatanBahasa'])->name('bahasa.catatan');
+
+
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha', [ValidatorController::class, 'wirausaha'])->name('skpi.wirausaha');
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha/validator', [ValidatorController::class, 'wirausahaValidator'])->name('skpi.wirausaha.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha/disetujui', [ValidatorController::class, 'wirausahaDisetujui'])->name('skpi.wirausaha.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha/ditolak', [ValidatorController::class, 'wirausahaDitolak'])->name('skpi.wirausaha.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha/ditinjau', [ValidatorController::class, 'wirausahaDitinjau'])->name('skpi.wirausaha.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/wirausaha/menunggu', [ValidatorController::class, 'wirausahaMenunggu'])->name('skpi.wirausaha.menunggu');
+        Route::put('/wirausaha/{id}/catatan', [ValidatorController::class, 'updateCatatanWirausaha'])->name('wirausaha.catatan');
+
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm', [ValidatorController::class, 'pkm'])->name('skpi.pkm');
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm/validator', [ValidatorController::class, 'pkmValidator'])->name('skpi.pkm.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm/disetujui', [ValidatorController::class, 'pkmDisetujui'])->name('skpi.pkm.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm/ditolak', [ValidatorController::class, 'pkmDitolak'])->name('skpi.pkm.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm/ditinjau', [ValidatorController::class, 'pkmDitinjau'])->name('skpi.pkm.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/pkm/menunggu', [ValidatorController::class, 'pkmMenunggu'])->name('skpi.pkm.menunggu');
+        Route::put('/pkm/{id}/catatan', [ValidatorController::class, 'updateCatatanPkm'])->name('pkm.catatan');
+
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm', [ValidatorController::class, 'ppsm'])->name('skpi.ppsm');
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm/validator', [ValidatorController::class, 'ppsmValidator'])->name('skpi.ppsm.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm/disetujui', [ValidatorController::class, 'ppsmDisetujui'])->name('skpi.ppsm.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm/ditolak', [ValidatorController::class, 'ppsmDitolak'])->name('skpi.ppsm.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm/ditinjau', [ValidatorController::class, 'ppsmDitinjau'])->name('skpi.ppsm.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/ppsm/menunggu', [ValidatorController::class, 'ppsmMenunggu'])->name('skpi.ppsm.menunggu');
+        Route::put('/ppsm/{id}/catatan', [ValidatorController::class, 'updateCatatanPpsm'])->name('ppsm.catatan');
+
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan', [ValidatorController::class, 'tambahan'])->name('skpi.tambahan');
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan/validator', [ValidatorController::class, 'tambahanValidator'])->name('skpi.tambahan.validator');
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan/disetujui', [ValidatorController::class, 'tambahanDisetujui'])->name('skpi.tambahan.disetujui');
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan/ditolak', [ValidatorController::class, 'tambahanDitolak'])->name('skpi.tambahan.ditolak');
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan/ditinjau', [ValidatorController::class, 'tambahanDitinjau'])->name('skpi.tambahan.ditinjau');
+        Route::get('/surat-keterangan-pendamping-ijazah/tambahan/menunggu', [ValidatorController::class, 'tambahanMenunggu'])->name('skpi.tambahan.menunggu');
+        Route::put('/tambahan/{id}/catatan', [ValidatorController::class, 'updateCatatanTambahan'])->name('tambahan.catatan');
+
 
     });
 });
