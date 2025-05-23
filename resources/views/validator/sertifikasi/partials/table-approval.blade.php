@@ -147,7 +147,7 @@
 </div>
 
 <div class="d-flex justify-content-center mt-3">
-    {!! $query->withQueryString()->links() !!}
+    {!! $query->withQueryString()->links('pagination::bootstrap-5') !!}
 </div>
 @else
 <div class="alert alert-warning text-center">

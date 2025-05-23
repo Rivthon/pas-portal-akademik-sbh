@@ -25,7 +25,7 @@ class PenguasaanBahasa extends Model
     /* ──────── Relasi ──────── */
     public function mahasiswa()
     {
-        return $this->belongsTo(Mahasiswa::class);
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
     }
 
     public function getStatusValidasiAttribute($value)

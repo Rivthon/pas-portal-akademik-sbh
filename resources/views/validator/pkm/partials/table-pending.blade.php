@@ -4,6 +4,7 @@
         <thead class="table-primary">
             <tr>
                 <th>No</th>
+                <th>Nama</th>
                 <th>Judul Kegiatan</th>
                 <th>Jenis PKM</th>
                 <th>Tanggal</th>
@@ -16,6 +17,7 @@
             @foreach ($query as $item)
             <tr>
                 <td>{{ $loop->iteration + ($query->currentPage() - 1) * $query->perPage() }}</td>
+                <td>{{ $item->mahasiswa->nama ?? '-' }}</td>
                 <td>{{ $item->judul_kegiatan }}</td>
                 <td>{{ $item->jenis_pkm }}</td>
                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d M Y') }}</td>
@@ -137,7 +139,7 @@
 </div>
 
 <div class="d-flex justify-content-center mt-3">
-    {!! $query->withQueryString()->links() !!}
+    {!! $query->withQueryString()->links('pagination::bootstrap-5') !!}
 </div>
 @else
 <div class="alert alert-warning text-center">

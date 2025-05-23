@@ -4,6 +4,7 @@
         <thead class="table-primary">
             <tr>
                 <th>No</th>
+                <th>Nama</th>
                 <th>Nama Bahasa</th>
                 <th>Level</th>
                 <th>Penyelenggara</th>
@@ -17,6 +18,7 @@
             @foreach ($query as $item)
             <tr>
                 <td>{{ $loop->iteration + ($query->currentPage() - 1) * $query->perPage() }}</td>
+                <td>{{ $item->mahasiswa->nama ?? '-' }}</td>
                 <td>{{ $item->nama_bahasa }}</td>
                 <td>{{ $item->level }}</td>
                 <td>{{ $item->penyelenggara }}</td>
@@ -130,7 +132,7 @@
 </div>
 
 <div class="d-flex justify-content-center mt-3">
-    {!! $query->withQueryString()->links() !!}
+    {!! $query->withQueryString()->links('pagination::bootstrap-5') !!}
 </div>
 @else
 <div class="alert alert-warning text-center">

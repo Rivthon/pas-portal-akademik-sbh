@@ -4,12 +4,13 @@
         <thead class="table-primary">
             <tr>
                 <th>No</th>
-                <th>Kategori</th>
+                <th>Nama</th>
+                {{-- <th>Kategori</th> --}}
                 <th>Nama Kegiatan</th>
-                <th>Bentuk Kegiatan</th>
+                {{-- <th>Bentuk Kegiatan</th>
                 <th>Tingkat</th>
                 <th>Penyelenggara</th>
-                <th>Peran</th>
+                <th>Peran</th> --}}
                 <th>Tanggal</th>
                 <th>Status</th>
                 <th>Detail</th>
@@ -19,12 +20,13 @@
             @foreach ($query as $item)
             <tr>
                 <td>{{ $loop->iteration + ($query->currentPage() - 1) * $query->perPage() }}</td>
-                <td>{{ $item->kategori }}</td>
+                <td>{{ $item->mahasiswa->nama ?? '-' }}</td>
+                {{-- <td>{{ $item->kategori }}</td> --}}
                 <td>{{ $item->nama_kegiatan }}</td>
-                <td>{{ $item->bentuk_kegiatan }}</td>
+                {{-- <td>{{ $item->bentuk_kegiatan }}</td>
                 <td>{{ $item->tingkat }}</td>
-                <td>{{ $item->penyelenggara }}</td>
-                <td>{{ $item->peran }}</td>
+                <td>{{ $item->penyelenggara }}</td> --}}
+                {{-- <td>{{ $item->peran }}</td> --}}
                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d M Y') }}</td>
                 <td>
                     <span class="badge bg-warning">{{ ucfirst($item->status_validasi) }}</span>
@@ -143,7 +145,7 @@
 </div>
 
 <div class="d-flex justify-content-center mt-3">
-    {!! $query->withQueryString()->links() !!}
+    {!! $query->withQueryString()->links('pagination::bootstrap-5') !!}
 </div>
 @else
 <div class="alert alert-warning text-center">

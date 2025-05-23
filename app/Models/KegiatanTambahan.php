@@ -28,8 +28,8 @@ class KegiatanTambahan extends Model
     ];
     /* ──────── Relasi ──────── */
     public function mahasiswa()
-    {
-        return $this->belongsTo(Mahasiswa::class);
-    }
+     {
+         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+     }
 
 }
