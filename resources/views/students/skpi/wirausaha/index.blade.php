@@ -60,7 +60,7 @@
                             style="font-size: 1.25rem; padding: 0.6em 1.2em;">
                             {{ $wirausaha->sum('bobot') ?? 0 }}
                         </span>
-                        15
+
                     </div>
 
                     <!-- CTA -->
