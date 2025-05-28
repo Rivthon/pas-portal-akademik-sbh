@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Auth;
 use App\Models\User;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class LoginController extends Controller
@@ -22,10 +24,19 @@ class LoginController extends Controller
             return redirect()->intended(route('admin.home'));
         }
 
-        // Retrieve the first setting record for the login page
-        $settings = Setting::first();
+        try {
+            $settings = Cache::remember('app_settings', 3600, function () {
+                return DB::table('settings')->first();
+            });
+        } catch (QueryException $e) {
+            report($e); // log error-nya
 
-        // Return the login view with the retrieved settings
+            // Fallback jika error, bisa tampilkan pesan default atau halaman error custom
+            return response()->view('errors.mysql', [
+                'message' => 'Database sedang mengalami gangguan. Silakan coba beberapa saat lagi.'
+            ], 500);
+        }
+
         return view('auth.login', [
             'settings' => $settings
         ]);

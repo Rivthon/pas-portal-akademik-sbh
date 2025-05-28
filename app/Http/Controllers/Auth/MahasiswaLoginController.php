@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use RealRashid\SweetAlert\Facades\Alert;
 
 
@@ -13,7 +15,9 @@ class MahasiswaLoginController extends Controller
 {
     public function showLoginForm()
     {
-        $settings = Setting::first();
+        $settings = Cache::remember('app_settings', 3600, function () {
+            return DB::table('settings')->first();
+        });
         if (Auth::guard('mahasiswa')->check()) {
             return redirect()->route('mahasiswa.dashboard');
         }
