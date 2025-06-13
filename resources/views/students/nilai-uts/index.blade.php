@@ -52,7 +52,7 @@
                         <td>{{ $item->kurikulum->mataKuliah->matakuliah_id }}</td>
                         <td>{{ $item->kurikulum->mataKuliah->nama }}</td>
                         <td class="text-center">{{ $item->kurikulum->mataKuliah->sks }}</td>
-                        <td class="text-center">{{ $item->uas }}</td>
+                        <td class="text-center">{{ $item->uts }}</td>
                     </tr>
                     @empty
                     <tr>
