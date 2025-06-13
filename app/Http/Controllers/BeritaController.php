@@ -28,7 +28,7 @@ class BeritaController extends Controller
     public function getBeritaKampus()
     {
         $berita = Cache::remember('berita_wordpress', 3600, function () {
-            $response = Http::get('https://sbh.ac.id/wp-json/wp/v2/posts', [
+            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts', [
                 'per_page' => 30,
                 'orderby' => 'date',
                 'order' => 'desc'
@@ -48,7 +48,7 @@ class BeritaController extends Controller
     {
         // Ambil berita utama berdasarkan ID
         $berita = Cache::remember("berita_wordpress_{$id}", 3600, function () use ($id) {
-            $response = Http::get("https://sbh.ac.id/wp-json/wp/v2/posts/{$id}");
+            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts/{$id}");
 
             if ($response->failed()) {
                 abort(404, 'Berita tidak ditemukan');
@@ -59,7 +59,7 @@ class BeritaController extends Controller
 
         // Ambil 10 berita terbaru atau populer
         $beritaTerkait = Cache::remember('berita_terkait', 3600, function () {
-            $response = Http::get("https://sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed");
+            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed");
 
             if ($response->failed()) {
                 return [];
@@ -84,7 +84,7 @@ class BeritaController extends Controller
     {
         // Ambil berita utama berdasarkan ID
         $berita = Cache::remember("berita_wordpress_{$id}", 3600, function () use ($id) {
-            $response = Http::get("https://sbh.ac.id/wp-json/wp/v2/posts/{$id}");
+            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts/{$id}");
 
             if ($response->failed()) {
                 abort(404, 'Berita tidak ditemukan');
@@ -95,7 +95,7 @@ class BeritaController extends Controller
 
         // Ambil 10 berita terbaru atau populer
         $beritaTerkait = Cache::remember('berita_terkait', 3600, function () {
-            $response = Http::get("https://sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed");
+            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed");
 
             if ($response->failed()) {
                 return [];
@@ -164,7 +164,7 @@ class BeritaController extends Controller
     public function getBerita()
     {
         $berita = Cache::remember('berita_wordpress', 3600, function () {
-            $response = Http::get('https://sbh.ac.id/wp-json/wp/v2/posts', [
+            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts', [
                 'per_page' => 30,
                 'orderby' => 'date',
                 'order' => 'desc'
