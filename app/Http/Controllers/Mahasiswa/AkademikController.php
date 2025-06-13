@@ -272,82 +272,95 @@ class AkademikController extends Controller
         }
     }
 
-     public function tampilanKhs()
-        {
-            $mahasiswa = Auth::guard('mahasiswa')->user();
-            if (!$mahasiswa) {
-                return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
-            }
+    public function tampilanKartuHasil()
+    {
+        $mahasiswa = Auth::guard('mahasiswa')->user();
 
-            $mahasiswaId = $mahasiswa->mahasiswa_id;
-            $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama']); // Ambil ID dan Nama Tahun Akademik Aktif
-            $taId = $ta->ta_id;
-
-            try {
-                // Function untuk menghitung bobot nilai
-                $calculateWeight = function ($grade) {
-                    return match ($grade) {
-                        'A' => 4.00,
-                        'AB' => 3.75,
-                        'BA' => 3.50,
-                        'B' => 3.00,
-                        'BC' => 2.75,
-                        'C' => 2.00,
-                        'D' => 1.00,
-                        'E' => 0,
-                        default => 0,
-                    };
-                };
-
-                // Ambil KHS untuk semester saat ini
-                $khs = Krs::with(['kurikulum.mataKuliah'])
-                    ->where('mahasiswa_id', $mahasiswaId)
-                    ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                        $query->where('smt', $mahasiswa->semester);
-                    })
-                    ->get();
-
-                // Perhitungan IPS (Indeks Prestasi Semester)
-                $totalSks = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks);
-                $totalSksAm = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks * $calculateWeight($item->khs));
-                $ips = $totalSks > 0 ? $totalSksAm / $totalSks : 0;
-
-                // Ambil seluruh KHS mahasiswa untuk semua semester (perhitungan IPK)
-                $allKhs = Krs::with(['kurikulum.mataKuliah'])->where('mahasiswa_id', $mahasiswaId)->get();
-                $totalSksAll = $allKhs->sum(fn($item) => $item->kurikulum->mataKuliah->sks);
-                $totalSksAmAll = $allKhs->sum(fn($item) => $item->kurikulum->mataKuliah->sks * $calculateWeight($item->khs));
-                $ipk = $totalSksAll > 0 ? $totalSksAmAll / $totalSksAll : 0;
-
-                // Redirect ke view baru dengan data KRS, IPS, dan IPK
-                return view('students.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
-            } catch (\Exception $e) {
-                // Redirect dengan pesan error jika terjadi kesalahan
-                return redirect()->back()->with('error', 'Gagal memuat data KRS: ' . $e->getMessage());
-            }
+        if (!$mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
         }
 
-        private function calculateWeight($grade) {
-            return match ($grade) {
-                'A' => 4.00,
-                'AB' => 3.75,
-                'BA' => 3.50,
-                'B' => 3.00,
-                'BC' => 2.75,
-                'C' => 2.00,
-                'D' => 1.00,
-                'E' => 0,
-                default => 0,
-            };
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama']);
+        if (!$ta) {
+            return redirect()->back()->with('error', 'Tahun Akademik tidak ditemukan.');
         }
-        private function getPredikat($ipk) {
-            return match (true) {
-                $ipk >= 3.51 => 'Cumlaude',
-                $ipk >= 3.00 => 'Sangat Memuaskan',
-                $ipk >= 2.50 => 'Memuaskan',
-                $ipk >= 2.00 => 'Cukup',
-                default => 'Kurang',
-            };
+
+        try {
+            // Ambil KHS semester aktif
+            $khs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get()
+                ->filter(function ($item) {
+                    return $item->kurikulum && $item->kurikulum->mataKuliah;
+                });
+
+            [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
+            $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
+
+            // Ambil seluruh KHS untuk IPK
+            $allKhs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->get()
+                ->filter(function ($item) {
+                    return $item->kurikulum && $item->kurikulum->mataKuliah && !is_null($item->khs);
+                });
+
+            [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
+            $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
+
+            return view('students.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memuat data KHS: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Hitung total SKS dan total Bobot dari data KRS
+     */
+    private function calculateTotal($khsCollection)
+    {
+        $totalSks = $khsCollection->sum(function ($item) {
+            return $item->kurikulum->mataKuliah->sks ?? 0;
+        });
+
+        $totalBobot = $khsCollection->sum(function ($item) {
+            $sks = $item->kurikulum->mataKuliah->sks ?? 0;
+            $bobot = $this->calculateWeight($item->khs);
+            return $sks * $bobot;
+        });
+
+        return [$totalSks, $totalBobot];
+    }
+
+    private function calculateWeight($grade)
+    {
+        return match ($grade) {
+            'A'  => 4.00,
+            'AB' => 3.75,
+            'BA' => 3.50,
+            'B'  => 3.00,
+            'BC' => 2.75,
+            'C'  => 2.00,
+            'D'  => 1.00,
+            'E'  => 0,
+            default => 0,
+        };
+    }
+
+    private function getPredikat($ipk)
+    {
+        return match (true) {
+            $ipk >= 3.51 => 'Cumlaude',
+            $ipk >= 3.00 => 'Sangat Memuaskan',
+            $ipk >= 2.50 => 'Memuaskan',
+            $ipk >= 2.00 => 'Cukup',
+            default => 'Kurang',
+        };
+    }
 
 
    public function cetakKhs()

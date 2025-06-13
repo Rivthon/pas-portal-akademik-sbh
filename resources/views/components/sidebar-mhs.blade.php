@@ -91,15 +91,14 @@
                 </li>
             </ul>
             <!-- Akademik -->
-        <li
-            class="menu-item @if(Route::is('mahasiswa.khs.index') || Route::is('admin.absensi.index')) active open @endif">
+        <li class="menu-item @if(Route::is('mahasiswa.khs.index')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-food-menu"></i>
                 <div data-i18n="Barang">Kartu Hasil Studi(KHS)</div>
             </a>
             <ul class="menu-sub">
-                <li class="menu-item @if(Route::is('mahasiswa.khs.index')) active @endif">
-                    <a href="{{ route('mahasiswa.khs.index') }}" class="menu-link">
+                <li class="menu-item @if(Route::is('mahasiswa.kartu-hasil.index')) active @endif">
+                    <a href="{{ route('mahasiswa.kartu-hasil.index') }}" class="menu-link">
                         <div data-i18n="Kurikulum">Lihat Kartu Hasil Studi</div>
                     </a>
                 </li>

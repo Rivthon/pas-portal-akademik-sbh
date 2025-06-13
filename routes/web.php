@@ -94,7 +94,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/status-krs', [AkademikController::class, 'tampilkanKrs'])->name('status.krs.index');
         Route::delete('/krs/{id}/hapus', [AkademikController::class, 'hapusKrs'])->name('hapus.krs');
 
-        Route::get('/mahasiswa/khs', [AkademikController::class, 'tampilanKhs'])->name('khs.index');
+        Route::get('/kartu-hasil-studi/mhs', [AkademikController::class, 'tampilanKartuHasil'])->name('kartu-hasil.index');
         Route::get('/khs/cetak-pdf', [AkademikController::class, 'cetakKhs'])->name('khs.cetak');
 
         Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->name('krs.cetak-kapro');
