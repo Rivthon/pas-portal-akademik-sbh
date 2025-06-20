@@ -132,7 +132,7 @@
 <div class="header">
     @if($logoBase64)
     <div class="logo-container">
-        <img src="data:image/png;base64,{{ $logoBase64 }}" alt="Logo" class="logo">
+        <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Image">
     </div>
     @endif
     <div class="header-text">
