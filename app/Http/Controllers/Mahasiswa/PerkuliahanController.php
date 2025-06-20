@@ -9,6 +9,7 @@ use App\Models\Jadwaluap;
 use App\Models\Jadwaluas;
 use App\Models\Jadwaluts;
 use App\Models\Kurikulum;
+use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
 use App\Models\JadwalPraktik;
 use App\Models\TahunAkademik;
@@ -94,7 +95,7 @@ class PerkuliahanController extends Controller
                                  'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
                              })->filter(function ($dosen) {
-                            return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                            return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
                         })->unique('id')->values(),
                     ];
             });
@@ -255,28 +256,26 @@ class PerkuliahanController extends Controller
             return view('students.jadwal-uas.index', compact('jadwalUas'));
         }
 
-    public function jadwalUap()
-    {
-     $semester = Auth::guard('mahasiswa')->user()->semester;
+        public function jadwalUap()
+        {
+            $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
 
-        $jadwal = DB::table('kurikulum')
-            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id') // Sesuaikan jika 'id' bukan primary key
-            ->join('ruangan', 'kurikulum.ruangan_id', '=', 'ruangan.ruangan_id') // Sesuaikan dengan struktur tabel Anda
-            ->where('matakuliah.semester', $semester)
-            ->select(
-                'matakuliah.nama as nama_matakuliah',
-                'matakuliah.semester',
-                'kurikulum.jam_mulai',
-                'kurikulum.hari',
-                'kurikulum.jam_selesai',
-                'ruangan.nama as nama_ruangan'
-            )
-            ->get();
+            if (!$tahunAjaran) {
+                return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
+            }
 
+            // Ambil semua program studi
+            $programStudi = ProgramStudi::all();
 
-        // Tampilkan ke view
-        return view('students.jadwal-uap.index', compact('jadwal', 'semester'));
-    }
+            if ($programStudi->isEmpty()) {
+                return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
+            }
+
+            // Ambil semua jadwal UAP (tanpa relasi matakuliah dan ruangan)
+            $jadwal = Jadwaluap::where('ta_id', $tahunAjaran->ta_id)->get();
+
+            return view('students.jadwal-uap.index', compact('jadwal'));
+        }
 
     public function cetakUts()
         {
@@ -398,8 +397,7 @@ class PerkuliahanController extends Controller
 
         public function cetakUap()
         {
-             $settings = Setting::first();
-            // Ambil data mahasiswa yang sedang login
+            $settings = Setting::first();
             $mahasiswa = auth()->guard('mahasiswa')->user();
             $semester = $mahasiswa->semester;
             $prodi = $mahasiswa->jurusan_id;
@@ -410,37 +408,41 @@ class PerkuliahanController extends Controller
             if (!$activeTA) {
                 return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
             }
-             $logoBase64 = null;
+
+            // Ambil logo base64 jika ada
+            $logoBase64 = null;
             if ($settings && $settings->logo) {
                 $logoPath = public_path('storage/' . $settings->logo);
                 if (file_exists($logoPath)) {
                     $logoBase64 = base64_encode(file_get_contents($logoPath));
                 }
             }
-             $ttd = null;
-            if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-                if (file_exists($logoPath)) {
-                    $ttd = base64_encode(file_get_contents($logoPath));
+
+            // Ambil ttd base64 jika ada
+            $ttd = null;
+            if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
+                $ttdPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+                if (file_exists($ttdPath)) {
+                    $ttd = base64_encode(file_get_contents($ttdPath));
                 }
             }
-             // Query awal dengan eager loading
-            $jadwalUap = Jadwaluap::with(['programStudi', 'mataKuliah', 'ruangan'])
-            ->where('ta_id', $activeTA->ta_id)
-            ->whereHas('mataKuliah', function ($query) use ($semester) {
-                $query->where('smt', $semester);
-            })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
-            })
-            ->get();
 
-            // Nama file PDF
+            // Ambil jadwal UAP sesuai prodi dan semester mahasiswa
+            $jadwalUap = Jadwaluap::with(['programStudi'])
+                ->where('ta_id', $activeTA->ta_id)
+                ->whereHas('programStudi', function ($query) use ($prodi) {
+                    $query->where('jurusan_id', $prodi);
+                })
+                ->orderBy('tanggal')
+                ->orderBy('jam_mulai')
+                ->get();
+
+            if ($jadwalUap->isEmpty()) {
+                return back()->with('error', 'Jadwal UAP tidak tersedia.');
+            }
+
             $fileName = 'Kartu_UAP_' . $mahasiswa->nama . '.pdf';
-
-            // Generate PDF
-            $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA','logoBase64','ttd'));
+            $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd'));
             return $pdf->download($fileName);
         }
 

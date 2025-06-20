@@ -2,8 +2,11 @@
 @section('title', 'List Tahun Ajaran')
 @section('content')
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">List Tahun Ajaran</h5>
+        <a href="{{ route('admin.tahun-ajaran.create') }}" class="btn btn-primary btn-sm">
+            Tambah Tahun Ajaran
+        </a>
     </div>
     <div class="card-body">
         <div id="tahun-ajaran-section">

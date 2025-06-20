@@ -55,11 +55,19 @@
                         <div data-i18n="Users">Jadwal UAS</div>
                     </a>
                 </li>
-                {{-- <li class="menu-item @if(Route::is('mahasiswa.jadwal-uap.index*')) active open @endif">
+                @php
+                use Illuminate\Support\Facades\Auth;
+                $user = Auth::guard('mahasiswa')->user();
+                // dd($user?->jurusan_id);
+                @endphp
+                @if($user && $user->jurusan_id == 15401 &&
+                $user->semester == 6)
+                <li class="menu-item @if(Route::is('mahasiswa.jadwal-uap.index*')) active open @endif">
                     <a href="{{ route('mahasiswa.jadwal-uap.index') }}" class="menu-link">
                         <div data-i18n="Users">Jadwal UAP</div>
                     </a>
-                </li> --}}
+                </li>
+                @endif
                 {{-- <li class="menu-item @if(Route::is('admin.roles.index*')) active open @endif">
                     <a href="{{ route('admin.roles.index') }}" class="menu-link">
                         <div data-i18n="Roles">Jadwal UAS</div>

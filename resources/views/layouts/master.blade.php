@@ -160,7 +160,21 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {{-- @include('components.notification') --}}
-    @stack('script')
+    <script>
+        function formatJam(jam) {
+            if (!jam) return '';
+            const [h, m] = jam.split(':');
+            return `${h}:${m} WIB`;
+        }
+
+        $('#jam_mulai').on('input', function () {
+            $('#keterangan_jam_mulai').text(formatJam(this.value));
+        }).trigger('input');
+
+        $('#jam_selesai').on('input', function () {
+            $('#keterangan_jam_selesai').text(formatJam(this.value));
+        }).trigger('input');
+    </script>
     <script>
         $(document).ready(function() {
         // Inisialisasi Select2

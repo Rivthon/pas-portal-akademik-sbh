@@ -20,10 +20,6 @@ class BeritaController extends Controller
     {
         return view('students.berita.index');
     }
-    //  public function indexBeritaDosen()
-    // {
-    //     return view('pages-dosen.berita.index');
-    // }
 
     public function getBeritaKampus()
     {
@@ -72,7 +68,7 @@ class BeritaController extends Controller
                     'link' => $post['link'],
                     'image' => isset($post['_embedded']['wp:featuredmedia'][0]['source_url']) ?
                         $post['_embedded']['wp:featuredmedia'][0]['source_url'] :
-                        asset('assets/img/no-image.jpg'),
+                        asset('dashboard_assets/assets/img/img-not-found.jpg'),
                 ];
             });
         });

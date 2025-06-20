@@ -21,23 +21,26 @@ class JadwaluapController extends Controller
             try {
                 // Ambil tahun ajaran yang statusnya aktif
                 $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
-                $matakuliah = Matakuliah::all();
-                $ruangan = Ruangan::all();
+
                 if (!$tahunAjaran) {
-                    return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
-                }
+                                    return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
+                                }
 
-                // Ambil semua program studi
-                $programStudi = ProgramStudi::all();
+                                // Ambil semua program studi
+                                $programStudi = ProgramStudi::all();
 
-                if ($programStudi->isEmpty()) {
-                    return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
-                }
+                                if ($programStudi->isEmpty()) {
+                                    return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
+                                }
 
-                return view('jadwal-uap.index', compact('programStudi', 'tahunAjaran','matakuliah','ruangan'));
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
-            }
+                                // Ambil semua jadwal UAP (tanpa relasi matakuliah dan ruangan)
+                                $jadwalUap = Jadwaluap::where('ta_id', $tahunAjaran->ta_id)->get();
+
+                                return view('jadwal-uap.index', compact('programStudi', 'tahunAjaran', 'jadwalUap'));
+                            } catch (\Exception $e) {
+                                return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
+                            }
+
         }
 
 
@@ -92,74 +95,56 @@ class JadwaluapController extends Controller
         }
 
         public function create()
-    {
-         // Ambil Tahun Akademik dengan status_ta = 1
-        $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
-
-
-        $matakuliah = Matakuliah::all();
-        $ruangan = Ruangan::all();
-        return view('jadwal-uap.form', compact('matakuliah', 'ruangan','tahunAjaranAktif'));
-    }
-
-
-    public function store(Request $request)
-    {
-        $rules = [
-            'matakuliah_id' => 'required|exists:matakuliah,matakuliah_id', // matakuliah_id harus ada di tabel 'matakuliahs'
-            'jam'           => 'required', // jam harus format HH:mm
-            'tanggal'       => 'required', // tanggal harus berupa tanggal dan >= hari ini
-            'ruangan_id'    => 'required|exists:ruangan,ruangan_id', // ruangan_id harus ada di tabel 'ruangans'
-            'jenis_kelas'   => 'required|in:Reguler,Karyawan', // jenis_kelas harus enum
-        ];
-
-
-        $messages = [
-            'ta_id.required'         => 'Tahun ajaran harus dipilih.',
-            'ta_id.exists'           => 'Tahun ajaran yang dipilih tidak valid.',
-            'matakuliah_id.required' => 'Mata kuliah harus dipilih.',
-            'matakuliah_id.exists'   => 'Mata kuliah yang dipilih tidak valid.',
-            'jam.required'           => 'Jam UTS harus diisi.',
-            'tanggal.required'       => 'Tanggal UTS harus diisi.',
-            'tanggal.date'           => 'Tanggal harus berupa format tanggal yang valid.',
-            'tanggal.after_or_equal' => 'Tanggal UTS tidak boleh sebelum hari ini.',
-            'ruangan_id.required'    => 'Ruangan harus dipilih.',
-            'ruangan_id.exists'      => 'Ruangan yang dipilih tidak valid.',
-            'jenis_kelas.required'   => 'Jenis kelas harus dipilih.',
-            'jenis_kelas.in'         => 'Jenis kelas harus Reguler atau Karyawan.',
-        ];
-
-
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+        {
+            // Ambil Tahun Akademik dengan status_ta = 1
+            $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
+            return view('jadwal-uap.form', compact('tahunAjaranAktif'));
         }
 
-        // Ambil jurusan_id dari matakuliah_id yang dipilih
-        $matakuliah = Matakuliah::find($request->matakuliah_id);
-        $jurusan_id = $matakuliah ? $matakuliah->jurusan_id : null;
+        public function store(Request $request)
+        {
+            $rules = [
+            'nama'        => 'required',
+            'jam_mulai'   => 'required',
+            'jam_selesai' => 'required',
+            'tanggal'     => 'required',
+            ];
 
-        $data = $request->only([
-            'ta_id',
-            'matakuliah_id',
-            'jam',
+            $messages = [
+            'nama.required'        => 'Nama harus diisi.',
+            'jam_mulai.required'   => 'Jam mulai harus diisi.',
+            'jam_selesai.required' => 'Jam selesai harus diisi.',
+            'tanggal.required'     => 'Tanggal harus diisi.',
+            ];
+
+            $validator = Validator::make($request->all(), $rules, $messages);
+
+            if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+            }
+
+            $data = $request->only([
+            'nama',
+            'jam_mulai',
+            'jam_selesai',
             'tanggal',
-            'ruangan_id',
-            'jenis_kelas',
-        ]);
+            ]);
 
-        // Tambahkan jurusan_id ke data
-        $data['jurusan_id'] = $jurusan_id;
+            // Ambil tahun ajaran aktif
+            $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
 
-        Jadwaluap::create($data);
 
-        Alert::toast('Jadwal UTS berhasil ditambahkan.', 'success')
+            $data['jurusan_id'] = 15401;
+            $data['ta_id'] = $tahunAjaranAktif ? $tahunAjaranAktif->ta_id : null;
+
+            Jadwaluap::create($data);
+
+            Alert::toast('Jadwal UTS berhasil ditambahkan.', 'success')
             ->position('bottom-end')
             ->autoClose(3000);
 
-        return redirect()->route('admin.jadwal-uap.index');
-    }
+            return redirect()->route('admin.jadwal-uap.index');
+        }
        public function edit($id)
         {
             // Ambil Tahun Akademik dengan status_ta = 1

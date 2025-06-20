@@ -50,7 +50,7 @@
                     <div class="table-responsive text-nowrap">
                         @if ($mahasiswa->status_edom == 1)
                         <div class="container mt-4 mb-4">
-                            <a href="{{ route('mahasiswa.khs.index') }}" class="btn btn-primary">Lihat KHS</a>
+                            <a href="{{ route('mahasiswa.kartu-hasil.index') }}" class="btn btn-primary">Lihat KHS</a>
                         </div>
 
                         @endif

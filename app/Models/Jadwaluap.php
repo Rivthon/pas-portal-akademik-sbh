@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\TahunAkademik;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -15,10 +16,9 @@ class Jadwaluap extends Model
        'ta_id',
         'jurusan_id',
         'nama',
-        'hari',
-        'jam',
+        'jam_mulai',
+        'jam_selesai',
         'tanggal',
-        'ruangan_id',
 
     ];
     public function programStudi()
@@ -26,14 +26,18 @@ class Jadwaluap extends Model
         return $this->belongsTo(ProgramStudi::class, 'jurusan_id');
     }
 
-    public function matakuliah()
-    {
-        return $this->belongsTo(Matakuliah::class, 'matakuliah_id');
-    }
+    // public function matakuliah()
+    // {
+    //     return $this->belongsTo(Matakuliah::class, 'matakuliah_id');
+    // }
 
-        public function ruangan()
+    //     public function ruangan()
+    // {
+    //     return $this->belongsTo(Ruangan::class, 'ruangan_id');
+    // }
+    public function tahunAkademik()
     {
-        return $this->belongsTo(Ruangan::class, 'ruangan_id');
+        return $this->belongsTo(TahunAkademik::class, 'ta_id');
     }
 
 }

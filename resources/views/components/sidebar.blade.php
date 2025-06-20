@@ -165,11 +165,13 @@
                     </a>
                 </li>
                 @endcan
-                {{-- <li class="menu-item @if(Route::is('admin.jadwal-uap.index')) active @endif">
+                @can('jadwal-uap-list')
+                <li class="menu-item @if(Route::is('admin.jadwal-uap.index')) active @endif">
                     <a href="{{ route('admin.jadwal-uap.index') }}" class="menu-link">
                         <div data-i18n="Kurikulum">Jadwal UAP</div>
                     </a>
-                </li> --}}
+                </li>
+                @endcan
             </ul>
         </li>
 

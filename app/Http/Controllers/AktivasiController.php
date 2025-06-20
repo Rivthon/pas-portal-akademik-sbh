@@ -55,7 +55,7 @@ public function updateStatus(Request $request)
         $mahasiswa = Mahasiswa::findOrFail($request->mahasiswa_id);
         $field = 'status_' . $request->type; // Menentukan field yang akan diupdate
 
-        if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_khs'])) {
+        if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs','status_uap'])) {
             $mahasiswa->$field = $request->status;
             $mahasiswa->save();
 

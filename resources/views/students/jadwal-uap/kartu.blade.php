@@ -158,27 +158,32 @@
 </div>
 
 <table class="table">
-    <thead>
-        <tr>
-            <th>No</th>
-            <th>Mata Kuliah</th>
-            <th>SKS</th>
-            <th>Tanggal</th>
-            <th>Waktu</th>
-            <th>Ruangan</th>
-        </tr>
+    <tr>
+        <th>#</th>
+        <th>Tahun Akademik</th>
+        <th>Program Studi</th>
+        <th>Nama</th>
+        <th>Jam Mulai</th>
+        <th>Jam Selesai</th>
+        <th>Tanggal</th>
+    </tr>
     </thead>
     <tbody>
-        @foreach($jadwalUap as $key => $item)
+        @forelse($jadwalUap as $index => $jadwal)
         <tr>
-            <td>{{ $key + 1 }}</td>
-            <td>{{ $item->mataKuliah->nama }}</td>
-            <td>{{ $item->mataKuliah->sks }}</td>
-            <td>{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('d F Y') }}</td>
-            <td>{{ $item->jam }}</td>
-            <td>{{ $item->ruangan->nama ?? 'Tidak ada data' }}</td>
+            <td>{{ $index + 1 }}</td>
+            <td>{{ $jadwal->tahunAkademik->nama ?? '-' }}</td>
+            <td>{{ $jadwal->programStudi->nama ?? '-' }}</td>
+            <td>{{ $jadwal->nama }}</td>
+            <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
+            <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
+            <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d F Y') }}</td>
         </tr>
-        @endforeach
+        @empty
+        <tr>
+            <td colspan="8" class="text-center">Tidak ada data jadwal UAP.</td>
+        </tr>
+        @endforelse
     </tbody>
 </table>
 

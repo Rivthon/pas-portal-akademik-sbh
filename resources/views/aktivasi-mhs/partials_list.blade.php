@@ -13,7 +13,8 @@
                                 <th>Jadwal UAS</th>
                                 <th>Nilai UTS</th>
                                 <th>Nilai UAS</th>
-                                <th>KHS</th>
+                                {{-- <th>KHS</th> --}}
+                                <th>UAP</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -25,13 +26,13 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar me-3">
-                                            <img src="{{ $m->avatar_url }}" alt="Avatar" class="rounded-circle"
+                                            <img src="{{ $m->avatar_url ?? asset('dashboard_assets/assets/img/avatars/1.png') }}"
+                                                alt="Avatar" class="rounded-circle"
                                                 style="width: 40px; height: 40px; object-fit: cover;"
                                                 onerror="this.src='{{ asset('dashboard_assets/assets/img/avatars/1.png') }}'" />
                                         </div>
                                         <div>
                                             <h6 class="mb-0">{{ $m->nama }}</h6>
-
                                         </div>
                                     </div>
                                 </td>
@@ -39,52 +40,57 @@
                                 <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox" data-type="krs"
-                                            data-id="{{ $m->mahasiswa_id }}" {{ $m->status_krs ? 'checked' : '' }}>
+                                            data-id="{{ $m->mahasiswa_id }}" @checked($m->status_krs)>
                                     </div>
                                 </td>
                                 <!-- Status UTS -->
                                 <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox" data-type="uts"
-                                            data-id="{{ $m->mahasiswa_id }}" {{ $m->status_uts ? 'checked' : '' }}>
+                                            data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uts)>
                                     </div>
                                 </td>
                                 <!-- Status UAS -->
                                 <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox" data-type="uas"
-                                            data-id="{{ $m->mahasiswa_id }}" {{ $m->status_uas ? 'checked' : '' }}>
+                                            data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uas)>
                                     </div>
                                 </td>
                                 <!-- Status Nilai UTS -->
                                 <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox"
-                                            data-type="nilai_uts" data-id="{{ $m->mahasiswa_id }}" {{
-                                            $m->status_nilai_uts ?
-                                        'checked' : '' }}>
+                                            data-type="nilai_uts" data-id="{{ $m->mahasiswa_id }}"
+                                            @checked($m->status_nilai_uts)>
                                     </div>
                                 </td>
                                 <!-- Status Nilai UAS -->
                                 <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox"
-                                            data-type="nilai_uas" data-id="{{ $m->mahasiswa_id }}" {{
-                                            $m->status_nilai_uas ?
-                                        'checked' : '' }}>
+                                            data-type="nilai_uas" data-id="{{ $m->mahasiswa_id }}"
+                                            @checked($m->status_nilai_uas)>
                                     </div>
                                 </td>
                                 <!-- Status KHS -->
-                                <td>
+                                {{-- <td>
                                     <div class="form-check form-switch">
                                         <input class="form-check-input toggle-status" type="checkbox" data-type="khs"
-                                            data-id="{{ $m->mahasiswa_id }}" {{ $m->status_khs ? 'checked' : '' }}>
+                                            data-id="{{ $m->mahasiswa_id }}" @checked($m->status_nilai_khs)>
+                                    </div>
+                                </td> --}}
+                                <!-- Status UAP -->
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input toggle-status" type="checkbox" data-type="uap"
+                                            data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uap)>
                                     </div>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="text-center">Tidak ada data ditemukan.</td>
+                                <td colspan="9" class="text-center">Tidak ada data ditemukan.</td>
                             </tr>
                             @endforelse
                         </tbody>
