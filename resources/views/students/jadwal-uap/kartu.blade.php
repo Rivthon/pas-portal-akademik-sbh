@@ -11,50 +11,47 @@
     @endphp
     <style>
         body {
-            font-family: 'Times New Roman', Times, serif;
-            /* Ganti Arial dengan Times New Roman */
-
-            font-size: 12px;
-            /* Ukuran font diseragamkan menjadi 12px */
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            margin: -10px;
+            /* Margin bisa diatur minus */
+            padding: 0;
+            /* Tidak ada padding */
         }
 
-        /* Header styling */
+        /* Header Styling */
         .header {
             text-align: center;
-            /* Mengatur semua elemen header agar rata tengah */
-            padding: 20px 30px;
-            background-color: #ffffff;
-            /* Putih bersih */
-            border-bottom: 2px solid #e0e0e0;
-            /* Garis bawah untuk pembatas */
+            width: 100%;
+
         }
 
-        .logo-container {
-            margin-bottom: 15px;
-            /* Jarak antara logo dan teks */
-        }
-
-        .logo {
-            max-width: 80px;
+        .header img {
+            width: 100%;
             height: auto;
+            display: block;
+            margin: 0;
+            padding: 0;
         }
 
         .header-text {
-            margin: 0 auto;
-            /* Untuk memastikan tetap di tengah */
+            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
         .title {
-            font-size: 1.8rem;
+            font-size: 1.2rem;
             font-weight: bold;
             margin: 0;
             color: #333;
+            text-align: center;
         }
 
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 0.8rem;
             margin: 5px 0 0;
             color: #666;
+            text-align: center;
         }
 
         /* Info table styling */
@@ -65,7 +62,7 @@
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 1rem;
+            font-size: 12px;
             color: #333;
         }
 
@@ -78,7 +75,7 @@
         .info-table th {
             width: 25%;
             font-weight: bold;
-            background-color: #f8f8f8;
+            background-color: #ffffff;
             /* Warna latar untuk header kolom */
         }
 
@@ -88,7 +85,7 @@
         }
 
         .info-table tr:nth-child(even) td {
-            background-color: #f9f9f9;
+            background-color: #ffffff;
             /* Striping pada baris genap */
         }
 

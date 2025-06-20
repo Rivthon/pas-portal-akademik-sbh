@@ -401,10 +401,8 @@ class PerkuliahanController extends Controller
             $mahasiswa = auth()->guard('mahasiswa')->user();
             $semester = $mahasiswa->semester;
             $prodi = $mahasiswa->jurusan_id;
-
             // Ambil Tahun Akademik Aktif
             $activeTA = TahunAkademik::where('status_ta', 1)->first();
-
             if (!$activeTA) {
                 return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
             }
@@ -443,7 +441,7 @@ class PerkuliahanController extends Controller
 
             $fileName = 'Kartu_UAP_' . $mahasiswa->nama . '.pdf';
             $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd'));
-            return $pdf->download($fileName);
+            return $pdf->stream($fileName);
         }
 
 }
