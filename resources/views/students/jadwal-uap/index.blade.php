@@ -108,7 +108,6 @@
                                 <th>Jam Mulai</th>
                                 <th>Jam Selesai</th>
                                 <th>Tanggal</th>
-
                             </tr>
                         </thead>
                         <tbody>
@@ -121,7 +120,6 @@
                                 <td>{{ \Carbon\Carbon::parse($jadwal->jam_mulai)->format('H:i') }}</td>
                                 <td>{{ \Carbon\Carbon::parse($jadwal->jam_selesai)->format('H:i') }}</td>
                                 <td>{{ \Carbon\Carbon::parse($jadwal->tanggal)->translatedFormat('d F Y') }}</td>
-
                             </tr>
                             @empty
                             <tr>
@@ -130,7 +128,6 @@
                             @endforelse
                         </tbody>
                     </table>
-
                 </div>
             </div>
         </div>

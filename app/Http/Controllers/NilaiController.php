@@ -52,22 +52,26 @@ class NilaiController extends Controller
 
                 // Query untuk mendapatkan data KRS dengan join
                 $krsData = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-                    ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-                    ->join('tahun_ajaran', 'krs.ta_id', '=', 'tahun_ajaran.ta_id') // Jika tahun ajaran dibutuhkan
-                    ->where('krs.mahasiswa_id', $mahasiswaId)
-                    ->select(
-                        'matakuliah.semester',
-                        'matakuliah.smt',
-                        'matakuliah.sks as sks'  ,                // Semester
-                        'matakuliah.nama as nama_mata_kuliah',
-                        'matakuliah.matakuliah_id as kode_mk',    // Nama mata kuliah
-                        'krs.khs',                                // Nilai KHS
-                        'krs.akhir',                                // Nilai UTS
-                        'krs.uas',                                // Nilai UAS
-                        'tahun_ajaran.nama as tahun_ajaran'       // Nama tahun ajaran
-                    )
-                    ->orderBy('matakuliah.smt') // Urutkan berdasarkan semester
-                    ->get();
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->join('tahun_ajaran', 'krs.ta_id', '=', 'tahun_ajaran.ta_id')
+                ->where('krs.mahasiswa_id', $mahasiswaId)
+                ->whereNotNull('krs.khs')
+                ->whereRaw("TRIM(krs.khs) != ''")
+                ->select(
+                    'matakuliah.semester',
+                    'matakuliah.smt',
+                    'matakuliah.sks as sks',
+                    'matakuliah.nama as nama_mata_kuliah',
+                    'matakuliah.matakuliah_id as kode_mk',
+                    'krs.khs',
+                    'krs.akhir',
+                    'krs.uas',
+                    'tahun_ajaran.nama as tahun_ajaran'
+                )
+                ->orderBy('matakuliah.smt')
+                ->get();
+
+
 
                 // Cek apakah data ditemukan
                 if ($krsData->isEmpty()) {

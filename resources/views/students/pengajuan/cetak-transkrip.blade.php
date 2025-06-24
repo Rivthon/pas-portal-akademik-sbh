@@ -105,6 +105,28 @@
             position: relative;
             z-index: 1;
         }
+
+        /* Warna Dinamis Berdasarkan Program Studi */
+        .gizi {
+            background-color: #fffbea;
+            /* Kuning lembut */
+            color: #a68c00;
+            /* Teks kontras untuk kuning */
+        }
+
+        .farmasi {
+            background-color: #f3e8ff;
+            /* Ungu lembut */
+            color: #6b3fa0;
+            /* Teks kontras untuk ungu */
+        }
+
+        .bidan {
+            background-color: #eaf6ff;
+            /* Biru lembut */
+            color: #005a9e;
+            /* Teks kontras untuk biru */
+        }
     </style>
 </head>
 
@@ -151,7 +173,7 @@
     </div>
     <table class="table">
         <thead>
-            <tr style="text-align: center;">
+            <tr style="background-color: {{ $headerColor }}; color: {{ $textColor }}; text-align: center;">
                 <th rowspan="2"
                     style="padding: 10px; border: 1px solid #000; vertical-align: middle; text-align: center;">No</th>
                 <th rowspan="2"
@@ -274,8 +296,42 @@
     }
     @endphp
     <!-- Footer Section -->
+    <style>
+        .footer {
+            width: 100%;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .verified {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            /* Rata kanan */
+        }
+
+        .verified img {
+            width: 16px;
+            height: 16px;
+            margin-right: 4px;
+        }
+    </style>
+
     <div class="footer">
         <p>Dicetak pada: {{ now()->format('d-m-Y H:i') }}</p>
+
+        <div class="verified">
+            <img src="{{ public_path('assets/img/header/verfikasi.png') }}" alt="Verified Icon">
+            <span>Diverifikasi oleh BAAK STIKes Bogor Husada</span>
+        </div>
     </div>
 </body>
 

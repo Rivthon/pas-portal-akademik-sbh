@@ -479,15 +479,27 @@ class AkademikController extends Controller
             $predikat = $this->getPredikat($ipk);
 
             // Set warna default jika tidak ada
-            $headerColor = $headerColor ?? "#cccccc";
-            $textColor = $textColor ?? "#000000";
+            $programStudi = strtolower($mahasiswa->jurusan_id ?? '');
+                $headerColor = match ($programStudi) {
+                    '13211' => '#fffbea',
+                    '48201' => '#f3e8ff',
+                    '15401' => '#eaf6ff',
+                    default => '#f3e8ff',
+                };
+                $textColor = match ($programStudi) {
+                    '13211' => '#a68c00',
+                    '48201' => '#6b3fa0',
+                    '15401' => '#005a9e',
+                    default => '#6b3fa0',
+                };
+
 
             // Generate PDF
             $pdf = PDF::loadView('students.pengajuan.cetak-transkrip', compact(
                 'khs', 'mahasiswa', 'ta', 'ips', 'ipk', 'predikat', 'headerColor', 'textColor'
             ))->setPaper('a4', 'portrait');
 
-            return $pdf->stream('transkrip-' . $mahasiswa->nama . '.pdf');
+            return $pdf->download('transkrip-' . $mahasiswa->nama . '.pdf');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data transkrip: ' . $e->getMessage());
         }
