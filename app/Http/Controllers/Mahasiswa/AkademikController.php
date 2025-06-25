@@ -398,11 +398,11 @@ class AkademikController extends Controller
 
         try {
             // Ambil KHS Semester Ini
-            $khs = Krs::with(['kurikulum.mataKuliah'])
-                ->where('mahasiswa_id', $mahasiswaId)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', $mahasiswa->semester);
-                })
+            $khs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->where('krs.mahasiswa_id', $mahasiswaId)
+                ->where('matakuliah.smt', $mahasiswa->semester)
+                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
                 ->get();
 
             // Hitung IPS
@@ -412,9 +412,12 @@ class AkademikController extends Controller
 
             // Ambil Semua KHS untuk Hitung IPK
             // Perhitungan IPK (Dari Semua Semester)
-            $allKhs = Krs::with(['kurikulum.mataKuliah'])
-                ->where('mahasiswa_id', $mahasiswaId)
-                ->get();
+            $allKhs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+            ->where('krs.mahasiswa_id', $mahasiswaId)
+            ->where('matakuliah.smt', $mahasiswa->semester)
+            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
+            ->get();
 
             // Filter data agar hanya yang memiliki nilai 'khs' yang tidak null
             $filteredAllKhs = $allKhs->filter(fn($item) => !is_null($item->khs));
@@ -452,8 +455,10 @@ class AkademikController extends Controller
 
         try {
             // Ambil Data KRS beserta Mata Kuliah
-        $khs = Krs::with(['kurikulum.mataKuliah'])
-            ->where('mahasiswa_id', $mahasiswaId)
+            $khs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+            ->where('krs.mahasiswa_id', $mahasiswaId)
+            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
             ->get();
 
 
@@ -465,10 +470,14 @@ class AkademikController extends Controller
             $totalSks = $khs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
             $totalBobot = $khs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks * $this->calculateWeight($item->khs));
             $ips = $totalSks > 0 ? $totalBobot / $totalSks : 0;
+
             // Perhitungan IPK (Dari Semua Semester)
-            $allKhs = Krs::with(['kurikulum.mataKuliah'])
-                ->where('mahasiswa_id', $mahasiswaId)
-                ->get();
+            $allKhs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+            ->where('krs.mahasiswa_id', $mahasiswaId)
+            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
+            ->get();
+
             // Filter data agar hanya yang memiliki nilai 'khs' yang tidak null
             $filteredAllKhs = $allKhs->filter(fn($item) => !is_null($item->khs));
             $totalSksAll = $filteredAllKhs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
@@ -480,30 +489,29 @@ class AkademikController extends Controller
 
             // Set warna default jika tidak ada
             $programStudi = strtolower($mahasiswa->jurusan_id ?? '');
-                $headerColor = match ($programStudi) {
-                    '13211' => '#fffbea',
-                    '48201' => '#f3e8ff',
-                    '15401' => '#eaf6ff',
-                    default => '#f3e8ff',
-                };
-                $textColor = match ($programStudi) {
-                    '13211' => '#a68c00',
-                    '48201' => '#6b3fa0',
-                    '15401' => '#005a9e',
-                    default => '#6b3fa0',
-                };
-
+            $headerColor = match ($programStudi) {
+                '13211' => '#fffbea',
+                '48201' => '#f3e8ff',
+                '15401' => '#eaf6ff',
+                default => '#f3e8ff',
+            };
+            $textColor = match ($programStudi) {
+                '13211' => '#a68c00',
+                '48201' => '#6b3fa0',
+                '15401' => '#005a9e',
+                default => '#6b3fa0',
+            };
 
             // Generate PDF
             $pdf = PDF::loadView('students.pengajuan.cetak-transkrip', compact(
                 'khs', 'mahasiswa', 'ta', 'ips', 'ipk', 'predikat', 'headerColor', 'textColor'
-            ))->setPaper('a4', 'portrait');
+            ))->setPaper('F4', 'portrait');
 
-            return $pdf->download('transkrip-' . $mahasiswa->nama . '.pdf');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal memuat data transkrip: ' . $e->getMessage());
+            // dd($pdf); // Untuk cek isi $pdf
+
+            return $pdf->stream('transkrip.pdf');
+        } catch (\Throwable $e) {
+            dd($e->getMessage(), $e->getTrace());
         }
     }
-
-
 }

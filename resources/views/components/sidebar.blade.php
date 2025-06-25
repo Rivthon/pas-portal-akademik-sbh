@@ -177,7 +177,7 @@
 
         {{-- Manajemen Penilaian --}}
         <li
-            class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.nilai.index') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index')) active open @endif">
+            class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.nilai.index') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index')|| Route::is('admin.uap.index')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bxs-file-archive"></i>
                 <div data-i18n="Barang">Manajemen Penilaian</div>
@@ -195,6 +195,11 @@
                     </a>
                 </li>
                 @endcan
+                <li class="menu-item @if(Route::is('admin.uap.index')) active @endif">
+                    <a href="{{ route('admin.uap.index') }}" class="menu-link">
+                        <div data-i18n="Nilai">Input Nilai Uap</div>
+                    </a>
+                </li>
                 @can('list-nilai')
                 <li class="menu-item @if(Route::is('admin.transkrip.index')) active @endif">
                     <a href="{{ route('admin.transkrip.index') }}" class="menu-link">

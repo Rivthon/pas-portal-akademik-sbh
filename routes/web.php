@@ -19,6 +19,7 @@ use App\Http\Controllers\RuanganController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\AktivasiController;
 use App\Http\Controllers\EvaluasiController;
+use App\Http\Controllers\UapNilaiController;
 use App\Http\Controllers\GelombangController;
 use App\Http\Controllers\JadwaluapController;
 use App\Http\Controllers\JadwaluasController;
@@ -100,7 +101,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->name('krs.cetak-kapro');
         Route::get('/krs/cetak-pdf-baak', [AkademikController::class, 'cetakBaak'])->name('krs.cetak-krs-baak');
         Route::get('/krs/cetak-pdf-dospem', [AkademikController::class, 'cetakDospem'])->name('krs.cetak-krs-dospem');
-        Route::get('/pengajuan/cetak-transkrip', [AkademikController::class, 'cetakTranskrip'])->name('krs.cetak-transkrip');
+        Route::get('/krs/cetak-transkrip-mahasiswa', [AkademikController::class, 'cetakTranskrip'])->name('cetak-transkrip');
 
         Route::get('/mahasiswa/nilai-uts', [UjianController::class, 'tampikanNilaiUts'])->name('nilai-uts.index');
         Route::get('/mahasiswa/nilai-uas', [UjianController::class, 'tampikanNilaiUas'])->name('nilai-uas.index');
@@ -175,6 +176,8 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/permintaan/create', [PerminataanController::class, 'create'])->name('permintaan.create');
         Route::post('/permintaan', [PerminataanController::class, 'store'])->name('permintaan.store');
         Route::delete('/permintaan/{id}', [PerminataanController::class, 'destroy'])->name('permintaan.destroy');
+        Route::get('/nilai-uap', [App\Http\Controllers\Mahasiswa\UapController::class, 'index'])->name('uap.index');
+
     });
 });
 
@@ -199,6 +202,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::put('/mahasiswa/{id}/update-status', [MahasiswaController::class, 'updateStatus'])->name('mahasiswa.updateStatus');
+        Route::get('/admin/export', [MahasiswaController::class, 'exportExcel'])->name('export');
 
         Route::resource('matakuliah', MatakuliahController::class);
         Route::resource('absensi', AbsensiController::class);
@@ -234,6 +238,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/get-mahasiswa/tagihan', [TagihanMahasiswaController::class, 'getMahasiswa'])->name('get.mahasiswa');
         Route::get('/search-tagihan', [TagihanMahasiswaController::class, 'searchTagihan'])->name('search.tagihan');
         Route::post('/tagihan-mahasiswa/{id}/update-pembayaran', [TagihanMahasiswaController::class, 'updatePembayaran'])->name('simpanPembayaran');
+
 
         // Generate tagihan otomatis untuk mahasiswa aktif
         Route::post('/generate-tagihan', [TagihanMahasiswaController::class, 'generateTagihan'])->name('generate');
@@ -419,6 +424,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/surat-keterangan-pendamping-ijazah/tambahan/ditinjau', [ValidatorController::class, 'tambahanDitinjau'])->name('skpi.tambahan.ditinjau');
         Route::get('/surat-keterangan-pendamping-ijazah/tambahan/menunggu', [ValidatorController::class, 'tambahanMenunggu'])->name('skpi.tambahan.menunggu');
         Route::put('/tambahan/{id}/catatan', [ValidatorController::class, 'updateCatatanTambahan'])->name('tambahan.catatan');
+
+        Route::get('/input-uap', [UapNilaiController::class, 'index'])->name('uap.index');
+        Route::get('/get-mahasiswa-uap', [UapNilaiController::class, 'getMahasiswa'])->name('uap.getMahasiswa');
+        Route::post('/simpan-nilai-uap', [UapNilaiController::class, 'simpanNilai'])->name('uap.simpanNilai');
 
 
     });

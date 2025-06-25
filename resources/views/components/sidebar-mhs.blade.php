@@ -118,7 +118,7 @@
             </ul>
         </li>
         <li
-            class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.nilai-akhir.index') ) active open @endif">
+            class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.nilai-akhir.index') || Route::is('mahasiswa.uap.index') ) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bxs-file-doc"></i>
                 <div data-i18n="Barang">Manajemen Nilai</div>
@@ -139,6 +139,11 @@
                 <li class="menu-item @if(Route::is('mahasiswa.nilai-akhir.index')) active @endif">
                     <a href="{{ route('mahasiswa.nilai-akhir.index') }}" class="menu-link">
                         <div data-i18n="Nilai Akhir">Nilai Akhir</div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('mahasiswa.uap.index')) active @endif">
+                    <a href="{{ route('mahasiswa.uap.index') }}" class="menu-link">
+                        <div data-i18n="Nilai Uap">Nilai Uap</div>
                     </a>
                 </li>
 

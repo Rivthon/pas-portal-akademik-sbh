@@ -46,7 +46,7 @@
 
                     @elseif ($pengajuanTerakhir->status === 'disetujui')
 
-                    <a href="{{route('mahasiswa.krs.cetak-transkrip')}}" class="btn btn-primary">
+                    <a href="{{route('mahasiswa.cetak-transkrip')}}" class="btn btn-primary">
                         Cetak Transkrip
                     </a>
 

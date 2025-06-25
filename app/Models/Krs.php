@@ -25,6 +25,7 @@ class Krs extends Model
         'khs',
         'uts',
         'uas',
+        'uap',
         'akhir',
     ];
 
@@ -40,6 +41,7 @@ class Krs extends Model
         'mahasiswa_id' => 'integer',
         'khs' => 'string',
         'uts' => 'string',
+        'uap' => 'string',
         'uas' => 'string',
         'akhir' => 'string',
     ];

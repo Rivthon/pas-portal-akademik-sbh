@@ -73,6 +73,7 @@ class InputNilaiController extends Controller
     {
         $mataKuliahId = $request->input('matakuliah_id');
         $uts = $request->input('uts', []);
+        $uap =$request->input('uap', []);
         $uas = $request->input('uas', []);
         $akhir = $request->input('akhir', []);
         $krsIds = $request->input('krs_id', []);
@@ -105,6 +106,7 @@ class InputNilaiController extends Controller
 
                 $krs->update([
                     'uts' => $uts[$mahasiswaId] ?? null,
+                    'uap' => $uap[$mahasiswaId] ?? null,
                     'uas' => $uas[$mahasiswaId] ?? null,
                     'akhir' => $nilaiAkhir,
                     'khs' => $nilaiKhs, // Mutu dihitung otomatis dari "akhir"

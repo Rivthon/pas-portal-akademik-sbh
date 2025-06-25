@@ -303,19 +303,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
             padding: 10px 20px;
             border-top: 1px solid #ddd;
+            /* Hapus position: fixed agar footer tidak selalu di bawah setiap halaman */
         }
 
         .verified {
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            /* Rata kanan */
         }
 
         .verified img {

@@ -7,6 +7,7 @@ use App\Models\Mahasiswa;
 use Illuminate\View\View;
 use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
+use App\Exports\MahasiswaExport;
 use App\Imports\MahasiswaImport;
 use Yajra\DataTables\DataTables;
 use Illuminate\Routing\Controller;
@@ -89,7 +90,28 @@ class MahasiswaController extends Controller
     ]);
 }
 
+    public function exportExcel(Request $request)
+    {
+        // Ambil filter dari request (sama dengan searchMahasiswa)
+        $search = $request->input('search');
+        $programStudi = $request->input('jurusan_id');
+        $tahunMasuk = $request->input('tahun_masuk');
+        $status = $request->input('status');
 
+        // Simpan semua filter dalam array
+        $filters = compact('search', 'programStudi', 'tahunMasuk', 'status');
+
+        try {
+            // Export ke Excel
+            return Excel::download(new MahasiswaExport($filters), 'data_mahasiswa.xlsx');
+        } catch (\Exception $e) {
+            Log::error('Gagal export data mahasiswa: ' . $e->getMessage(), [
+                'filters' => $filters,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Gagal mengekspor data mahasiswa. Silakan coba lagi.');
+        }
+    }
     public function create(): View
     {
         $programStudi = ProgramStudi::all();

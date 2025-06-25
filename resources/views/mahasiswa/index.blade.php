@@ -70,7 +70,6 @@
                 <div class="mb-3">
                     <input type="text" id="search" class="form-control" placeholder="Cari Nama, NIM, dll...">
                 </div>
-
                 <!-- Program Studi -->
                 <div class="mb-3">
                     <select id="program-studi" class="form-select">
@@ -104,11 +103,21 @@
                 </div>
 
                 <!-- Tombol Cari -->
-                <div class="d-grid">
-                    <button id="search-btn" class="btn btn-primary">
-                        <i class="bx bx-search"></i> Cari Mahasiswa
-                    </button>
+                <div class="row g-2">
+                    <div class="col-md-8 d-grid">
+                        <button id="search-btn" class="btn btn-primary">
+                            <i class="bx bx-search"></i> Cari Mahasiswa
+                        </button>
+                    </div>
+                    <div class="col-md-4 d-grid">
+                        <button id="export-btn" class="btn btn-outline-success">
+                            <i class="fa fa-file-excel"></i> Export Excel
+                            <input type="hidden" id="export-url" value="{{ route('admin.export') }}">
+                        </button>
+
+                    </div>
                 </div>
+
             </div>
         </div>
 
@@ -119,5 +128,7 @@
         <div class="table-responsive mt-4" id="table-container"></div>
     </div>
 </div>
+
+
 
 @endsection
