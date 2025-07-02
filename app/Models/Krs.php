@@ -25,8 +25,11 @@ class Krs extends Model
         'khs',
         'uts',
         'uas',
-        'uap',
+
         'akhir',
+        'tugas',
+        'absen',
+        'praktik',
     ];
 
     /**
@@ -41,9 +44,12 @@ class Krs extends Model
         'mahasiswa_id' => 'integer',
         'khs' => 'string',
         'uts' => 'string',
-        'uap' => 'string',
+
         'uas' => 'string',
         'akhir' => 'string',
+        'tugas' => 'string',
+        'absen' => 'string',
+        'praktik' => 'string',
     ];
      public function mataKuliah()
     {

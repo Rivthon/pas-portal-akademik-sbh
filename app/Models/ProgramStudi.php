@@ -28,6 +28,12 @@ class ProgramStudi extends Model
         'header_baak',
         'header_kapro',
         'header_dospem',
+        'persen_tugas',
+        'persen_uts',
+        'persen_uas',
+        'persen_absen',
+        'persen_praktik',
+
     ];
 
      public function mahasiswa()

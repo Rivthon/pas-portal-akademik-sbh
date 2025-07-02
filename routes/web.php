@@ -483,9 +483,18 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::post('/pertemuan-praktik/generate-pdf', [LaporanAbsensiController::class, 'generatePraktikPertemuan'])->name('praktik.generate-pdf');
 
             // Input Nilai
-            Route::get('/nilai/input', [ModulAkademikController::class, 'inputNilai'])->name('nilai.input');
-            Route::get('/nilai', [ModulAkademikController::class, 'index'])->name('nilai.index');
-
+            // Route::get('/nilai/input', [ModulAkademikController::class, 'inputNilai'])->name('nilai.input');
+            // Route::get('/nilai-dosen/input', [ModulAkademikController::class, 'index'])->name('doseninput.index');
+            // Route::get('/mata-kuliah/{programStudiId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMataKuliah']);
+            // Route::get('/mahasiswa/input-nilai/{mataKuliahId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMahasiswa']);
+            // Route::post('/nilai/save', [ModulAkademikController::class, 'saveNilaiDosen'])->name('nilai.save');
+            Route::get('/nilai/input', [ModulAkademikController::class, 'index'])->name('nilai-dosen.input');
+            // Route::get('/input-nilai', [InputNilaiController::class, 'index'])->name('input-nilai.index');
+            Route::get('/mata-kuliah/{programStudiId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMataKuliahDosen']);
+            Route::get('/input-nilai-dosen/{mataKuliahId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMahasiswaDosen']);
+            Route::post('/nilai-mahasiswa/save', [ModulAkademikController::class, 'saveNilaiDosen'])->name('nilai.save');
+            Route::get('/mahasiswa-bimbingan', [ModulAkademikController::class, 'lihatMahasiswaDosen'])->name('nilai-dosen.lihat');
+            Route::get('/mahasiswa-bimbingan/{mahasiswa}/transkrip', [ModulAkademikController::class, 'transkripMahasiswa'])->name('mahasiswa.transkrip');
             // ===== Modul Akademik =====
             // Materi Kuliah
             Route::get('/materi', [ModulAkademikController::class, 'indexRps'])->name('materi.index');

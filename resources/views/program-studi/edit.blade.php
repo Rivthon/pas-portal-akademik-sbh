@@ -78,6 +78,53 @@
                             @enderror
                         </div>
 
+                        <!-- Input untuk Persentase Penilaian -->
+                        <div class="col-md-2 mb-3">
+                            <label for="persen_tugas" class="form-label"><strong>% Tugas</strong></label>
+                            <input type="number" name="persen_tugas" id="persen_tugas" min="0" max="100"
+                                class="form-control @error('persen_tugas') is-invalid @enderror" placeholder="Tugas"
+                                value="{{ old('persen_tugas', $programStudi->persen_tugas) }}">
+                            @error('persen_tugas')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="persen_uts" class="form-label"><strong>% UTS</strong></label>
+                            <input type="number" name="persen_uts" id="persen_uts" min="0" max="100"
+                                class="form-control @error('persen_uts') is-invalid @enderror" placeholder="UTS"
+                                value="{{ old('persen_uts', $programStudi->persen_uts) }}">
+                            @error('persen_uts')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="persen_uas" class="form-label"><strong>% UAS</strong></label>
+                            <input type="number" name="persen_uas" id="persen_uas" min="0" max="100"
+                                class="form-control @error('persen_uas') is-invalid @enderror" placeholder="UAS"
+                                value="{{ old('persen_uas', $programStudi->persen_uas) }}">
+                            @error('persen_uas')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="persen_absen" class="form-label"><strong>% Absen</strong></label>
+                            <input type="number" name="persen_absen" id="persen_absen" min="0" max="100"
+                                class="form-control @error('persen_absen') is-invalid @enderror" placeholder="Absen"
+                                value="{{ old('persen_absen', $programStudi->persen_absen) }}">
+                            @error('persen_absen')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="persen_praktik" class="form-label"><strong>% Praktik</strong></label>
+                            <input type="number" name="persen_praktik" id="persen_praktik" min="0" max="100"
+                                class="form-control @error('persen_praktik') is-invalid @enderror" placeholder="Praktik"
+                                value="{{ old('persen_praktik', $programStudi->persen_praktik) }}">
+                            @error('persen_praktik')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <!-- Input untuk TTD -->
                         <div class="col-md-6 mb-3">
                             <label for="ttd" class="form-label"><strong>TTD:</strong></label>

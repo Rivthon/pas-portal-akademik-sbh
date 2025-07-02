@@ -67,19 +67,23 @@
                     <tr>
                         <th rowspan="2" style="width: 50px; text-align: center;">#</th>
                         <th rowspan="2" style="text-align: center;">Nama</th>
-                        <th colspan="4" style="text-align: center;">Nilai</th>
+                        <th colspan="7" style="text-align: center;">Nilai</th>
                     </tr>
                     <tr>
-                        <th style="width: 100px; text-align: center;">UTS</th>
-                        <th style="width: 100px; text-align: center;">UAS</th>
-                        <th style="width: 100px; text-align: center;">Absolute</th>
-                        <th style="width: 100px; text-align: center;">Huruf Mutu</th>
+                        <th style="width: 150PX; text-align: center;">UTS</th>
+                        <th style="width: 150PX; text-align: center;">UAS</th>
+                        <th style="width: 150PX; text-align: center;">TUGAS</th>
+                        <th style="width: 150PX; text-align: center;">ABSEN</th>
+                        <th style="width: 150PX; text-align: center;">PRAKTIK</th>
+                        <th style="width: 150PX; text-align: center;">Absolute</th>
+                        <th style="width: 150PX; text-align: center;">Huruf Mutu</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td colspan="6" class="text-center text-muted">Silakan pilih mata kuliah</td>
                     </tr>
+
                 </tbody>
             </table>
         </div>

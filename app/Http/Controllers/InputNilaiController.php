@@ -26,7 +26,7 @@ class InputNilaiController extends Controller
             ]);
         }
 
-     public function getMataKuliah($programStudiId, $tahunAjaranId)
+        public function getMataKuliah($programStudiId, $tahunAjaranId)
         {
             // Ambil data mata kuliah berdasarkan program studi dan tahun ajaran dari tabel KRS
             $mataKuliah = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
@@ -43,88 +43,166 @@ class InputNilaiController extends Controller
 
         public function getMahasiswa($matakuliahId, $tahunAjaranId)
         {
-            // Validasi parameter
-            if (!$matakuliahId || !$tahunAjaranId) {
-                return response()->json(['message' => 'Mata kuliah ID atau Tahun Ajaran ID tidak valid'], 400);
-            }
-
-            // Ambil daftar mahasiswa berdasarkan mata kuliah dan tahun ajaran
+            // 1. =================================
+            // AMBIL DATA MAHASISWA (Kode Anda sudah bagus, dipertahankan)
+            // ===================================
             $mahasiswa = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
                 ->join('mahasiswa', 'krs.mahasiswa_id', '=', 'mahasiswa.mahasiswa_id')
-                ->where('krs.ta_id', $tahunAjaranId) // Filter berdasarkan tahun ajaran yang dipilih
+                ->where('krs.ta_id', $tahunAjaranId)
                 ->where('kurikulum.matakuliah_id', $matakuliahId)
                 ->where('mahasiswa.status_mhs', 'aktif')
-                ->select('mahasiswa.mahasiswa_id', 'mahasiswa.nama', 'mahasiswa.nim', 'krs.krs_id', 'krs.uts', 'krs.uas', 'krs.khs', 'krs.akhir')
-                ->distinct() // Hindari duplikasi data
-                ->orderBy('mahasiswa.nim', 'asc') // Urutkan berdasarkan NIM naik
+                ->select('mahasiswa.mahasiswa_id', 'mahasiswa.nama', 'mahasiswa.nim', 'krs.krs_id', 'krs.uts', 'krs.uas', 'krs.khs', 'krs.akhir','krs.tugas', 'krs.absen', 'krs.praktik') // 'absen' diganti dari krs.absensi di JS
+                ->distinct()
+                ->orderBy('mahasiswa.nim', 'asc')
                 ->get();
 
-            // Jika tidak ada mahasiswa yang ditemukan
             if ($mahasiswa->isEmpty()) {
-                return response()->json(['message' => 'Tidak ada mahasiswa untuk mata kuliah ini pada tahun ajaran yang dipilih'], 404);
+                return response()->json(['message' => 'Tidak ada mahasiswa untuk mata kuliah ini'], 404);
             }
 
-            return response()->json($mahasiswa, 200);
+            // 2. =================================
+            // AMBIL KONFIGURASI PENILAIAN (Bagian Baru)
+            // ===================================
+
+            // Ambil model mata kuliah untuk mendapatkan jurusan_id
+            $mataKuliah = Matakuliah::find($matakuliahId);
+            if (!$mataKuliah) {
+                return response()->json(['message' => 'Data mata kuliah tidak ditemukan.'], 404);
+            }
+
+            // Ambil model program studi berdasarkan jurusan_id
+            $programStudi = ProgramStudi::where('jurusan_id', $mataKuliah->jurusan_id)->first();
+            if (!$programStudi) {
+                return response()->json(['message' => 'Konfigurasi program studi tidak ditemukan.'], 404);
+            }
+
+            // Siapkan array bobot, gunakan default value jika di DB null
+            $bobot = [
+                'uts'     => $programStudi->persen_uts ?? 25,
+                'uas'     => $programStudi->persen_uas ?? 35,
+                'tugas'   => $programStudi->persen_tugas ?? 20,
+                'absensi' => $programStudi->persen_absen ?? 10, // pastikan nama kolom 'persen_absen'
+                'praktik' => $programStudi->persen_praktik ?? 10,
+            ];
+
+            // Siapkan array standar nilai mutu
+            $mutu = [
+                ['nilai' => 85.5, 'huruf' => 'A'],
+                ['nilai' => 78.5, 'huruf' => 'AB'],
+                ['nilai' => 74.5, 'huruf' => 'BA'],
+                ['nilai' => 70.5, 'huruf' => 'B'],
+                ['nilai' => 66.5, 'huruf' => 'BC'],
+                ['nilai' => 59.5, 'huruf' => 'C'],
+                ['nilai' => 45.5, 'huruf' => 'D'],
+                ['nilai' => 0,    'huruf' => 'E'],
+            ];
+
+            // 3. =================================
+            // GABUNGKAN SEMUA DATA DALAM SATU RESPONSE (Perbaikan Kunci)
+            // ===================================
+            return response()->json([
+                'mahasiswa'   => $mahasiswa,
+                'konfigurasi' => [
+                    'bobot' => $bobot,
+                    'mutu'  => $mutu,
+                ]
+            ]);
         }
 
 
-   public function saveNilai(Request $request)
-    {
-        $mataKuliahId = $request->input('matakuliah_id');
-        $uts = $request->input('uts', []);
-        $uap =$request->input('uap', []);
-        $uas = $request->input('uas', []);
-        $akhir = $request->input('akhir', []);
-        $krsIds = $request->input('krs_id', []);
+        public function saveNilai(Request $request)
+        {
+            $uts = $request->input('uts', []);
 
-        // Fungsi konversi angka ke mutu
-        $getMutu = function ($angka) {
-            if ($angka >= 85.5) return 'A';
-            if ($angka >= 78.5) return 'AB';
-            if ($angka >= 74.5) return 'BA';
-            if ($angka >= 70.5) return 'B';
-            if ($angka >= 66.5) return 'BC';
-            if ($angka >= 59.5) return 'C';
-            if ($angka >= 45.5) return 'D';
-            return 'E';
-        };
+            $uas = $request->input('uas', []);
+            $tugas = $request->input('tugas', []);
+            $absensi = $request->input('absensi', []);
+            $praktik = $request->input('praktik', []);
+            $krsIds = $request->input('krs_id', []);
 
-        try {
-            foreach ($krsIds as $mahasiswaId => $krsId) {
-                $krs = Krs::find($krsId);
-                if (!$krs) {
-                    \Log::error("KRS ID $krsId tidak ditemukan untuk mahasiswa $mahasiswaId");
-                    continue;
+            // Fungsi konversi angka ke mutu
+            $getMutu = function ($angka) {
+                if ($angka >= 85.5) return 'A';
+                if ($angka >= 78.5) return 'AB';
+                if ($angka >= 74.5) return 'BA';
+                if ($angka >= 70.5) return 'B';
+                if ($angka >= 66.5) return 'BC';
+                if ($angka >= 59.5) return 'C';
+                if ($angka >= 45.5) return 'D';
+                return 'E';
+            };
+
+            try {
+                foreach ($krsIds as $mahasiswaId => $krsId) {
+                    $krs = \App\Models\Krs::with('kurikulum.mataKuliah')->find($krsId);
+                    if (!$krs || !$krs->kurikulum || !$krs->kurikulum->mataKuliah) {
+                        \Log::error("KRS atau relasi tidak ditemukan untuk ID $krsId (mahasiswa $mahasiswaId)");
+                        continue;
+                    }
+
+                    $mataKuliah = $krs->kurikulum->mataKuliah;
+                    $jurusanId = $mataKuliah->jurusan_id;
+
+                    // Ambil data bobot dari program_studi
+                    $programStudi = \App\Models\ProgramStudi::where('jurusan_id', $jurusanId)->first();
+
+                    if (!$programStudi) {
+                        \Log::error("Program studi tidak ditemukan untuk jurusan_id $jurusanId");
+                        continue;
+                    }
+
+                    // Gunakan bobot dari DB
+                    $bobotUTS = $programStudi->persen_uts ?? 0;
+                    $bobotUAS = $programStudi->persen_uas ?? 0;
+                    $bobotTugas = $programStudi->persen_tugas ?? 0;
+                    $bobotAbsensi = $programStudi->persen_absen ?? 0;
+                    $bobotPraktik = $programStudi->persen_praktik ?? 0;
+
+                    // Ambil nilai input
+                    $nilaiUTS = $uts[$mahasiswaId] ?? 0;
+                    $nilaiUAP = $uap[$mahasiswaId] ?? 0;
+                    $nilaiUAS = $uas[$mahasiswaId] ?? 0;
+                    $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
+                    $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
+                    $nilaiPraktik = $praktik[$mahasiswaId] ?? 0;
+
+                    // Hitung nilai akhir otomatis
+                    $nilaiAkhir = round(
+                        ($nilaiUTS * $bobotUTS / 100) +
+                        ($nilaiUAS * $bobotUAS / 100) +
+                        ($nilaiTugas * $bobotTugas / 100) +
+                        ($nilaiPraktik * $bobotPraktik / 100) +
+                        ($nilaiAbsensi * $bobotAbsensi / 100),
+                        2
+                    );
+
+                    // Konversi ke huruf mutu
+                    $nilaiKhs = $getMutu($nilaiAkhir);
+
+                    // Update ke database
+                    $krs->update([
+                        'uts' => $nilaiUTS,
+                        'uas' => $nilaiUAS,
+                        'akhir' => $nilaiAkhir,
+                        'khs' => $nilaiKhs,
+                        'tugas' => $nilaiTugas,
+                        'absen' => $nilaiAbsensi,
+                        'praktik' => $nilaiPraktik,
+                        'updated_at' => now(),
+                    ]);
                 }
 
-                // Ambil nilai akhir
-                $nilaiAkhir = $akhir[$mahasiswaId] ?? null;
-
-                // Konversi nilai akhir ke khs
-                $nilaiKhs = isset($nilaiAkhir) ? $getMutu($nilaiAkhir) : null;
-
-                $krs->update([
-                    'uts' => $uts[$mahasiswaId] ?? null,
-                    'uap' => $uap[$mahasiswaId] ?? null,
-                    'uas' => $uas[$mahasiswaId] ?? null,
-                    'akhir' => $nilaiAkhir,
-                    'khs' => $nilaiKhs, // Mutu dihitung otomatis dari "akhir"
-                    'updated_at' => now(),
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nilai berhasil diperbarui!',
                 ]);
+            } catch (\Exception $e) {
+                \Log::error('Error updating nilai:', ['error' => $e->getMessage()]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan saat memperbarui data.',
+                ], 500);
             }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Nilai berhasil diperbarui!',
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error updating nilai:', ['error' => $e->getMessage()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat memperbarui data.',
-            ], 500);
         }
-    }
 
 }

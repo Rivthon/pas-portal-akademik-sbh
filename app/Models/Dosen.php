@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\Mahasiswa;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Dosen extends Authenticatable
 {
@@ -50,4 +51,8 @@ class Dosen extends Authenticatable
     {
         return $this->avatar ? asset('storage/' . $this->avatar) : null;
     }
+   public function mahasiswa()
+   {
+       return $this->hasMany(Mahasiswa::class, 'dosen_id');
+   }
 }

@@ -99,56 +99,56 @@ class ProgramStudiController extends Controller
 
 
     public function update(Request $request, ProgramStudi $programStudi): RedirectResponse
-{
-    // Validasi input
-    $request->validate([
-        'nama' => 'required',
-        'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        'header_kapro' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        'header_dospem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-    ]);
-
-    // Data untuk di-update
-    $data = $request->all();
-
-    // Proses upload gambar jika ada
-    if ($request->hasFile('ttd')) {
-        $data['ttd'] = $request->file('ttd')->store('program_studi', 'public');
-    }
-
-    if ($request->hasFile('header_baak')) {
-        $data['header_baak'] = $request->file('header_baak')->store('program_studi', 'public');
-    }
-
-    if ($request->hasFile('header_kapro')) {
-        $data['header_kapro'] = $request->file('header_kapro')->store('program_studi', 'public');
-    }
-
-    if ($request->hasFile('header_dospem')) {
-        $data['header_dospem'] = $request->file('header_dospem')->store('program_studi', 'public');
-    }
-
-    // Update data
-    $programStudi->update($data);
-
-    // Tampilkan notifikasi SweetAlert
-    Alert::toast('Program studi berhasil diperbarui.', 'success')
-        ->position('bottom-end')
-        ->autoClose(3000);
-
-    // Redirect ke halaman indeks
-    return redirect()->route('admin.program-studi.index');
-    }
-    public function destroy(ProgramStudi $programStudi): RedirectResponse
     {
-        $programStudi->delete();
+        // Validasi input
+        $request->validate([
+            'nama' => 'required',
+            'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'header_kapro' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'header_dospem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
-        Alert::toast('Program studi berhasil dihapus.', 'info')
-        ->position('bottom-end') // Posisi toast
-        ->autoClose(3000);    // Durasi dalam milidetik
+        // Data untuk di-update
+        $data = $request->all();
 
+        // Proses upload gambar jika ada
+        if ($request->hasFile('ttd')) {
+            $data['ttd'] = $request->file('ttd')->store('program_studi', 'public');
+        }
+
+        if ($request->hasFile('header_baak')) {
+            $data['header_baak'] = $request->file('header_baak')->store('program_studi', 'public');
+        }
+
+        if ($request->hasFile('header_kapro')) {
+            $data['header_kapro'] = $request->file('header_kapro')->store('program_studi', 'public');
+        }
+
+        if ($request->hasFile('header_dospem')) {
+            $data['header_dospem'] = $request->file('header_dospem')->store('program_studi', 'public');
+        }
+
+        // Update data
+        $programStudi->update($data);
+
+        // Tampilkan notifikasi SweetAlert
+        Alert::toast('Program studi berhasil diperbarui.', 'success')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
+        // Redirect ke halaman indeks
         return redirect()->route('admin.program-studi.index');
+        }
+        public function destroy(ProgramStudi $programStudi): RedirectResponse
+        {
+            $programStudi->delete();
 
-    }
+            Alert::toast('Program studi berhasil dihapus.', 'info')
+            ->position('bottom-end') // Posisi toast
+            ->autoClose(3000);    // Durasi dalam milidetik
+
+            return redirect()->route('admin.program-studi.index');
+
+        }
 }

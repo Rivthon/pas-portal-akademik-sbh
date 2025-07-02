@@ -68,29 +68,37 @@
 
             </ul>
         </li>
-        <li class="menu-item @if(Route::is('dosen.nilai.*')) active open @endif">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon bx bx-file"></i>
-                <div data-i18n="Input Nilai">Input Nilai</div>
-            </a>
-            <ul class="menu-sub">
-                <li class="menu-item @if(Route::is('dosen.nilai.input')) active @endif">
-                    <a href="{{ route('dosen.nilai.input') }}" class="menu-link">
-                        <div data-i18n="Input Nilai">Input Nilai</div>
-                    </a>
-                </li>
-                <li class="menu-item @if(Route::is('dosen.nilai.index')) active @endif">
-                    <a href="{{ route('dosen.nilai.index') }}" class="menu-link">
-                        <div data-i18n="Lihat Nilai">Lihat Nilai</div>
-                    </a>
-                </li>
-            </ul>
-        </li>
+
 
         <!-- Modul Akademik -->
         <li class="menu-header small text-uppercase">
             <span class="menu-header-text">Modul Akademik</span>
         </li>
+        <li class="menu-item @if(Route::is('dosen.nilai-dosen.*')) active open @endif">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon bx bx-file"></i>
+                <div data-i18n="Input Nilai">Manajemen Nilai</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item @if(Route::is('dosen.nilai-dosen.input')) active @endif">
+                    <a href="{{ route('dosen.nilai-dosen.input') }}" class="menu-link">
+                        <div data-i18n="Input Nilai">Input Nilai</div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('dosen.nilai-dosen.lihat')) active @endif">
+                    <a href="{{ route('dosen.nilai-dosen.lihat') }}" class="menu-link">
+                        <div data-i18n="Input Nilai">Lihat Nilai</div>
+                    </a>
+                </li>
+
+            </ul>
+        </li>
+        {{-- <li class="menu-item @if(Route::is('dosen.dashboard')) active @endif">
+            <a href="{{ route('dosen.dashboard') }}" class="menu-link">
+                <i class="menu-icon bx bx-user-plus"></i>
+                <span class="menu-text">Mahasiswa Bimbingan</span>
+            </a>
+        </li> --}}
         <li class="menu-item @if(Route::is('dosen.settings.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bx-cog"></i>
@@ -108,11 +116,11 @@
                     </a>
                 </li>
                 <li class="menu-item">
-                    <a href="javascript:void(0);" class="menu-link"
+                    {{-- <a href="javascript:void(0);" class="menu-link"
                         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                         <i class="menu-icon tf-icons bx bx-power-off text-danger"></i>
                         <span class="menu-text">Keluar</span>
-                    </a>
+                    </a> --}}
                     <form method="POST" action="{{ route('dosen.logout') }}" id="logout-form" class="d-none">
                         @csrf
                     </form>

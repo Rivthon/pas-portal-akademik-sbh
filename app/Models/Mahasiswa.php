@@ -161,4 +161,5 @@ class Mahasiswa extends Authenticatable
         return $this->hasMany(PengajuanTranskrip::class);
     }
 
+
 }
