@@ -20,34 +20,45 @@ class PerkuliahanDosenController extends Controller
 {
     public function jadwalIndex()
     {
-        // Ambil dosen yang sedang login dari guard 'dosen'
         $dosen = auth('dosen')->user();
+
         // Pastikan ada dosen yang login
         if (!$dosen) {
             return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
         }
-         $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+
+        // Ambil Tahun Akademik aktif
+        $activeTA = TahunAkademik::where('status_ta', 1)
+            ->orderByDesc('ta_id')
+            ->first(['ta_id', 'nama', 'semester']);
+
         if (!$activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
-        // Ambil jadwal kuliah berdasarkan kurikulum yang diajar oleh dosen
-        $dosen = auth('dosen')->user();
-        $jadwalList = Jadwal::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
-        $query->where('ta_id', $activeTA->ta_id)
-              ->where('jurusan_id', $dosen->jurusan_id);
+
+        // Ambil jadwal berdasarkan ta_id dari JADWAL (bukan dari kurikulum), dan jurusan dosen
+        $jadwalList = Jadwal::where('ta_id', $activeTA->ta_id) // ⬅️ ini filter di jadwal
+            ->whereHas('kurikulum', function ($query) use ($dosen) {
+                $query->where('jurusan_id', $dosen->jurusan_id);
             })
             ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
                 $query->where('dosen_id', $dosen->dosen_id);
             })
-            ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
+            ->with([
+                'kurikulum.mataKuliah',
+                'kurikulum.dosenToMatakuliah.dosen',
+                'ruangan'
+            ])
             ->get()
             ->groupBy(function ($jadwal) {
-                return $jadwal->hari ?? 'Tidak Ada Hari'; // Kelompokkan berdasarkan hari
+                return $jadwal->hari ?? 'Tidak Ada Hari';
             })
             ->map(function ($jadwalPerHari) {
                 return $jadwalPerHari->map(function ($jadwal) {
+
                     return [
                         'jadwal_id' => $jadwal->id,
+                        // 'ta_id' => $jadwal->ta_id ?? 'Tidak ada data',
                         'hari' => $jadwal->hari ?? 'Tidak ada data',
                         'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
                         'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
@@ -56,16 +67,20 @@ class PerkuliahanDosenController extends Controller
                         'semester_matkul' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak ada data',
                         'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
                         'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
-                        'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
-                            return [
-                                'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
-                                'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
-                                'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
-                                 'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
-                            ];
-                             })->filter(function ($dosen) {
-                            return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
-                        })->unique('id')->values(),
+                        'dosen' => $jadwal->kurikulum->dosenToMatakuliah
+                            ->map(function ($dosenToMatakuliah) {
+                                return [
+                                    'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
+                                    'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
+                                    'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                    'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
+                                ];
+                            })
+                            ->filter(function ($dosen) {
+                                return $dosen['jenis_dosen'] === 'teori';
+                            })
+                            ->unique('id')
+                            ->values(),
                     ];
                 });
             });
