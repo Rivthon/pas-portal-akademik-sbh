@@ -225,7 +225,7 @@
     });
 
     function updateJadwalUTS(id, field, value) {
-        fetch(`{{ url('/admin/jadwal-kuliah/update') }}/${id}`, {
+        fetch(`{{ url('/admin/jadwal-uas/update') }}/${id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
