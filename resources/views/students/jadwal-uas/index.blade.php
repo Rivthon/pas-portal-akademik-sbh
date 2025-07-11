@@ -113,44 +113,22 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if(Auth::guard('mahasiswa')->user()->kelas == 'pagi')
                             @forelse ($jadwalUas as $key => $item)
                             <tr>
                                 <td>{{ $key + 1 }}</td>
                                 <td>{{ $item->mataKuliah->nama }}</td>
                                 <td>{{ $item->mataKuliah->sks }}</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('l, d F Y') }}</td>
-                                <td>{{ $item->jam }}</td>
+                                <td>{{ date('H:i', strtotime($item->jam_mulai)) }} - {{ date('H:i',
+                                    strtotime($item->jam_selesai)) }}</td>
                                 <td>{{ $item->ruangan->nama ?? 'Tidak ada data ruangan' }}</td>
-                                <td>Pagi</td>
+                                <Td>{{ $item->jenis_kelas }}</Td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="7" class="text-center">Tidak ada jadwal tersedia untuk kelas pagi.</td>
+                                <td colspan="7" class="text-center">Tidak ada jadwal tersedia.</td>
                             </tr>
                             @endforelse
-                            @elseif(Auth::guard('mahasiswa')->user()->kelas == 'karyawan')
-                            @forelse ($jadwalUtsKaryawan as $key => $item)
-                            <tr>
-                                <td>{{ $key + 1 }}</td>
-                                <td>{{ $item->mataKuliah->nama }}</td>
-                                <td>{{ $item->mataKuliah->sks }}</td>
-                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('l, d F Y') }}</td>
-                                <td>{{ $item->jam }}</td>
-                                <td>{{ $item->ruangan->nama ?? 'Tidak ada data ruangan' }}</td>
-                                <td>Karyawan</td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="7" class="text-center">Tidak ada jadwal tersedia untuk kelas karyawan.
-                                </td>
-                            </tr>
-                            @endforelse
-                            @else
-                            <tr>
-                                <td colspan="7" class="text-center">Jenis kelas tidak diketahui.</td>
-                            </tr>
-                            @endif
                         </tbody>
                     </table>
                 </div>

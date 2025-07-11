@@ -331,7 +331,7 @@ class PerkuliahanController extends Controller
             $fileName = 'Kartu_UTS_' . $mahasiswa->nama . '.pdf';
             // Generate PDF
             $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA','logoBase64','ttd'));
-            return $pdf->stream($fileName);
+            return $pdf->download($fileName);
         }
 
 
@@ -365,33 +365,32 @@ class PerkuliahanController extends Controller
             }
              // Query awal dengan eager loading
              // Query awal dengan eager loading
-            $jadwalUas = Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
-            ->where('ta_id', $activeTA->ta_id)
-              ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'pagi') {
-                    $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
-                    $query->where('jenis_kelas', 'karyawan');
-                }
-            })
-            ->whereHas('mataKuliah', function ($query) use ($semester) {
-                $query->where('smt', $semester);
-            })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
-            })
-            ->orderBy('tanggal')
-            ->orderBy('jam_mulai')
-            ->get();
-
+             $jadwalUas = Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
+             ->where('ta_id', $activeTA->ta_id)
+               ->where(function ($query) {
+                 $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
+                 if ($jenisKelas === 'pagi') {
+                     $query->where('jenis_kelas', 'reguler');
+                 } elseif ($jenisKelas === 'karyawan') {
+                     $query->where('jenis_kelas', 'karyawan');
+                 }
+             })
+             ->whereHas('mataKuliah', function ($query) use ($semester) {
+                 $query->where('smt', $semester);
+             })
+             ->whereHas('programStudi', function ($query) {
+                 $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
+                 $query->where('jurusan_id', $jurusanId);
+             })
+             ->orderBy('tanggal')
+             ->orderBy('jam_mulai')
+             ->get();
             // Nama file PDF
             $fileName = 'Kartu_UAS_' . $mahasiswa->nama . '.pdf';
 
             // Generate PDF
             $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA','logoBase64','ttd'));
-            return $pdf->stream($fileName);
+            return $pdf->download($fileName);
         }
 
 
