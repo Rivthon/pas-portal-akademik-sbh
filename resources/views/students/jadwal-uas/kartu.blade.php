@@ -208,7 +208,7 @@
         @else
         <p>Jurusan tidak dikenali</p> @endif
         <div class="placeholder"></div>
-        @endif
+
         <p>
             {{ auth('mahasiswa')->user()->programStudi->kaprod }}
         </p>
