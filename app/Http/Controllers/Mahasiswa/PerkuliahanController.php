@@ -208,6 +208,8 @@ class PerkuliahanController extends Controller
                 $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
                 $query->where('jurusan_id', $jurusanId);
             })
+            ->orderBy('tanggal')
+            ->orderBy('jam_mulai')
             ->get();
             // Jika bukan AJAX, kirim ke view utama
             return view('students.jadwal-uts.index', compact('jadwalUts'));
@@ -251,6 +253,8 @@ class PerkuliahanController extends Controller
                 $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
                 $query->where('jurusan_id', $jurusanId);
             })
+            ->orderBy('tanggal')
+            ->orderBy('jam_mulai')
             ->get();
             // Jika bukan AJAX, kirim ke view utama
             return view('students.jadwal-uas.index', compact('jadwalUas'));
