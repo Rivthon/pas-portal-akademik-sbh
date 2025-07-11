@@ -197,11 +197,19 @@
         <p>Ketua Program Studi
 
         </p>
-        @if ($ttd)
-        <img src="data:image/png;base64,{{ $ttd }}" alt="Tanda Tangan Kaprodi" style="height: 60px;">
+        @php
+        $jurusanId = auth('mahasiswa')->user()->jurusan_id;
+        @endphp
+
+        @if ($jurusanId == 13211)
+        <img src="{{ public_path('assets/img/header/gizi.png') }}" alt="Header Gizi" style="height: 60px;">
+        @elseif ($jurusanId == 48201)
+        <img src="{{ public_path('assets/img/header/farmasi.png') }}" alt="Header Farmasi" style="height: 60px;">
+        @elseif ($jurusanId == 15401)
+        <img src="{{ public_path('assets/img/header/bidan.png') }}" alt="Header Bidan" style="height: 60px;">
         @else
+        <p>Jurusan tidak dikenali</p> @endif
         <div class="placeholder"></div>
-        @endif
         <p>
             {{ auth('mahasiswa')->user()->programStudi->kaprod }}
         </p>
