@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kartu Rencana Studi - Kaprodi</title>
+    <title>Kartu Rencana Studi - BAAK</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -91,7 +91,7 @@
             transform: translate(-50%, -50%);
             width: 50%;
             height: 50%;
-            background: url("{{ public_path('assets/img/header/logo_sbh.png') }}") no-repeat center;
+            background: url('data:image/png;base64,{{ $logo }}') no-repeat center;
             background-size: contain;
             opacity: 0.1;
             z-index: -1;
@@ -101,20 +101,32 @@
             position: relative;
             z-index: 1;
         }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 5px 10px;
+            font-size: 10px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            color: #666;
+        }
     </style>
 </head>
 
 <body>
     <div class="watermark"></div>
     <div class="header">
+        {{-- <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Image"
+            style="width: 100%; height: auto; margin-bottom: 20px;"> --}}
         @if (isset($headerKrs) && $headerKrs)
         <img src="data:image/png;base64,{{ $headerKrs }}" alt="header krs" style="width: 100%; height: auto;">
         @endif
-        {{-- <h1 style="text-align: center; margin: 0;">Form Kartu Rencana Studi</h1> --}}
-        {{-- <h3 style="text-align: center; margin: 0;">Tahun Ajaran {{ $ta->nama }} ( {{ $ta->semester }}) </h3> --}}
+        {{-- <h1 style="text-align: center; margin: 0;">Form Kartu Rencana Studi Kaprodi</h1>
+        <h3 style="text-align: center; margin: 0;">Tahun Ajaran {{ $ta->nama }} ( {{ $ta->semester }}) </h3> --}}
     </div>
-
-    <h2 style="text-align: center;">Tahun Ajaran ({{ $ta->nama ?? 'Tahun Ajaran Tidak di Temukan' }})</h2>
 
     <div class="info">
         <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
@@ -205,6 +217,11 @@
             </td>
         </tr>
     </table>
+    <div class="footer">
+        © {{ date('Y') }} {{ $settings->footer_name }} – Dicetak oleh {{ $mahasiswa->nama }} (NIM: {{ $mahasiswa->nim
+        }})<br>
+        Tahun Akademik: {{ $ta->nama }} (Semester {{ $ta->semester }})<br>
+        Dicetak pada {{ date('d/m/Y H:i') }} </div>
 </body>
 
 </html>

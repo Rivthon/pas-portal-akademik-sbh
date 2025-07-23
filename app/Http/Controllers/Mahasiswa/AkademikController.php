@@ -158,7 +158,9 @@ class AkademikController extends Controller
     {
         $mahasiswa = Auth::guard('mahasiswa')->user(); // Mendapatkan data user yang login
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']);
+        $settings = Setting::first(); // atau sesuai struktur tabel kamu
+ // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
         $headerKrs = null;
             if ($mahasiswa && $mahasiswa->programStudi->header_kapro) {
@@ -174,6 +176,15 @@ class AkademikController extends Controller
                     $ttd = base64_encode(file_get_contents($logoPath));
                 }
             }
+            $logo = null;
+            $setting = Setting::first(); // atau ->where('id', 1)->first();
+            if ($setting && $setting->logo) {
+                $logoPath = public_path('storage/' . $setting->logo);
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
+
         try {
             $krs = Krs::with(['kurikulum.mataKuliah'])
             ->where('mahasiswa_id', $mahasiswaId)
@@ -183,7 +194,7 @@ class AkademikController extends Controller
             ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-kapro', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta'))
+            $pdf = PDF::loadView('students.krs.cetak-pdf-kapro', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta','logo','settings'))
                 ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                 ->setPaper('a4', 'portrait');
 
@@ -200,6 +211,8 @@ class AkademikController extends Controller
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
         $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
+                $settings = Setting::first(); // atau sesuai struktur tabel kamu
+
         $headerKrs = null;
             if ($mahasiswa && $mahasiswa->programStudi->header_dospem) {
                 $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_dospem);
@@ -214,6 +227,15 @@ class AkademikController extends Controller
                     $ttd = base64_encode(file_get_contents($logoPath));
                 }
             }
+               $logo = null;
+            $setting = Setting::first(); // atau ->where('id', 1)->first();
+            if ($setting && $setting->logo) {
+                $logoPath = public_path('storage/' . $setting->logo);
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
+
         try {
              $krs = Krs::with(['kurikulum.mataKuliah'])
             ->where('mahasiswa_id', $mahasiswaId)
@@ -223,7 +245,7 @@ class AkademikController extends Controller
             ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-dospem', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta'))
+            $pdf = PDF::loadView('students.krs.cetak-pdf-dospem', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta','logo','settings'))
                     ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                     ->setPaper('a4', 'portrait');
 
@@ -240,6 +262,8 @@ class AkademikController extends Controller
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
         $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
+        $settings = Setting::first(); // atau sesuai struktur tabel kamu
+
         $headerKrs = null;
             if ($mahasiswa && $mahasiswa->programStudi->header_baak) {
                 $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_baak);
@@ -254,6 +278,15 @@ class AkademikController extends Controller
                     $ttd = base64_encode(file_get_contents($logoPath));
                 }
             }
+         $logo = null;
+            $setting = Setting::first(); // atau ->where('id', 1)->first();
+            if ($setting && $setting->logo) {
+                $logoPath = public_path('storage/' . $setting->logo);
+                if (file_exists($logoPath)) {
+                    $logo = base64_encode(file_get_contents($logoPath));
+                }
+            }
+
         try {
              $krs = Krs::with(['kurikulum.mataKuliah'])
             ->where('mahasiswa_id', $mahasiswaId)
@@ -263,7 +296,7 @@ class AkademikController extends Controller
             ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-baak', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta'))
+            $pdf = PDF::loadView('students.krs.cetak-pdf-baak', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta','logo','settings'))
                     ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                     ->setPaper('a4', 'portrait');
 
