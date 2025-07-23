@@ -184,6 +184,7 @@ class AkademikController extends Controller
 
             // Load view khusus untuk PDF
             $pdf = PDF::loadView('students.krs.cetak-pdf-kapro', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta'))
+                ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                 ->setPaper('a4', 'portrait');
 
             // Stream file PDF
@@ -223,6 +224,7 @@ class AkademikController extends Controller
 
             // Load view khusus untuk PDF
             $pdf = PDF::loadView('students.krs.cetak-pdf-dospem', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta'))
+                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                     ->setPaper('a4', 'portrait');
 
             // Download file PDF
@@ -262,6 +264,7 @@ class AkademikController extends Controller
 
             // Load view khusus untuk PDF
             $pdf = PDF::loadView('students.krs.cetak-pdf-baak', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta'))
+                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                     ->setPaper('a4', 'portrait');
 
             // Download file PDF
