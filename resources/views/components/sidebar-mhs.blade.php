@@ -1,3 +1,8 @@
+@php
+use Illuminate\Support\Facades\Auth;
+$user = Auth::guard('mahasiswa')->user();
+// dd($user?->jurusan_id);
+@endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo justify-content-center">
         <a href="#" class="app-brand-link d-flex align-items-center">
@@ -55,16 +60,11 @@
                         <div data-i18n="Users">Jadwal UAS</div>
                     </a>
                 </li>
-                @php
-                use Illuminate\Support\Facades\Auth;
-                $user = Auth::guard('mahasiswa')->user();
-                // dd($user?->jurusan_id);
-                @endphp
-                @if($user && $user->jurusan_id == 15401 &&
-                $user->semester == 6)
+
+                @if($user && $user->jurusan_id == 15401)
                 <li class="menu-item @if(Route::is('mahasiswa.jadwal-uap.index*')) active open @endif">
                     <a href="{{ route('mahasiswa.jadwal-uap.index') }}" class="menu-link">
-                        <div data-i18n="Users">Jadwal UAP</div>
+                        <div data-i18n="Users">Jadwal UAP {{ $user->jurusan_id }}</div>
                     </a>
                 </li>
                 @endif
@@ -141,11 +141,17 @@
                         <div data-i18n="Nilai Akhir">Nilai Akhir</div>
                     </a>
                 </li>
+                @php
+                $user = Auth::guard('mahasiswa')->user();
+                @endphp
+
+                @if ($user && $user->jurusan_id == 15401 && $user->semester == 6)
                 <li class="menu-item @if(Route::is('mahasiswa.uap.index')) active @endif">
                     <a href="{{ route('mahasiswa.uap.index') }}" class="menu-link">
-                        <div data-i18n="Nilai Uap">Nilai Uap</div>
+                        <div data-i18n="Nilai Uap">Nilai Uap {{ $user->jurusan_id }}</div>
                     </a>
                 </li>
+                @endif
 
                 <li class="menu-item @if(Route::is('mahasiswa.pengajuan.index')) active @endif">
                     <a href="{{ route('mahasiswa.pengajuan.index') }}" class="menu-link">

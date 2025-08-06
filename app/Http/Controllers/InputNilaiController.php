@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
+use App\Models\BobotNilai;
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
@@ -40,7 +41,28 @@ class InputNilaiController extends Controller
 
             return response()->json($mataKuliah);
         }
+        public function store(Request $request)
+        {
+            $validated = $request->validate([
+                'program_studi_id' => 'required',
+                'matakuliah_id' => 'required',
+                'persen_tugas' => 'required|numeric',
+                'persen_uts' => 'required|numeric',
+                'persen_uas' => 'required|numeric',
+                'persen_absen' => 'required|numeric',
+                'persen_praktik' => 'nullable|numeric',
+            ]);
 
+            BobotNilai::updateOrCreate(
+                [
+                    'program_studi_id' => $request->program_studi_id,
+                    'matakuliah_id' => $request->matakuliah_id
+                ],
+                $validated
+            );
+
+        return back()->with('success', 'Bobot nilai berhasil disimpan.');
+        }
         public function getMahasiswa($matakuliahId, $tahunAjaranId)
         {
             // 1. =================================
@@ -59,10 +81,6 @@ class InputNilaiController extends Controller
             if ($mahasiswa->isEmpty()) {
                 return response()->json(['message' => 'Tidak ada mahasiswa untuk mata kuliah ini'], 404);
             }
-
-            // 2. =================================
-            // AMBIL KONFIGURASI PENILAIAN (Bagian Baru)
-            // ===================================
 
             // Ambil model mata kuliah untuk mendapatkan jurusan_id
             $mataKuliah = Matakuliah::find($matakuliahId);

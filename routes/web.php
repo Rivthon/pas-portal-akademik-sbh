@@ -304,6 +304,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/mata-kuliah/{programStudiId}/{tahunAjaranId}', [InputNilaiController::class, 'getMataKuliah']);
         Route::get('/mahasiswa/input-nilai/{mataKuliahId}/{tahunAjaranId}', [InputNilaiController::class, 'getMahasiswa']);
         Route::post('/nilai/save', [InputNilaiController::class, 'saveNilai'])->name('nilai.save');
+        Route::post('bobot-nilai', [InputNilaiController::class, 'store'])->name('bobot-nilai.store');
           });
 
         Route::middleware(['permission:list-nilai'])->group(function () {

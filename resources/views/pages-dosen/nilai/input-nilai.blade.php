@@ -57,7 +57,6 @@
     </div>
 
 
-
     <h5 class="mt-4">Daftar Mahasiswa</h5>
     <form id="form-nilai" method="POST" action="{{ route('dosen.nilai.save') }}">
         @csrf

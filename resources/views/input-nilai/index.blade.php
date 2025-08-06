@@ -23,6 +23,58 @@
 
 <div class="card mt-4 p-4 shadow-sm">
     <h4 class="mb-3">Input Nilai</h4>
+    <form action="{{ route('admin.bobot-nilai.store') }}" method="POST">
+        @csrf
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Pilih Tahun Ajaran</label>
+                    <select id="tahun-ajaran" class="form-select w-100">
+                        <option value="">-- Pilih Tahun Ajaran --</option>
+                        @foreach ($tahunAjaran as $ta)
+                        <option value="{{ $ta->ta_id }}">{{ $ta->nama }} ({{ $ta->semester }})</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Pilih Program Studi</label>
+                    <select id="program-studi" class="form-select w-100" disabled>
+                        <option value="">-- Pilih Program Studi --</option>
+                        @foreach ($programStudi as $ps)
+                        <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Pilih Mata Kuliah</label>
+                    <select id="mata-kuliah" class="form-select select2 w-100" disabled>
+                        <option value="">-- Pilih Mata Kuliah --</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        {{-- Bobot Nilai --}}
+        <div class="row mt-3">
+            <div class="col-md-2"><input type="number" name="persen_tugas" class="form-control" placeholder="Tugas %">
+            </div>
+            <div class="col-md-2"><input type="number" name="persen_uts" class="form-control" placeholder="UTS %"></div>
+            <div class="col-md-2"><input type="number" name="persen_uas" class="form-control" placeholder="UAS %"></div>
+            <div class="col-md-2"><input type="number" name="persen_absen" class="form-control" placeholder="Absen %">
+            </div>
+            <div class="col-md-2"><input type="number" name="persen_praktik" class="form-control"
+                    placeholder="Praktik % (optional)"></div>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Simpan Bobot</button>
+        </div>
+    </form>
     <div class="row g-3">
         <div class="col-md-4">
             <div class="mb-3">
@@ -56,8 +108,6 @@
         </div>
     </div>
 
-
-
     <h5 class="mt-4">Daftar Mahasiswa</h5>
     <form id="form-nilai" method="POST" action="{{ route('admin.nilai.save') }}">
         @csrf
@@ -90,5 +140,4 @@
         <button type="submit" class="btn btn-primary mt-3" style="display: none;" id="save-nilai">Simpan Nilai</button>
     </form>
 </div>
-
 @endsection
