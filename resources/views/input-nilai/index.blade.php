@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('tittle', 'Imput Nilai Mahasiswa')
+@section('tittle', 'Input Nilai Mahasiswa')
 @section('content')
 <div class="card p-4 shadow-sm">
     <div class="row g-4 align-items-center">
@@ -22,122 +22,95 @@
 </div>
 
 <div class="card mt-4 p-4 shadow-sm">
-    <h4 class="mb-3">Input Nilai</h4>
-    <form action="{{ route('admin.bobot-nilai.store') }}" method="POST">
-        @csrf
-
-        <div class="row">
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Pilih Tahun Ajaran</label>
-                    <select id="tahun-ajaran" class="form-select w-100">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h4 class="mb-0 fs-5 fw-bold">
+                <i class="fas fa-filter me-2 text-primary"></i>Filter Input Nilai
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="tahun-ajaran" class="form-label fw-bold">
+                        <i class="fas fa-calendar-alt me-1"></i> Tahun Ajaran
+                    </label>
+                    <select id="tahun-ajaran" class="form-select">
                         <option value="">-- Pilih Tahun Ajaran --</option>
                         @foreach ($tahunAjaran as $ta)
                         <option value="{{ $ta->ta_id }}">{{ $ta->nama }} ({{ $ta->semester }})</option>
                         @endforeach
                     </select>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Pilih Program Studi</label>
-                    <select id="program-studi" class="form-select w-100" disabled>
-                        <option value="">-- Pilih Program Studi --</option>
+
+                <div class="col-md-3">
+                    <label for="program-studi" class="form-label fw-bold">
+                        <i class="fas fa-graduation-cap me-1"></i> Program Studi
+                    </label>
+                    <select id="program-studi" class="form-select" disabled>
+                        <option value="">-- Pilih Prodi --</option>
                         @foreach ($programStudi as $ps)
                         <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
                         @endforeach
                     </select>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Pilih Mata Kuliah</label>
-                    <select id="mata-kuliah" class="form-select select2 w-100" disabled>
+
+                <div class="col-md-4">
+                    <label for="mata-kuliah" class="form-label fw-bold">
+                        <i class="fas fa-book me-1"></i> Mata Kuliah
+                    </label>
+                    <select id="mata-kuliah" class="form-select select2">
                         <option value="">-- Pilih Mata Kuliah --</option>
                     </select>
                 </div>
-            </div>
-        </div>
 
-        {{-- Bobot Nilai --}}
-        <div class="row mt-3">
-            <div class="col-md-2"><input type="number" name="persen_tugas" class="form-control" placeholder="Tugas %">
-            </div>
-            <div class="col-md-2"><input type="number" name="persen_uts" class="form-control" placeholder="UTS %"></div>
-            <div class="col-md-2"><input type="number" name="persen_uas" class="form-control" placeholder="UAS %"></div>
-            <div class="col-md-2"><input type="number" name="persen_absen" class="form-control" placeholder="Absen %">
-            </div>
-            <div class="col-md-2"><input type="number" name="persen_praktik" class="form-control"
-                    placeholder="Praktik % (optional)"></div>
-        </div>
-
-        <div class="mt-3">
-            <button type="submit" class="btn btn-primary">Simpan Bobot</button>
-        </div>
-    </form>
-    <div class="row g-3">
-        <div class="col-md-4">
-            <div class="mb-3">
-                <label class="form-label fw-bold">Pilih Tahun Ajaran</label>
-                <select id="tahun-ajaran" class="form-select w-100">
-                    <option value="">-- Pilih Tahun Ajaran --</option>
-                    @foreach ($tahunAjaran as $ta)
-                    <option value="{{ $ta->ta_id }}">{{ $ta->nama }} ({{ $ta->semester }})</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="mb-3">
-                <label class="form-label fw-bold">Pilih Program Studi</label>
-                <select id="program-studi" class="form-select w-100" disabled>
-                    <option value="">-- Pilih Program Studi --</option>
-                    @foreach ($programStudi as $ps)
-                    <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="mb-3">
-                <label class="form-label fw-bold">Pilih Mata Kuliah</label>
-                <select id="mata-kuliah" class="form-select select2 w-100" disabled>
-                    <option value="">-- Pilih Mata Kuliah --</option>
-                </select>
+                <div class="col-md-2">
+                    <button type="button" id="clear-selection" class="btn btn-outline-danger w-100">
+                        <i class="fas fa-times me-1"></i> Reset
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-
-    <h5 class="mt-4">Daftar Mahasiswa</h5>
-    <form id="form-nilai" method="POST" action="{{ route('admin.nilai.save') }}">
-        @csrf
-        <div class="table-responsive">
-            <table id="table-mahasiswa" class="table table-bordered mt-3">
-                <thead class="table-primary">
-                    <tr>
-                        <th rowspan="2" style="width: 50px; text-align: center;">#</th>
-                        <th rowspan="2" style="text-align: center;">Nama</th>
-                        <th colspan="7" style="text-align: center;">Nilai</th>
-                    </tr>
-                    <tr>
-                        <th style="width: 150PX; text-align: center;">UTS</th>
-                        <th style="width: 150PX; text-align: center;">UAS</th>
-                        <th style="width: 150PX; text-align: center;">TUGAS</th>
-                        <th style="width: 150PX; text-align: center;">ABSEN</th>
-                        <th style="width: 150PX; text-align: center;">PRAKTIK</th>
-                        <th style="width: 150PX; text-align: center;">Absolute</th>
-                        <th style="width: 150PX; text-align: center;">Huruf Mutu</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="6" class="text-center text-muted">Silakan pilih mata kuliah</td>
-                    </tr>
-
-                </tbody>
-            </table>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light border-bottom">
+            <h4 class="mb-0 fs-5 fw-bold">
+                <i class="fas fa-filter me-2 text-primary"></i>List Mahasiswa
+            </h4>
         </div>
-        <button type="submit" class="btn btn-primary mt-3" style="display: none;" id="save-nilai">Simpan Nilai</button>
-    </form>
+        <div class="container mb-5">
+            <form id="form-nilai" method="POST" action="{{ route('admin.nilai.save') }}">
+                @csrf
+                <div class="table-responsive">
+                    <table id="table-mahasiswa" class="table table-bordered mt-3">
+                        <thead class="table-primary">
+                            <tr>
+                                <th rowspan="2" style="width: 50px; text-align: center;">#</th>
+                                <th rowspan="2" style="text-align: center;">Nama</th>
+                                <th colspan="7" style="text-align: center;">Nilai</th>
+                            </tr>
+                            <tr>
+                                <th style="width: 150PX; text-align: center;">UTS</th>
+                                <th style="width: 150PX; text-align: center;">UAS</th>
+                                <th style="width: 150PX; text-align: center;">TUGAS</th>
+                                <th style="width: 150PX; text-align: center;">ABSEN</th>
+                                <th style="width: 150PX; text-align: center;">PRAKTIK</th>
+                                <th style="width: 150PX; text-align: center;">Absolute</th>
+                                <th style="width: 150PX; text-align: center;">Huruf Mutu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">Silakan pilih mata kuliah</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3" style="display: none;" id="save-nilai">Simpan
+                    Nilai</button>
+            </form>
+        </div>
+
+    </div>
+
 </div>
 @endsection

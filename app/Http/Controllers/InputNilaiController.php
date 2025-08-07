@@ -41,27 +41,41 @@ class InputNilaiController extends Controller
 
             return response()->json($mataKuliah);
         }
-        public function store(Request $request)
+         public function store(Request $request)
         {
-            $validated = $request->validate([
-                'program_studi_id' => 'required',
-                'matakuliah_id' => 'required',
-                'persen_tugas' => 'required|numeric',
-                'persen_uts' => 'required|numeric',
-                'persen_uas' => 'required|numeric',
-                'persen_absen' => 'required|numeric',
-                'persen_praktik' => 'nullable|numeric',
+            $request->validate([
+                'program_studi_id' => 'required|exists:program_studi,id',
+                'matakuliah_id' => 'required|exists:matakuliah,matakuliah_id',
+                'persen_tugas' => 'required|numeric|min:0|max:100',
+                'persen_uts' => 'required|numeric|min:0|max:100',
+                'persen_uas' => 'required|numeric|min:0|max:100',
+                'persen_absen' => 'required|numeric|min:0|max:100',
+                'persen_praktik' => 'nullable|numeric|min:0|max:100',
             ]);
 
-            BobotNilai::updateOrCreate(
-                [
-                    'program_studi_id' => $request->program_studi_id,
-                    'matakuliah_id' => $request->matakuliah_id
-                ],
-                $validated
-            );
+            try {
+                BobotNilai::updateOrCreate(
+                    [
+                        'program_studi_id' => $request->program_studi_id,
+                        'matakuliah_id' => $request->matakuliah_id
+                    ],
+                    $request->only([
+                        'program_studi_id',
+                        'matakuliah_id',
+                        'persen_tugas',
+                        'persen_uts',
+                        'persen_uas',
+                        'persen_absen',
+                        'persen_praktik'
+                    ])
+                );
 
-        return back()->with('success', 'Bobot nilai berhasil disimpan.');
+                return back()->with('success', 'Bobot nilai berhasil disimpan.');
+            } catch (\Exception $e) {
+                Log::error('Gagal menyimpan bobot nilai: ' . $e->getMessage());
+
+                return back()->with('error', 'Terjadi kesalahan saat menyimpan data. Silakan coba lagi.');
+            }
         }
         public function getMahasiswa($matakuliahId, $tahunAjaranId)
         {
@@ -128,14 +142,109 @@ class InputNilaiController extends Controller
         }
 
 
+        // public function saveNilai(Request $request)
+        // {
+        //     $uts = $request->input('uts', []);
+
+        //     $uas = $request->input('uas', []);
+        //     $tugas = $request->input('tugas', []);
+        //     $absensi = $request->input('absensi', []);
+        //     $praktik = $request->input('praktik', []);
+        //     $akhir = $request->input('akhir', []);
+        //     $krsIds = $request->input('krs_id', []);
+
+        //     // Fungsi konversi angka ke mutu
+        //     $getMutu = function ($angka) {
+        //         if ($angka >= 85.5) return 'A';
+        //         if ($angka >= 78.5) return 'AB';
+        //         if ($angka >= 74.5) return 'BA';
+        //         if ($angka >= 70.5) return 'B';
+        //         if ($angka >= 66.5) return 'BC';
+        //         if ($angka >= 59.5) return 'C';
+        //         if ($angka >= 45.5) return 'D';
+        //         return 'E';
+        //     };
+
+        //     try {
+        //         foreach ($krsIds as $mahasiswaId => $krsId) {
+        //             $krs = \App\Models\Krs::with('kurikulum.mataKuliah')->find($krsId);
+        //             if (!$krs || !$krs->kurikulum || !$krs->kurikulum->mataKuliah) {
+        //                 \Log::error("KRS atau relasi tidak ditemukan untuk ID $krsId (mahasiswa $mahasiswaId)");
+        //                 continue;
+        //             }
+
+        //             $mataKuliah = $krs->kurikulum->mataKuliah;
+        //             $jurusanId = $mataKuliah->jurusan_id;
+
+        //             // Ambil data bobot dari program_studi
+        //             $programStudi = \App\Models\ProgramStudi::where('jurusan_id', $jurusanId)->first();
+
+        //             if (!$programStudi) {
+        //                 \Log::error("Program studi tidak ditemukan untuk jurusan_id $jurusanId");
+        //                 continue;
+        //             }
+
+        //             // Gunakan bobot dari DB
+        //             $bobotUTS = $programStudi->persen_uts ?? 0;
+        //             $bobotUAS = $programStudi->persen_uas ?? 0;
+        //             $bobotTugas = $programStudi->persen_tugas ?? 0;
+        //             $bobotAbsensi = $programStudi->persen_absen ?? 0;
+        //             $bobotPraktik = $programStudi->persen_praktik ?? 0;
+
+        //             // Ambil nilai input
+        //             $nilaiUTS = $uts[$mahasiswaId] ?? 0;
+        //             $nilaiUAP = $uap[$mahasiswaId] ?? 0;
+        //             $nilaiUAS = $uas[$mahasiswaId] ?? 0;
+        //             $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
+        //             $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
+        //             $nilaiPraktik = $praktik[$mahasiswaId] ?? 0;
+
+        //             // Hitung nilai akhir otomatis
+        //             $nilaiAkhir = round(
+        //                 ($nilaiUTS * $bobotUTS / 100) +
+        //                 ($nilaiUAS * $bobotUAS / 100) +
+        //                 ($nilaiTugas * $bobotTugas / 100) +
+        //                 ($nilaiPraktik * $bobotPraktik / 100) +
+        //                 ($nilaiAbsensi * $bobotAbsensi / 100),
+        //                 2
+        //             );
+
+        //             // Konversi ke huruf mutu
+        //             $nilaiKhs = $getMutu($nilaiAkhir);
+
+        //             // Update ke database
+        //             $krs->update([
+        //                 'uts' => $nilaiUTS,
+        //                 'uas' => $nilaiUAS,
+        //                 'akhir' => $nilaiAkhir,
+        //                 'khs' => $nilaiKhs,
+        //                 'tugas' => $nilaiTugas,
+        //                 'absen' => $nilaiAbsensi,
+        //                 'praktik' => $nilaiPraktik,
+        //                 'updated_at' => now(),
+        //             ]);
+        //         }
+
+        //         return response()->json([
+        //             'success' => true,
+        //             'message' => 'Nilai berhasil diperbarui!',
+        //         ]);
+        //     } catch (\Exception $e) {
+        //         \Log::error('Error updating nilai:', ['error' => $e->getMessage()]);
+        //         return response()->json([
+        //             'success' => false,
+        //             'message' => 'Terjadi kesalahan saat memperbarui data.',
+        //         ], 500);
+        //     }
+        // }
         public function saveNilai(Request $request)
         {
             $uts = $request->input('uts', []);
-
             $uas = $request->input('uas', []);
             $tugas = $request->input('tugas', []);
             $absensi = $request->input('absensi', []);
             $praktik = $request->input('praktik', []);
+            $akhir = $request->input('akhir', []);
             $krsIds = $request->input('krs_id', []);
 
             // Fungsi konversi angka ke mutu
@@ -158,54 +267,28 @@ class InputNilaiController extends Controller
                         continue;
                     }
 
-                    $mataKuliah = $krs->kurikulum->mataKuliah;
-                    $jurusanId = $mataKuliah->jurusan_id;
-
-                    // Ambil data bobot dari program_studi
-                    $programStudi = \App\Models\ProgramStudi::where('jurusan_id', $jurusanId)->first();
-
-                    if (!$programStudi) {
-                        \Log::error("Program studi tidak ditemukan untuk jurusan_id $jurusanId");
-                        continue;
-                    }
-
-                    // Gunakan bobot dari DB
-                    $bobotUTS = $programStudi->persen_uts ?? 0;
-                    $bobotUAS = $programStudi->persen_uas ?? 0;
-                    $bobotTugas = $programStudi->persen_tugas ?? 0;
-                    $bobotAbsensi = $programStudi->persen_absen ?? 0;
-                    $bobotPraktik = $programStudi->persen_praktik ?? 0;
-
                     // Ambil nilai input
                     $nilaiUTS = $uts[$mahasiswaId] ?? 0;
-                    $nilaiUAP = $uap[$mahasiswaId] ?? 0;
                     $nilaiUAS = $uas[$mahasiswaId] ?? 0;
                     $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
                     $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
                     $nilaiPraktik = $praktik[$mahasiswaId] ?? 0;
 
-                    // Hitung nilai akhir otomatis
-                    $nilaiAkhir = round(
-                        ($nilaiUTS * $bobotUTS / 100) +
-                        ($nilaiUAS * $bobotUAS / 100) +
-                        ($nilaiTugas * $bobotTugas / 100) +
-                        ($nilaiPraktik * $bobotPraktik / 100) +
-                        ($nilaiAbsensi * $bobotAbsensi / 100),
-                        2
-                    );
+                    // Gunakan nilai akhir dari input manual
+                    $nilaiAkhir = round($akhir[$mahasiswaId] ?? 0, 2);
 
                     // Konversi ke huruf mutu
                     $nilaiKhs = $getMutu($nilaiAkhir);
 
                     // Update ke database
                     $krs->update([
-                        'uts' => $nilaiUTS,
-                        'uas' => $nilaiUAS,
-                        'akhir' => $nilaiAkhir,
-                        'khs' => $nilaiKhs,
-                        'tugas' => $nilaiTugas,
-                        'absen' => $nilaiAbsensi,
-                        'praktik' => $nilaiPraktik,
+                        'uts'       => $nilaiUTS,
+                        'uas'       => $nilaiUAS,
+                        'tugas'     => $nilaiTugas,
+                        'absen'     => $nilaiAbsensi,
+                        'praktik'   => $nilaiPraktik,
+                        'akhir'     => $nilaiAkhir,
+                        'khs'       => $nilaiKhs,
                         'updated_at' => now(),
                     ]);
                 }
@@ -222,5 +305,6 @@ class InputNilaiController extends Controller
                 ], 500);
             }
         }
+
 
 }

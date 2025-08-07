@@ -446,232 +446,273 @@ async function fetchData(url) {
 
     </script>
     <script>
-        // Variabel global untuk menyimpan konfigurasi dari server
-let konfigurasiNilai = {
-    bobot: {},
-    mutu: []
-};
-
-// ===================================================================================
-// FUNGSI KALKULASI BARU (MENGGUNAKAN ATURAN DARI SERVER)
-// ===================================================================================
-
-/**
- * Mengonversi nilai akhir ke Nilai Huruf berdasarkan aturan dari server.
- */
-function konversiKeKHS(nilai) {
-    // Cari di aturan 'mutu' dari nilai terbesar ke terkecil
-    for (const aturan of konfigurasiNilai.mutu) {
-        if (nilai >= aturan.nilai) {
-            return aturan.huruf;
-        }
-    }
-    return 'E'; // Default jika tidak ada yang cocok
-}
-
-/**
- * Menghitung nilai akhir berdasarkan bobot dari server.
- */
-function hitungNilaiAkhirDanKhs(mahasiswaId) {
-    const bobot = konfigurasiNilai.bobot;
-
-    // Cek jika bobot belum terisi
-    if (Object.keys(bobot).length === 0) return;
-
-    const uts = parseFloat($(`input[name="uts[${mahasiswaId}]"]`).val()) || 0;
-    const uas = parseFloat($(`input[name="uas[${mahasiswaId}]"]`).val()) || 0;
-    const tugas = parseFloat($(`input[name="tugas[${mahasiswaId}]"]`).val()) || 0;
-    const absensi = parseFloat($(`input[name="absensi[${mahasiswaId}]"]`).val()) || 0;
-    const praktik = parseFloat($(`input[name="praktik[${mahasiswaId}]"]`).val()) || 0;
-
-    // Hitung nilai akhir dengan membagi persen dengan 100
-    const nilaiAkhir =
-        (uts * (bobot.uts / 100)) +
-        (uas * (bobot.uas / 100)) +
-        (tugas * (bobot.tugas / 100)) +
-        (absensi * (bobot.absensi / 100)) +
-        (praktik * (bobot.praktik / 100));
-
-    const khs = konversiKeKHS(nilaiAkhir);
-
-    // Tampilkan dengan 2 angka desimal untuk presisi, lalu bulatkan di input
-    $(`#akhir-${mahasiswaId}`).val(nilaiAkhir.toFixed(2));
-    $(`#khs-${mahasiswaId}`).text(khs);
-}
-// ===================================================================================
-    function showTableMessage(message) {
-        const tableBody = document.querySelector("#table-mahasiswa tbody");
-        const columnCount = document.querySelector("#table-mahasiswa thead th").length;
-        tableBody.innerHTML = `<tr><td colspan="${columnCount}" class="text-center">${message}</td></tr>`;
-    }
-
-    // ===================================================================================
-    // EVENT HANDLER DAN LOGIKA UTAMA
-    // ===================================================================================
-
-    $(document).ready(function () {
-        // Inisialisasi Select2
+        $(document).ready(function() {
+        // Initialize Select2
         $("#tahun-ajaran, #program-studi, #mata-kuliah").select2({
             allowClear: true,
+            placeholder: "Pilih opsi",
+            width: '100%'
         });
 
-        const tableBody = document.querySelector("#table-mahasiswa tbody");
-        const saveButton = document.getElementById("save-nilai");
+                // DOM Elements
+                const tableBody = $("#table-mahasiswa tbody");
+                const saveButton = $("#save-nilai");
+                const loadingSpinner = $("#loading-spinner");
+                const errorMessage = $("#error-message");
 
-        // Handle perubahan Tahun Ajaran
-        $("#tahun-ajaran").on("change", function () {
-            const tahunAjaranId = this.value;
-            $("#program-studi").val(null).trigger("change");
-            $("#program-studi").prop("disabled", !tahunAjaranId);
-        });
+                // Utility Functions
+                const showTableMessage = (message) => {
+                    tableBody.html(`<tr><td colspan="9" class="text-center">${message}</td></tr>`);
+                };
 
-        // Handle perubahan Program Studi -> Fetch Mata Kuliah
-        $("#program-studi").on("change", async function () {
-            const programStudiId = $(this).val();
-            const tahunAjaranId = $("#tahun-ajaran").val();
-            const mataKuliahSelect = $("#mata-kuliah");
+                const showError = (message) => {
+                    errorMessage.text(message).fadeIn().delay(3000).fadeOut();
+                };
 
-            mataKuliahSelect.val(null).trigger("change");
-            mataKuliahSelect.html('<option value=""></option>').prop("disabled", true);
-            showTableMessage("Pilih Tahun Ajaran dan Program Studi.");
+                const setLoading = (isLoading) => {
+                    if (isLoading) {
+                        loadingSpinner.show();
+                        $("select").prop("disabled", true);
+                    } else {
+                        loadingSpinner.hide();
+                        $("select").not("#program-studi, #mata-kuliah").prop("disabled", false);
+                    }
+                };
 
-            if (!programStudiId || !tahunAjaranId) return;
+                // Calculate grade from score
+                const calculateGrade = (score) => {
+                    if (score >= 85.5) return 'A';
+                    if (score >= 78.5) return 'AB';
+                    if (score >= 74.5) return 'BA';
+                    if (score >= 70.5) return 'B';
+                    if (score >= 66.5) return 'BC';
+                    if (score >= 59.5) return 'C';
+                    if (score >= 45.5) return 'D';
+                    return 'E';
+                };
 
-            try {
-                const response = await fetch(`/admin/mata-kuliah/${programStudiId}/${tahunAjaranId}`);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-                const data = await response.json();
+                // Tahun Ajaran Change Handler
+                $("#tahun-ajaran").on("change", function() {
+                    const tahunAjaranId = $(this).val();
+                    $("#program-studi").val(null).trigger("change");
+                    $("#mata-kuliah").val(null).trigger("change");
 
-                if (Array.isArray(data) && data.length > 0) {
-                    const options = data.map(mk =>
-                        `<option value="${mk.matakuliah_id}">
-                            ${mk.nama} (${mk.matakuliah_id}) Semester-${mk.smt}
-                        </option>`
-                    ).join("");
-                    mataKuliahSelect.html('<option value=""></option>' + options);
+                    // Only disable program studi if no tahun ajaran selected
+                    $("#program-studi").prop("disabled", !tahunAjaranId);
+
+                    // NEVER disable mata kuliah here
+                    showTableMessage(tahunAjaranId ? "Silakan pilih program studi" : "Silakan pilih tahun ajaran");
+                });
+
+                // Program Studi Change Handler
+                 $("#program-studi").on("change", async function() {
+                const programStudiId = $(this).val();
+                const tahunAjaranId = $("#tahun-ajaran").val();
+                const mataKuliahSelect = $("#mata-kuliah");
+
+                mataKuliahSelect.val(null).trigger("change");
+                showTableMessage("Memuat data mata kuliah...");
+                saveButton.hide();
+
+                if (!programStudiId || !tahunAjaranId) return;
+
+                setLoading(true);
+
+                try {
+                    const response = await $.ajax({
+                        url: `/admin/mata-kuliah/${programStudiId}/${tahunAjaranId}`,
+                        method: 'GET',
+                        dataType: 'json'
+                    });
+
+                    mataKuliahSelect.empty().append('<option value=""></option>');
+
+                    if (response.length > 0) {
+                        $.each(response, function(index, mk) {
+                            mataKuliahSelect.append(
+                                `<option value="${mk.matakuliah_id}">
+                                    ${mk.nama} (${mk.matakuliah_id}) - Semester ${mk.smt}
+                                </option>`
+                            );
+                        });
+                        // Ensure mata kuliah is always enabled when we have options
+                        mataKuliahSelect.prop("disabled", false);
+                        showTableMessage("Silakan pilih mata kuliah");
+                    } else {
+                        showTableMessage("Tidak ada mata kuliah tersedia");
+                        showError("Tidak ditemukan mata kuliah untuk program studi ini");
+                        // Keep mata kuliah enabled but empty
+                        mataKuliahSelect.prop("disabled", false);
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    showError("Gagal memuat mata kuliah");
+                    showTableMessage("Gagal memuat data");
+                    // Keep mata kuliah enabled even on error
                     mataKuliahSelect.prop("disabled", false);
-                } else {
-                    alert("Tidak ada mata kuliah yang tersedia untuk program studi ini.");
+                } finally {
+                    setLoading(false);
                 }
-            } catch (error) {
-                console.error("Gagal memuat mata kuliah:", error);
-                alert("Terjadi kesalahan saat memuat mata kuliah.");
-            }
-        });
+            });
 
-        // Handle perubahan Mata Kuliah -> Fetch Mahasiswa
-        $("#mata-kuliah").on("change", async function () {
-            const mataKuliahId = $(this).val();
-            const tahunAjaranId = $("#tahun-ajaran").val();
+                $("#mata-kuliah").on("change", async function() {
+                    const mataKuliahId = $(this).val();
+                    const tahunAjaranId = $("#tahun-ajaran").val();
 
-            // Reset
-            tableBody.innerHTML = "";
-            saveButton.style.display = "none";
-            konfigurasiNilai = { bobot: {}, mutu: [] }; // Reset konfigurasi
+                    tableBody.empty();
+                    saveButton.hide();
 
-            if (!mataKuliahId || !tahunAjaranId) {
-                showTableMessage("Silakan pilih mata kuliah terlebih dahulu.");
-                return;
-            }
+                    if (!mataKuliahId || !tahunAjaranId) {
+                        showTableMessage("Silakan pilih mata kuliah");
+                        return;
+                    }
 
-            showTableMessage("Sedang memuat data mahasiswa...");
+                    setLoading(true);
+                    showTableMessage("Memuat data mahasiswa...");
 
-            const requestUrl = `/admin/mahasiswa/input-nilai/${mataKuliahId}/${tahunAjaranId}`;
-            try {
-                const response = await fetch(requestUrl);
-                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
-                const data = await response.json();
+                    try {
+                        const response = await $.ajax({
+                            url: `/admin/mahasiswa/input-nilai/${mataKuliahId}/${tahunAjaranId}`,
+                            method: 'GET',
+                            dataType: 'json'
+                        });
 
-                if (data?.message) {
-                    showTableMessage(data.message);
-                    return;
-                }
+                        if (response.mahasiswa && response.mahasiswa.length > 0) {
+                            renderMahasiswaTable(response.mahasiswa);
+                            saveButton.show();
+                        } else {
+                            showTableMessage("Tidak ada mahasiswa yang mengambil mata kuliah ini");
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        showError("Gagal memuat data mahasiswa");
+                        showTableMessage("Gagal memuat data");
+                    } finally {
+                        setLoading(false);
+                        // Ensure mata kuliah stays enabled after loading
+                        $("#mata-kuliah").prop("disabled", false);
+                    }
+                });
 
-                if (data.mahasiswa && data.konfigurasi) {
-                    // ✅ SIMPAN KONFIGURASI DARI SERVER KE VARIABEL GLOBAL
-                    konfigurasiNilai = data.konfigurasi;
-                    console.log("Konfigurasi diterima dari server:", konfigurasiNilai);
 
-                    const daftarMahasiswa = data.mahasiswa;
+                // Render Mahasiswa Table
+                const renderMahasiswaTable = (students) => {
+                    tableBody.empty();
 
-                    if (daftarMahasiswa.length > 0) {
-                        // Tampilkan mahasiswa ke tabel
-                        tableBody.innerHTML = daftarMahasiswa.map((mhs, index) => `
+                    $.each(students, function(index, mhs) {
+                        const row = `
                             <tr>
                                 <td class="text-center">${index + 1}</td>
                                 <td>${mhs.nama} (${mhs.mahasiswa_id})</td>
                                 <td>
-                                    <input type="hidden" name="krs_id[${mhs.mahasiswa_id}]" value="${mhs.krs_id ?? ''}">
-                                    <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.uts ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100">
+                                    <input type="hidden" name="krs_id[${mhs.mahasiswa_id}]" value="${mhs.krs_id || ''}">
+                                    <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]"
+                                        class="form-control" value="${mhs.uts || ''}"
+                                        min="0" max="100">
                                 </td>
-                                <td><input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.uas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                <td><input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.tugas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                <td><input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.absensi ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                <td><input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.praktik ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                <td><input type="text" name="akhir[${mhs.mahasiswa_id}]" class="form-control-plaintext" id="akhir-${mhs.mahasiswa_id}" readonly></td>
-                                <td><span class="form-control-plaintext" id="khs-${mhs.mahasiswa_id}"></span></td>
+                                <td>
+                                    <input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]"
+                                        class="form-control" value="${mhs.uas || ''}"
+                                        min="0" max="100">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]"
+                                        class="form-control" value="${mhs.tugas || ''}"
+                                        min="0" max="100">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]"
+                                        class="form-control" value="${mhs.absensi || ''}"
+                                        min="0" max="100">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]"
+                                        class="form-control" value="${mhs.praktik || ''}"
+                                        min="0" max="100">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" name="akhir[${mhs.mahasiswa_id}]"
+                                        class="form-control nilai-akhir" value="${mhs.akhir || ''}"
+                                        min="0" max="100">
+                                </td>
+                                <td>
+                                    <input type="text" name="khs[${mhs.mahasiswa_id}]"
+                                        class="form-control nilai-huruf" value="${mhs.khs || ''}" readonly>
+                                </td>
                             </tr>
-                        `).join("");
+                        `;
+                        tableBody.append(row);
+                    });
+                };
 
-                        // Jalankan kalkulasi awal untuk setiap mahasiswa
-                        daftarMahasiswa.forEach((mhs) => hitungNilaiAkhirDanKhs(mhs.mahasiswa_id));
-                        saveButton.style.display = "block";
+                // Auto calculate grade when akhir value changes
+                $(document).on("input", ".nilai-akhir", function() {
+                    const nilai = parseFloat($(this).val());
+                    const hurufInput = $(this).closest("tr").find(".nilai-huruf");
+
+                    if (!isNaN(nilai) && nilai >= 0 && nilai <= 100) {
+                        hurufInput.val(calculateGrade(nilai));
                     } else {
-                        showTableMessage("Tidak ada mahasiswa yang terdaftar.");
+                        hurufInput.val("");
                     }
-                } else {
-                    throw new Error("Format data dari server tidak sesuai.");
-                }
-            } catch (error) {
-                console.error("Gagal memuat data:", error);
-                showTableMessage(`Gagal memuat data. Error: ${error.message}`);
-            }
-        });
-
-        // Event listener untuk input nilai
-        $(tableBody).on("input", ".nilai-input", function () {
-            const mahasiswaId = $(this).data("id");
-            hitungNilaiAkhirDanKhs(mahasiswaId);
-        });
-
-        // Handle Submit Form Nilai
-        document.getElementById("form-nilai").addEventListener("submit", async function (e) {
-            e.preventDefault();
-
-            const form = e.target;
-            const formData = new FormData(form);
-
-            saveButton.disabled = true;
-            saveButton.textContent = "Menyimpan...";
-
-            try {
-                const response = await fetch(form.action, {
-                    method: "POST",
-                    headers: {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-                        Accept: "application/json",
-                    },
-                    body: formData,
                 });
 
-                const data = await response.json();
+                // Form Submission Handler
+                $("#form-nilai").on("submit", async function(e) {
+                    e.preventDefault();
 
-                if (response.ok && data.success) {
-                    alert(data.message || "Data berhasil disimpan!");
-                    // Refresh data di tabel dengan memicu event change pada select2
-                    $("#mata-kuliah").trigger("change.select2");
-                } else {
-                    alert(data.message || "Gagal menyimpan data.");
-                }
-            } catch (error) {
-                console.error("Error saving data:", error);
-                alert("Terjadi kesalahan saat menyimpan data. Silakan coba lagi.");
-            } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = "Simpan Nilai";
-            }
+                    const form = this;
+                    const formData = $(form).serialize();
+                    const originalText = saveButton.text();
+
+                    saveButton.prop("disabled", true).text("Menyimpan...");
+                    setLoading(true);
+
+                    try {
+                        const response = await $.ajax({
+                            url: $(form).attr("action"),
+                            method: 'POST',
+                            data: formData,
+                            dataType: 'json'
+                        });
+
+                        if (response.success) {
+                            alert("Data nilai berhasil disimpan!");
+                            $("#mata-kuliah").trigger("change");
+                        } else {
+                            showError(response.message || "Gagal menyimpan data");
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        showError("Terjadi kesalahan saat menyimpan data");
+                    } finally {
+                        saveButton.prop("disabled", false).text(originalText);
+                        setLoading(false);
+                    }
+                });
+            });
+         // Clear Selection Button - MODIFIED to properly handle mata kuliah state
+           $("#clear-selection").on("click", function() {
+    // Clear and reset mata kuliah dropdown
+            $("#mata-kuliah").val(null).trigger("change").prop("disabled", false);
+
+            // Clear and reset program studi dropdown
+            $("#program-studi").val(null).trigger("change");
+
+            // Reset table message
+            showTableMessage("Silakan pilih program studi dan mata kuliah");
+
+            // Hide save button
+            $("#save-nilai").hide();
+
+            // Ensure proper enabled states:
+            // - Program studi enabled only if tahun ajaran is selected
+            const tahunAjaranSelected = $("#tahun-ajaran").val();
+            $("#program-studi").prop("disabled", !tahunAjaranSelected);
+
+            // Mata kuliah always enabled after clear
+            $("#mata-kuliah").prop("disabled", false);
         });
-    });
     </script>
     <script>
         $(document).ready(function() {
