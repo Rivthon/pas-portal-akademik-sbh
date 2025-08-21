@@ -400,81 +400,80 @@ class AkademikController extends Controller
 
 
    public function cetakKhs()
-    {
-        $settings = Setting::first();
-        $mahasiswa = Auth::guard('mahasiswa')->user();
-        if (!$mahasiswa) {
-            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
-        }
+{
+    $settings = Setting::first();
+    $mahasiswa = Auth::guard('mahasiswa')->user();
+    if (!$mahasiswa) {
+        return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+    }
 
-        $mahasiswaId = $mahasiswa->mahasiswa_id;
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+    $mahasiswaId = $mahasiswa->mahasiswa_id;
+    $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
-        $logoBase64 = null;
-        if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
-            if (file_exists($logoPath)) {
-                $logoBase64 = base64_encode(file_get_contents($logoPath));
-            }
-        }
-
-        $programStudi = strtolower($mahasiswa->jurusan_id ?? '');
-        $headerColor = match ($programStudi) {
-            '13211' => '#fffbea',
-            '48201' => '#f3e8ff',
-            '15401' => '#eaf6ff',
-            default => '#f3e8ff',
-        };
-        $textColor = match ($programStudi) {
-            '13211' => '#a68c00',
-            '48201' => '#6b3fa0',
-            '15401' => '#005a9e',
-            default => '#6b3fa0',
-        };
-
-        try {
-            // Ambil KHS Semester Ini
-            $khs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-                ->where('krs.mahasiswa_id', $mahasiswaId)
-                ->where('matakuliah.smt', $mahasiswa->semester)
-                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
-                ->get();
-
-            // Hitung IPS
-            $totalSks = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks);
-            $totalSksAm = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks * $this->calculateWeight($item->khs));
-            $ips = $totalSks > 0 ? $totalSksAm / $totalSks : 0;
-
-            // Ambil Semua KHS untuk Hitung IPK
-            // Perhitungan IPK (Dari Semua Semester)
-            $allKhs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-            ->where('krs.mahasiswa_id', $mahasiswaId)
-            ->where('matakuliah.smt', $mahasiswa->semester)
-            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
-            ->get();
-
-            // Filter data agar hanya yang memiliki nilai 'khs' yang tidak null
-            $filteredAllKhs = $allKhs->filter(fn($item) => !is_null($item->khs));
-
-            $totalSksAll = $filteredAllKhs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
-            $totalBobotAll = $filteredAllKhs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks * $this->calculateWeight($item->khs));
-
-            $ipk = $totalSksAll > 0 ? $totalBobotAll / $totalSksAll : 0;
-            // Tentukan predikat berdasarkan IPK
-            $predikat = $this->getPredikat($ipk);
-
-            // Generate PDF
-            $pdf = PDF::loadView('students.khs.pdf', compact(
-                'khs', 'mahasiswa', 'ta', 'logoBase64', 'headerColor', 'textColor', 'ips', 'ipk', 'predikat'
-            ))->setPaper('a4', 'portrait');
-
-            return $pdf->stream('khs-' . $mahasiswa->nama . '.pdf');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Gagal memuat data KHS: ' . $e->getMessage());
+    // Logo base64
+    $logoBase64 = null;
+    if ($settings && $settings->logo) {
+        $logoPath = storage_path('app/public/' . $settings->logo); // ✅ lebih aman pakai storage_path
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
         }
     }
+
+    // Warna header & text berdasarkan jurusan
+    $programStudi = strtolower($mahasiswa->jurusan_id ?? '');
+    $headerColor = match ($programStudi) {
+        '13211' => '#fffbea',
+        '48201' => '#f3e8ff',
+        '15401' => '#eaf6ff',
+        default => '#f3e8ff',
+    };
+    $textColor = match ($programStudi) {
+        '13211' => '#a68c00',
+        '48201' => '#6b3fa0',
+        '15401' => '#005a9e',
+        default => '#6b3fa0',
+    };
+
+    try {
+        // Ambil KHS Semester Aktif
+         $khs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get()
+                ->filter(function ($item) {
+                    return $item->kurikulum && $item->kurikulum->mataKuliah;
+                });
+
+            [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
+            $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
+
+
+        // Ambil Semua KHS untuk Hitung IPK
+        $allKhs = Krs::with(['kurikulum.mataKuliah'])
+            ->where('mahasiswa_id', $mahasiswaId)
+            ->get()
+            ->filter(function ($item) {
+                return $item->kurikulum && $item->kurikulum->mataKuliah && !is_null($item->khs);
+            });
+
+        [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
+        $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
+
+        // Tentukan predikat dari IPK
+        $predikat = $this->getPredikat($ipk);
+
+        // Generate PDF
+        $pdf = PDF::loadView('students.khs.pdf', compact(
+            'khs', 'mahasiswa', 'ta', 'logoBase64', 'headerColor', 'textColor', 'ips', 'ipk', 'predikat'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->stream('khs-' . $mahasiswa->nama . '.pdf');
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Gagal memuat data KHS: ' . $e->getMessage());
+    }
+}
 
  public function cetakTranskrip()
     {

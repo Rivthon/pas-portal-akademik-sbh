@@ -82,7 +82,7 @@ public function resetAllStatus()
             'status_uas' => 0,
             'status_nilai_uts' => 0,
             'status_nilai_uas' => 0,
-            'status_khs' => 0,
+            // 'status_khs' => 0,
             'status_uap' => 0,
         ]);
 

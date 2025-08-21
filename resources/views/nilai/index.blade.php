@@ -160,79 +160,113 @@ const fetchKRS = async () => {
 
         krsTableBody.innerHTML = ''; // Bersihkan tabel sebelumnya
 
-        if (data.status === "success" && Array.isArray(data.data) && data.data.length > 0) {
-            krsTable.style.display = ''; // Tampilkan tabel
+        if (data.status === "success" && data.data) {
+            krsTable.style.display = '';
+            krsTableBody.innerHTML = '';
+
             let index = 1;
-            let totalSks = 0;
-            let totalSksAngka = 0;
+            let totalSksAll = 0;
+            let totalSksAngkaAll = 0;
 
-            data.data.forEach((krs) => {
-                const sks = krs.sks || 0; // Pastikan sks tidak null
-                const nilaiAngka = nilaiHurufToAngka(krs.khs);
-                const sksAngka = sks * nilaiAngka;
+            // Looping setiap semester
+            for (const semester in data.data) {
+                let totalSksSemester = 0;
+                let totalSksAngkaSemester = 0;
 
-                totalSks += sks;
-                totalSksAngka += sksAngka;
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${index++}</td>
-                    <td>${krs.kode_mk}</td>
-                    <td>${krs.nama_mata_kuliah}</td>
-                    <td>${sks}</td>
-                    <td>${krs.akhir || '-'}</td>
-                    <td>${krs.khs || '-'}</td>
-                    <td>${nilaiAngka.toFixed(2)}</td>
-                    <td>${sksAngka.toFixed(2)}</td>
+                // Tambahkan header semester
+                const semesterRow = document.createElement('tr');
+                semesterRow.innerHTML = `
+                    <td colspan="8" class="table-secondary fw-bold text-center">
+                        Semester ${semester}
+                    </td>
                 `;
-                krsTableBody.appendChild(row);
-            });
+                krsTableBody.appendChild(semesterRow);
 
-            // Tambahkan baris total
-            const totalRow = document.createElement('tr');
-            totalRow.innerHTML = `
-                <td colspan="3"><strong>Total</strong></td>
-                <td><strong>${totalSks}</strong></td>
-                <td colspan="3"></td>
-                <td><strong>${totalSksAngka.toFixed(2)}</strong></td>
-            `;
-            krsTableBody.appendChild(totalRow);
+                // Looping mata kuliah di semester tersebut
+                data.data[semester].forEach((krs) => {
+                    const sks = krs.sks || 0;
+                    const nilaiAngka = nilaiHurufToAngka(krs.khs);
+                    const sksAngka = sks * nilaiAngka;
 
-            // Tambahkan baris IPK
-            const ipk = totalSksAngka / totalSks;
-            const ipkRow = document.createElement('tr');
-            ipkRow.innerHTML = `
-                <td colspan="8" class="text-center"><strong>IPK: ${ipk.toFixed(2)}</strong></td>
-            `;
-            krsTableBody.appendChild(ipkRow);
+                    totalSksSemester += sks;
+                    totalSksAngkaSemester += sksAngka;
 
-            // Tambahkan baris predikat
-            let predikat = '';
+                    totalSksAll += sks;
+                    totalSksAngkaAll += sksAngka;
 
-            if (ipk >= 3.50) {
-                predikat = 'Dengan Pujian';
-            } else if (ipk >= 3.00) {
-                predikat = 'Sangat Memuaskan';
-            } else if (ipk >= 2.75) {
-                predikat = 'Memuaskan';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index++}</td>
+                        <td>${krs.kode_mk}</td>
+                        <td>${krs.nama_mata_kuliah} - ${krs.tingkat}</td>
+                        <td>${sks}</td>
+                        <td>${krs.akhir || '-'}</td>
+                        <td>${krs.khs || '-'}</td>
+                        <td>${nilaiAngka.toFixed(2)}</td>
+                        <td>${sksAngka.toFixed(2)}</td>
+                    `;
+                    krsTableBody.appendChild(row);
+                });
+
+                // Tambahkan IPS per semester
+                const ips = totalSksAngkaSemester / totalSksSemester;
+                const ipsRow = document.createElement('tr');
+                ipsRow.innerHTML = `
+                <td colspan="7" class="text-Center">
+                    <strong>IPS (Index Per Semester)</strong>
+                </td>
+                <td colspan="4" class="text-right"><strong>${ips.toFixed(2)}</strong></td>
+                `;
+                krsTableBody.appendChild(ipsRow);
+                }
+
+                 // Tambahkan total semua semester
+                const totalRow = document.createElement('tr');
+                totalRow.innerHTML = `
+                    <td colspan="7" class="text-center"><strong>Total : ${totalSksAll}</strong></td>
+                    <td><strong>${totalSksAngkaAll.toFixed(2)}</strong></td>
+                `;
+                krsTableBody.appendChild(totalRow);
+
+                // Hitung IPK kumulatif
+                const ipk = totalSksAngkaAll / totalSksAll;
+                const ipkRow = document.createElement('tr');
+                ipkRow.innerHTML = `
+                    <td colspan="7" class="text-center"><strong>IPK</strong></td>
+                    <td colspan="1" class="text-left"><strong>IPK: ${ipk.toFixed(2)}</strong></td>
+                `;
+                krsTableBody.appendChild(ipkRow);
+
+                // Tentukan predikat
+                let predikat = '';
+                if (ipk >= 3.50) {
+                    predikat = 'Dengan Pujian';
+                } else if (ipk >= 3.00) {
+                    predikat = 'Sangat Memuaskan';
+                } else if (ipk >= 2.75) {
+                    predikat = 'Memuaskan';
+                } else {
+                    predikat = 'Cukup';
+                }
+
+                // Tambahkan baris predikat
+                const predikatRow = document.createElement('tr');
+                predikatRow.innerHTML = `
+                    <td colspan="7" class="text-center"><strong>Predikat</strong></td>
+                    <td colspan="1" class="text-left"><strong>${predikat}</strong></td>
+                `;
+                krsTableBody.appendChild(predikatRow);
+
             } else {
-                predikat = 'Cukup';
+                krsTable.style.display = 'none';
+                alert(data.message || "Data KRS tidak ditemukan.");
             }
 
-            const predikatRow = document.createElement('tr');
-            predikatRow.innerHTML = `
-                <td colspan="8" class="text-center"><strong>Predikat: ${predikat}</strong></td>
-            `;
-            krsTableBody.appendChild(predikatRow);
-        } else {
-            krsTable.style.display = 'none';
-            alert(data.message || "Data KRS tidak ditemukan.");
+        } catch (error) {
+            console.error(error);
+            alert("Terjadi kesalahan saat memuat data KRS. Silakan coba lagi.");
         }
-    } catch (error) {
-        console.error(error);
-        alert("Terjadi kesalahan saat memuat data KRS. Silakan coba lagi.");
-    }
-};
+    };
 
 // Event listeners
 programStudiSelect.addEventListener('change', fetchMahasiswa);

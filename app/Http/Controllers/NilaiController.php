@@ -51,15 +51,15 @@ class NilaiController extends Controller
                 }
 
                 // Query untuk mendapatkan data KRS dengan join
-                $krsData = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+               $krsData = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
                 ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
                 ->join('tahun_ajaran', 'krs.ta_id', '=', 'tahun_ajaran.ta_id')
                 ->where('krs.mahasiswa_id', $mahasiswaId)
                 ->whereNotNull('krs.khs')
                 ->whereRaw("TRIM(krs.khs) != ''")
                 ->select(
-                    'matakuliah.semester',
-                    'matakuliah.smt',
+                    // 'matakuliah.semester',
+                    'matakuliah.smt as semester',
                     'matakuliah.sks as sks',
                     'matakuliah.nama as nama_mata_kuliah',
                     'matakuliah.matakuliah_id as kode_mk',
@@ -69,7 +69,8 @@ class NilaiController extends Controller
                     'tahun_ajaran.nama as tahun_ajaran'
                 )
                 ->orderBy('matakuliah.smt')
-                ->get();
+                ->get()
+                ->groupBy('semester'); // <--- ini kuncinya
 
 
 

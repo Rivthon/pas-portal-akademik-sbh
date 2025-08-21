@@ -7,7 +7,7 @@
     <title>KHS Mahasiswa</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Times New Roman", Times, serif;
             font-size: 12px;
             margin: 20px;
         }
