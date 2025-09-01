@@ -187,7 +187,20 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
+                        <div class="col-md-6 mb-3">
+                            <label for="header_mhs" class="form-label"><strong>Header Mahasiswa:</strong></label>
+                            <input type="file" name="header_mhs" id="header_mhs"
+                                class="form-control @error('header_mhs') is-invalid @enderror">
+                            @if ($programStudi->header_mhs)
+                            <div class="mt-2">
+                                <img src="{{ asset('storage/' . $programStudi->header_mhs) }}" alt="Header Mahasiswa"
+                                    width="100">
+                            </div>
+                            @endif
+                            @error('header_mhs')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                         <!-- Buttons -->
                         <div class="col-12 text-center mt-4">
                             <button type="submit" class="btn btn-primary me-2">

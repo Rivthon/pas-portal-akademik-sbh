@@ -198,7 +198,7 @@ const fetchKRS = async () => {
                     row.innerHTML = `
                         <td>${index++}</td>
                         <td>${krs.kode_mk}</td>
-                        <td>${krs.nama_mata_kuliah} - ${krs.tingkat}</td>
+                        <td>${krs.nama_mata_kuliah}</td>
                         <td>${sks}</td>
                         <td>${krs.akhir || '-'}</td>
                         <td>${krs.khs || '-'}</td>
@@ -212,19 +212,26 @@ const fetchKRS = async () => {
                 const ips = totalSksAngkaSemester / totalSksSemester;
                 const ipsRow = document.createElement('tr');
                 ipsRow.innerHTML = `
-                <td colspan="7" class="text-Center">
-                    <strong>IPS (Index Per Semester)</strong>
+                <td colspan="6" class="text-Center">
+                    <strong>IPS</strong>
                 </td>
-                <td colspan="4" class="text-right"><strong>${ips.toFixed(2)}</strong></td>
+                <td colspan="2" class="text-center"><strong>${ips.toFixed(2)}</strong></td>
                 `;
                 krsTableBody.appendChild(ipsRow);
                 }
 
                  // Tambahkan total semua semester
+                const totalSksrow = document.createElement('tr');
+                totalSksrow.innerHTML = `
+                    <td colspan="6" class="text-center"><strong>Jumlah SKS </strong></td>
+                    <td colspan="2" class="text-center"><strong>${totalSksAll}</strong></td>
+                `;
+                krsTableBody.appendChild(totalSksrow);
+
                 const totalRow = document.createElement('tr');
                 totalRow.innerHTML = `
-                    <td colspan="7" class="text-center"><strong>Total : ${totalSksAll}</strong></td>
-                    <td><strong>${totalSksAngkaAll.toFixed(2)}</strong></td>
+                <td colspan="6" class="text-center"><strong>Total SKS x Angka </strong></td>
+                <td colspan="2" class="text-center"><strong>${totalSksAngkaAll.toFixed(2)}</strong></td>
                 `;
                 krsTableBody.appendChild(totalRow);
 
@@ -232,8 +239,8 @@ const fetchKRS = async () => {
                 const ipk = totalSksAngkaAll / totalSksAll;
                 const ipkRow = document.createElement('tr');
                 ipkRow.innerHTML = `
-                    <td colspan="7" class="text-center"><strong>IPK</strong></td>
-                    <td colspan="1" class="text-left"><strong>IPK: ${ipk.toFixed(2)}</strong></td>
+                    <td colspan="6" class="text-center"><strong>IPK</strong></td>
+                    <td colspan="2" class="text-center"><strong> ${ipk.toFixed(2)}</strong></td>
                 `;
                 krsTableBody.appendChild(ipkRow);
 
@@ -252,8 +259,8 @@ const fetchKRS = async () => {
                 // Tambahkan baris predikat
                 const predikatRow = document.createElement('tr');
                 predikatRow.innerHTML = `
-                    <td colspan="7" class="text-center"><strong>Predikat</strong></td>
-                    <td colspan="1" class="text-left"><strong>${predikat}</strong></td>
+                    <td colspan="6" class="text-center"><strong>Predikat</strong></td>
+                    <td colspan="2" class="text-center"><strong>${predikat}</strong></td>
                 `;
                 krsTableBody.appendChild(predikatRow);
 

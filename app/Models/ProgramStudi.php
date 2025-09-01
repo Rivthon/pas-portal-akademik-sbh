@@ -28,6 +28,7 @@ class ProgramStudi extends Model
         'header_baak',
         'header_kapro',
         'header_dospem',
+        'header_mhs',
         'persen_tugas',
         'persen_uts',
         'persen_uas',

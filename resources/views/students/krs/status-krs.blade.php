@@ -28,6 +28,9 @@
                             <a href="{{route('mahasiswa.krs.cetak-krs-dospem')}}" class="btn btn-primary">
                                 Cetak DOSPEM
                             </a>
+                            <a href="{{route('mahasiswa.krs.cetak-krs-mahasiswa')}}" class="btn btn-primary">
+                                Cetak mahasiswa
+                            </a>
                         </div>
 
                     </div>

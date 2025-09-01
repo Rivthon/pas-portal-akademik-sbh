@@ -63,6 +63,9 @@ class ProgramStudiController extends Controller
     if ($request->hasFile('header_dospem')) {
         $data['header_dospem'] = $request->file('header_dospem')->store('program_studi', 'public');
     }
+    if ($request->hasFile('header_mhs')) {
+        $data['header_mhs'] = $request->file('header_mhs')->store('program_studi', 'public');
+    }
 
     // Simpan data ke database
     ProgramStudi::create([
@@ -74,6 +77,7 @@ class ProgramStudiController extends Controller
         'header_baak' => $data['header_baak'] ?? null,
         'header_kapro' => $data['header_kapro'] ?? null,
         'header_dospem' => $data['header_dospem'] ?? null,
+        'header_mhs' => $data['header_mhs'] ?? null,
     ]);
 
     // Redirect dengan pesan sukses
@@ -107,6 +111,7 @@ class ProgramStudiController extends Controller
             'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_kapro' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_dospem' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'header_mhs' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Data untuk di-update
@@ -127,6 +132,10 @@ class ProgramStudiController extends Controller
 
         if ($request->hasFile('header_dospem')) {
             $data['header_dospem'] = $request->file('header_dospem')->store('program_studi', 'public');
+        }
+
+        if ($request->hasFile('header_mhs')) {
+            $data['header_mhs'] = $request->file('header_mhs')->store('program_studi', 'public');
         }
 
         // Update data

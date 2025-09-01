@@ -101,6 +101,8 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->name('krs.cetak-kapro');
         Route::get('/krs/cetak-pdf-baak', [AkademikController::class, 'cetakBaak'])->name('krs.cetak-krs-baak');
         Route::get('/krs/cetak-pdf-dospem', [AkademikController::class, 'cetakDospem'])->name('krs.cetak-krs-dospem');
+        Route::get('/krs/cetak-pdf-mahasiswa', [AkademikController::class, 'cetakMahasiswa'])->name('krs.cetak-krs-mahasiswa');
+
         Route::get('/krs/cetak-transkrip-mahasiswa', [AkademikController::class, 'cetakTranskrip'])->name('cetak-transkrip');
 
         Route::get('/mahasiswa/nilai-uts', [UjianController::class, 'tampikanNilaiUts'])->name('nilai-uts.index');
