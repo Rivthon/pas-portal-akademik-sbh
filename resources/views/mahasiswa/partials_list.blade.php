@@ -6,6 +6,7 @@
             <th>Email</th>
             <th>NIM</th>
             <th>Program Studi</th>
+            <th>Dosen Pembimbing</th>
             <th>Status</th>
             <th>Aksi</th>
         </tr>
@@ -25,7 +26,16 @@
             <td>{{ $m->email }}</td>
             <td>{{ $m->nim }}</td>
             <td>{{ $m->programStudi->nama ?? '-' }}</td>
-
+            <td class="text-center">
+                <select name="dosen_id" class="form-select form-select-sm dosen-dropdown">
+                    <option value="">Pilih Dosen</option>
+                    @foreach($dosen as $d)
+                    <option value="{{ $d->dosen_id }}" {{ $m->dosen_id == $d->dosen_id ? 'selected' : '' }}>
+                        {{ $d->nama }}
+                    </option>
+                    @endforeach
+                </select>
+            </td>
             <!-- Status dengan Badge dan Dropdown -->
             <td class="text-center">
                 @php

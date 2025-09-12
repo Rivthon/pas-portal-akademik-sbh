@@ -51,5 +51,11 @@ class Matakuliah extends Model
 {
     return $this->hasMany(Penilaian::class, 'mahasiswa_id');
 }
-
+    public function getSemesterLabelAttribute()
+        {
+            if (!$this->smt) {
+                return null;
+            }
+            return "Semester {$this->smt} (" . ($this->smt % 2 == 1 ? 'Ganjil' : 'Genap') . ")";
+        }
 }

@@ -68,52 +68,48 @@ class MatakuliahController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $rules = [
-            'matakuliah_id' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('matakuliah', 'matakuliah_id'),
-            ],
-            'jurusan_id' => 'required|string',
-            'nama' => 'required|string|max:255',
-            'kategori_mk' => 'required|integer|in:0,1',
-            'sks' => 'required|integer|min:1|max:10',
-            'smt' => 'required|integer|min:1|max:8',
-            'semester' => 'required|string|in:ganjil,genap',
-        ];
+{
+    $rules = [
+        'matakuliah_id' => [
+            'required',
+            'string',
+            'max:50',
+            Rule::unique('matakuliah', 'matakuliah_id'),
+        ],
+        'jurusan_id' => 'required|string',
+        'nama' => 'required|string|max:255',
+        'kategori_mk' => 'required|integer|in:0,1',
+        'sks' => 'required|integer|min:1|max:10',
+        'smt' => 'required|integer|min:1|max:8',
+    ];
 
-        $messages = [
-            'matakuliah_id.required' => 'ID Mata Kuliah wajib diisi.',
-            'nama.required' => 'Nama mata kuliah tidak boleh kosong.',
-            'sks.integer' => 'SKS harus berupa angka.',
-        ];
+    $validator = Validator::make($request->all(), $rules);
 
-        $validator = Validator::make($request->all(), $rules, $messages);
+    if ($validator->fails()) {
+        return redirect()->back()->withErrors($validator)->withInput();
+    }
 
-        if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
-        }
+    $data = $request->only([
+        'matakuliah_id',
+        'jurusan_id',
+        'nama',
+        'kategori_mk',
+        'sks',
+        'smt',
+    ]);
 
-        $data = $request->only([
-            'matakuliah_id',
-            'jurusan_id',
-            'nama',
-            'kategori_mk',
-            'sks',
-            'smt',
-            'semester',
-        ]);
+    // otomatis isi semester berdasarkan smt
+    $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
 
-        Matakuliah::create($data);
+    Matakuliah::create($data);
 
-        Alert::toast('Kurikulum berhasil ditambahkan.', 'success')
+    Alert::toast('Kurikulum berhasil ditambahkan.', 'success')
         ->position('bottom-end')
         ->autoClose(3000);
 
-        return redirect()->route('admin.matakuliah.index');
-    }
+    return redirect()->route('admin.matakuliah.index');
+}
+
 
     public function update(Request $request, Matakuliah $matakuliah)
     {
@@ -123,7 +119,6 @@ class MatakuliahController extends Controller
             'kategori_mk' => 'required|integer|in:0,1',
             'sks' => 'required|integer|min:1|max:10',
             'smt' => 'required|integer|min:1|max:8',
-            'semester' => 'required|string|in:ganjil,genap',
         ];
 
         $messages = [
@@ -145,6 +140,7 @@ class MatakuliahController extends Controller
             'smt',
             'semester',
         ]);
+            $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
 
         $matakuliah->update($data);
 

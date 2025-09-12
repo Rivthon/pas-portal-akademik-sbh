@@ -148,10 +148,11 @@ class Mahasiswa extends Authenticatable
     {
         return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');
     }
-         public function gelombangs()
+        public function gelombang()
     {
-        return $this->belongsTo(Gelombang::class, 'gelombang_id');
+        return $this->belongsTo(Gelombang::class, 'gelombang_id', 'id');
     }
+
     public function permintaan()
     {
         return $this->hasMany(Permintaan::class);

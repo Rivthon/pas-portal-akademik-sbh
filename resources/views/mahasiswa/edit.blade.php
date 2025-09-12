@@ -70,16 +70,15 @@
                     <!-- Jenis Kelamin -->
                     <div class="col-md-6 mb-3">
                         <label for="jenis_kelamin" class="form-label">Jenis Kelamin</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bx bx-male-female"></i></span>
-                            <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required>
-                                <option value="">Pilih Jenis Kelamin</option>
-                                <option value="Laki-Laki" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) ==
-                                    'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
-                                <option value="Perempuan" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) ==
-                                    'Perempuan' ? 'selected' : '' }}>Perempuan</option>
-                            </select>
-                        </div>
+                        <select class="form-select" id="jenis_kelamin" name="jenis_kelamin" required>
+                            <option value="">Pilih</option>
+                            <option value="Laki-Laki" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) ==
+                                'Laki-Laki' ? 'selected' : ''
+                                }}>Laki-Laki</option>
+                            <option value="Perempuan" {{ old('jenis_kelamin', $mahasiswa->jenis_kelamin) ==
+                                'Perempuan' ? 'selected' : ''
+                                }}>Perempuan</option>
+                        </select>
                     </div>
 
                     <!-- Tanggal Lahir -->
@@ -205,14 +204,30 @@
                                 <option value="">Pilih Gelombang</option>
                                 @foreach($gelombang as $g)
                                 <option value="{{ $g->id }}" {{ old('gelombang_id', $mahasiswa->gelombang_id) == $g->id
-                                    ? 'selected' : ''
-                                    }}>
+                                    ? 'selected' : '' }}>
                                     {{ $g->nama }}
                                 </option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="dosen_id" class="form-label">Pilih Dosen</label>
+                        <div class="input-group">
+                            {{-- <span class="input-group-text"><i class="bx bx-user"></i></span> --}}
+                            <select class="form-select select2" id="dosen_id" name="dosen_id" required>
+                                <option value="">-- Cari & Pilih Dosen --</option>
+                                @foreach($dosen as $ds)
+                                <option value="{{ $ds->dosen_id }}" {{ old('dosen_id', $mahasiswa->dosen_id ?? '') ==
+                                    $ds->dosen_id ? 'selected' :
+                                    '' }}>
+                                    {{ $ds->nama }}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -317,3 +332,12 @@
 </div>
 
 @endsection
+<script>
+    $(function () {
+                    $('#dosen_id').select2({
+                      placeholder: "Cari nama dosen...",
+                      allowClear: true,
+                      width: '100%' // penting supaya select2 full lebar di Sneat
+                    });
+                  });
+</script>

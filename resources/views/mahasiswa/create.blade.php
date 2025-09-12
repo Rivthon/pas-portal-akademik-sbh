@@ -1,18 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="row">
-    <div class="col-lg-12 margin-tb">
-        <div class="pull-left">
-            <h2>Add New Mahasiswa</h2>
-        </div>
-
+<div class="row mb-4">
+    <div class="col-lg-12">
+        <h2>Tambah Mahasiswa Baru</h2>
     </div>
 </div>
 
+{{-- Alert error global --}}
 @if ($errors->any())
 <div class="alert alert-danger">
-    <strong>Whoops!</strong> There were some problems with your input.<br><br>
+    <strong>Whoops!</strong> Ada beberapa masalah dengan input Anda:<br><br>
     <ul>
         @foreach ($errors->all() as $error)
         <li>{{ $error }}</li>
@@ -23,52 +21,77 @@
 
 <form action="{{ route('admin.mahasiswa.store') }}" method="POST">
     @csrf
+    <div class="row">
+        {{-- Nama --}}
+        <div class="col-md-6 mb-3">
+            <label for="name" class="form-label"><strong>Nama</strong></label>
+            <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror"
+                placeholder="Masukkan nama lengkap" value="{{ old('name') }}">
+            @error('name')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        {{-- Email --}}
+        <div class="col-md-6 mb-3">
+            <label for="email" class="form-label"><strong>Email</strong></label>
+            <input type="email" name="email" id="email" class="form-control @error('email') is-invalid @enderror"
+                placeholder="Masukkan email" value="{{ old('email') }}">
+            @error('email')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
 
     <div class="row">
-        <div class="col-xs-12 col-sm-12 col-md-12">
-            <div class="form-group">
-                <strong>Name:</strong>
-                <input type="text" name="name" class="form-control" placeholder="Name" value="{{ old('name') }}">
-            </div>
+        {{-- Password --}}
+        <div class="col-md-6 mb-3">
+            <label for="password" class="form-label"><strong>Password</strong></label>
+            <input type="password" name="password" id="password"
+                class="form-control @error('password') is-invalid @enderror" placeholder="Masukkan password">
+            @error('password')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
-        <div class="col-xs-12 col-sm-12 col-md-12">
-            <div class="form-group">
-                <strong>Email:</strong>
-                <input type="email" name="email" class="form-control" placeholder="Email" value="{{ old('email') }}">
-            </div>
+
+        {{-- NIM --}}
+        <div class="col-md-6 mb-3">
+            <label for="nim" class="form-label"><strong>NIM</strong></label>
+            <input type="text" name="nim" id="nim" class="form-control @error('nim') is-invalid @enderror"
+                placeholder="Masukkan NIM" value="{{ old('nim') }}">
+            @error('nim')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
-        <div class="col-xs-12 col-sm-12 col-md-12">
-            <div class="form-group">
-                <strong>Password:</strong>
-                <input type="password" name="password" class="form-control" placeholder="Password">
-            </div>
+    </div>
+
+    <div class="row">
+        {{-- Program Studi --}}
+        <div class="col-md-6 mb-3">
+            <label for="program_studi_id" class="form-label"><strong>Program Studi</strong></label>
+            <select name="program_studi_id" id="program_studi_id"
+                class="form-select @error('program_studi_id') is-invalid @enderror">
+                <option value="">-- Pilih Program Studi --</option>
+                @foreach ($programStudi as $program)
+                <option value="{{ $program->program_studi_id }}" {{ old('program_studi_id')==$program->program_studi_id
+                    ? 'selected' : '' }}>
+                    {{ $program->name }}
+                </option>
+                @endforeach
+            </select>
+            @error('program_studi_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
         </div>
-        <div class="col-xs-12 col-sm-12 col-md-12">
-            <div class="form-group">
-                <strong>NIM:</strong>
-                <input type="text" name="nim" class="form-control" placeholder="NIM" value="{{ old('nim') }}">
-            </div>
-        </div>
-        <div class="col-xs-12 col-sm-12 col-md-12">
-            <div class="form-group">
-                <strong>Program Studi:</strong>
-                <select name="program_studi_id" class="form-control">
-                    <option value="">-- Select Program Studi --</option>
-                    @foreach ($programStudi as $program)
-                    <option value="{{ $program->program_studi_id }}" {{ old('program_studi_id')==$program->
-                        program_studi_id ? 'selected' : '' }}>
-                        {{ $program->name }}
-                    </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="col-xs-12 col-sm-12 col-md-12 text-center">
-            <button type="submit" class="btn btn-primary btn-sm mb-3 mt-2"><i class="fa-solid fa-floppy-disk"></i>
-                Submit</button>
-        </div>
+    </div>
+
+    {{-- Tombol submit --}}
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan
+        </button>
     </div>
 </form>
 
-<p class="text-center text-primary"><small>Absensi Online</small></p>
+<p class="text-center text-primary mt-4"><small>Absensi Online</small></p>
 @endsection

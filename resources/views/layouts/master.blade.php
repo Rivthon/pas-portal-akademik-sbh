@@ -30,7 +30,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $settings->name }}">
     <meta name="twitter:description" content="{{ $settings->name }}">
-
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Favicon -->
     <link rel="icon"
         href="{{ $settings->favicon ? asset('storage/' . $settings->favicon) : asset('default/favicon.ico') }}"
@@ -174,6 +174,16 @@
         $('#jam_selesai').on('input', function () {
             $('#keterangan_jam_selesai').text(formatJam(this.value));
         }).trigger('input');
+
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#dosen_id_mhs').select2({
+                placeholder: "-- Cari & Pilih Dosen --",
+                allowClear: true,
+                width: '100%'
+            });
+        });
     </script>
     <script>
         $(document).ready(function() {
@@ -305,6 +315,7 @@
                 });
         }
     });
+
 
     // Event listener untuk tombol reset semua status
     document.getElementById('reset-all-status').addEventListener('click', function () {
@@ -818,6 +829,39 @@ async function fetchData(url) {
             }
         });
     });
+    $(document).on("change", ".dosen-dropdown", function () {
+    let selectElement = $(this);
+    let mahasiswaRow = selectElement.closest("tr");
+    let mahasiswaId = mahasiswaRow.data("id");
+    let newDosen = selectElement.val(); // <-- ini yg hilang sebelumnya
+
+    $.ajax({
+        url: `/admin/mahasiswa/${mahasiswaId}/update-dosen`,
+        type: "PUT",
+        data: {
+            _token: "{{ csrf_token() }}",
+            dosen_id: newDosen,
+        },
+        beforeSend: function () {
+            selectElement.prop("disabled", true);
+        },
+        success: function (response) {
+            showStatusAlert("success", response.message || "Dosen berhasil diperbarui!");
+        },
+        error: function (xhr) {
+            console.log("Error Details:", xhr);
+            let errorMsg = "Terjadi kesalahan saat memperbarui dosen.";
+            if (xhr.responseJSON) {
+                errorMsg = xhr.responseJSON.message || errorMsg;
+            }
+            showStatusAlert("danger", errorMsg);
+        },
+        complete: function () {
+            selectElement.prop("disabled", false);
+        }
+    });
+});
+
 
     function showStatusAlert(type, message) {
         let alertBox = $("#status-alert");
@@ -825,6 +869,7 @@ async function fetchData(url) {
         setTimeout(() => alertBox.removeClass("d-block").addClass("d-none"), 5000);
     }
 });
+
     </script>
     <script>
         document.getElementById('export-btn').addEventListener('click', function (e) {

@@ -204,6 +204,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::put('/mahasiswa/{id}/update-status', [MahasiswaController::class, 'updateStatus'])->name('mahasiswa.updateStatus');
+        Route::put('/mahasiswa/{id}/update-dosen', [MahasiswaController::class, 'updateDosen'])->name('mahasiswa.updateDosen');
+        Route::put('/mahasiswa/search-dosen', [MahasiswaController::class, 'searchDosen']);
+
         Route::get('/admin/export', [MahasiswaController::class, 'exportExcel'])->name('export');
 
         Route::resource('matakuliah', MatakuliahController::class);

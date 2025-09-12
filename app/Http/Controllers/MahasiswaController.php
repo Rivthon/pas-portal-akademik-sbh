@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Dosen;
 use App\Models\Gelombang;
 use App\Models\Mahasiswa;
 use Illuminate\View\View;
@@ -33,10 +34,10 @@ class MahasiswaController extends Controller
         if ($request->ajax()) {
             return $this->searchMahasiswa($request);
         }
-
+        $dosen = Dosen::all();
         // Jika bukan AJAX, tampilkan halaman utama dengan data awal
         $programStudi = ProgramStudi::all();
-        return view('mahasiswa.index', compact('programStudi'));
+        return view('mahasiswa.index', compact('programStudi','dosen'));
     }
 
     private function searchMahasiswa(Request $request)
@@ -46,7 +47,7 @@ class MahasiswaController extends Controller
     $programStudi = $request->input('jurusan_id');
     $tahunMasuk = $request->input('tahun_masuk');
     $status = $request->input('status');
-
+    $dosen = Dosen::all();
     // Query mahasiswa dengan relasi program studi
     $query = Mahasiswa::with('programStudi');
 
@@ -86,7 +87,7 @@ class MahasiswaController extends Controller
 
     // Kembalikan tabel hasil pencarian tanpa pagination
     return response()->json([
-        'html' => view('mahasiswa.partials_list', compact('mahasiswa'))->render()
+        'html' => view('mahasiswa.partials_list', compact('mahasiswa','dosen'))->render()
     ]);
 }
 
@@ -149,7 +150,8 @@ class MahasiswaController extends Controller
     {
         $gelombang = Gelombang::all();
         $programStudi = ProgramStudi::all();
-        return view('mahasiswa.edit', compact('mahasiswa', 'programStudi','gelombang'));
+        $dosen = Dosen::all();
+        return view('mahasiswa.edit', compact('mahasiswa', 'programStudi','gelombang','dosen'));
     }
 
 
@@ -181,6 +183,8 @@ class MahasiswaController extends Controller
                 'status_mhs' => 'required|string|in:aktif,nonaktif,lulus,dropout,cuti',
                 'pendapatan_ortu' => 'nullable|string',
                 'password' => 'nullable|string|min:8',
+                'dosen_id' => 'required|exists:dosen,dosen_id',
+
             ]);
 
             // Data untuk pembaruan
@@ -205,6 +209,8 @@ class MahasiswaController extends Controller
                 'semester',
                 'asal_sekolah',
                 'tahun_masuk',
+                'gelombang_id',
+                'dosen_id',
                 'kelas',
                 'status_mhs',
             ]);
@@ -299,6 +305,28 @@ class MahasiswaController extends Controller
     }
 
     }
+    public function updateDosen($id, Request $request)
+    {
+        try {
+            $request->validate([
+                'dosen_id' => 'nullable|exists:dosen,dosen_id'
+            ]);
+
+            $mahasiswa = Mahasiswa::findOrFail($id);
+            $mahasiswa->update(['dosen_id' => $request->dosen_id]);
+
+            return response()->json([
+                'message' => 'Dosen pembimbing berhasil diperbarui!',
+                'dosen_id' => $request->dosen_id
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error("Error Update Dosen Mahasiswa: " . $e->getMessage());
+            return response()->json([
+                'message' => 'Gagal memperbarui dosen. ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
     public function importExcel(Request $request): RedirectResponse
     {
@@ -358,5 +386,16 @@ class MahasiswaController extends Controller
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(\'Are you sure?\')">Delete</button>
             </form>';
     }
+    public function searchDosen(Request $request)
+{
+    $term = $request->get('q', '');
+
+    $dosen = Dosen::where('nama', 'LIKE', '%' . $term . '%')
+        ->select('dosen_id', 'nama')
+        ->limit(20)
+        ->get();
+
+    return response()->json($dosen);
+}
 
 }
