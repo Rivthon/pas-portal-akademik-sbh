@@ -28,7 +28,8 @@ class Mahasiswa extends Authenticatable
      * Kolom yang dapat diisi secara massal.
      */
     protected $fillable = [
-        'nama','avatar',
+        'nama',
+        'avatar',
         'email',
         'password',
         'jurusan_id',
@@ -61,6 +62,7 @@ class Mahasiswa extends Authenticatable
         'status_krs',
         'status_uts',
         'status_uas',
+        'status_akhir',
         'status_nilai_uts',
         'status_nilai_uas',
         'status_nilai_akhir',
@@ -107,7 +109,7 @@ class Mahasiswa extends Authenticatable
     // {
     //     return $this->hasMany(Absensi::class, 'mahasiswa_id');
     // }
-     // Relasi ke model ProgramStudi
+    // Relasi ke model ProgramStudi
     public function programStudi()
     {
         return $this->belongsTo(ProgramStudi::class, 'jurusan_id', 'jurusan_id');
@@ -118,7 +120,7 @@ class Mahasiswa extends Authenticatable
     {
         return $this->hasMany(Absensi::class, 'mahasiswa_id', 'mahasiswa_id');
     }
-      public function tagihanMahasiswa()
+    public function tagihanMahasiswa()
     {
         return $this->hasMany(TagihanMahasiswa::class, 'mahasiswa_id', 'mahasiswa_id');
     }
@@ -139,7 +141,7 @@ class Mahasiswa extends Authenticatable
     {
         return $this->hasMany(Krs::class, 'mahasiswa_id', 'mahasiswa_id');
     }
-        public function getProfileImageURL()
+    public function getProfileImageURL()
     {
         return $this->avatar ? asset('storage/' . $this->avatar) : null;
     }
@@ -148,7 +150,7 @@ class Mahasiswa extends Authenticatable
     {
         return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');
     }
-        public function gelombang()
+    public function gelombang()
     {
         return $this->belongsTo(Gelombang::class, 'gelombang_id', 'id');
     }
@@ -161,6 +163,4 @@ class Mahasiswa extends Authenticatable
     {
         return $this->hasMany(PengajuanTranskrip::class);
     }
-
-
 }

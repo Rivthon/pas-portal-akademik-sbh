@@ -16,122 +16,122 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class AkademikController extends Controller
 {
-        public function index(Request $request)
+    public function index(Request $request)
 
-        {
-            $semester = Auth::guard('mahasiswa')->user()->semester;
-            $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-            $search = $request->input('search');
-            $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+    {
+        $semester = Auth::guard('mahasiswa')->user()->semester;
+        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
+        $search = $request->input('search');
+        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
 
-            // Pastikan ada tahun ajaran aktif
-            if (!$activeTA) {
-                if ($request->ajax()) {
-                    return response()->json([
-                        'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                    ], 422);
-                }
-                return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        // Pastikan ada tahun ajaran aktif
+        if (!$activeTA) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
+                ], 422);
             }
-
-            // Query awal dengan eager loading
-            $krs = Kurikulum::with(['programStudi', 'mataKuliah'])
-                    ->where('ta_id', $activeTA->ta_id)
-                    ->whereHas('mataKuliah', function ($query) use ($semester) {
-                        $query->where('smt', $semester);
-                    })
-                    ->whereHas('programStudi', function ($query) {
-                    $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id; // Ambil jurusan_id dari mahasiswa
-                    $query->where('jurusan_id', $jurusanId);
-                    })// Filter semester melalui relasi mataKuliah
-                    ->get();
-
-
-
-            // Jika bukan AJAX, kirim ke view utama
-            return view('students.krs.index', compact('krs'));
+            return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
+        // Query awal dengan eager loading
+        $krs = Kurikulum::with(['programStudi', 'mataKuliah'])
+            ->where('ta_id', $activeTA->ta_id)
+            ->whereHas('mataKuliah', function ($query) use ($semester) {
+                $query->where('smt', $semester);
+            })
+            ->whereHas('programStudi', function ($query) {
+                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id; // Ambil jurusan_id dari mahasiswa
+                $query->where('jurusan_id', $jurusanId);
+            }) // Filter semester melalui relasi mataKuliah
+            ->get();
 
 
-       public function nyimpenKrs(Request $request)
-        {
-            // Ambil ID mahasiswa yang sedang login
-            $mahasiswa = Auth::guard('mahasiswa')->user();
-            if (!$mahasiswa) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Mahasiswa tidak ditemukan.',
-                ], 401);
+
+        // Jika bukan AJAX, kirim ke view utama
+        return view('students.krs.index', compact('krs'));
+    }
+
+
+
+    public function nyimpenKrs(Request $request)
+    {
+        // Ambil ID mahasiswa yang sedang login
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        if (!$mahasiswa) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mahasiswa tidak ditemukan.',
+            ], 401);
+        }
+
+        // Ambil Tahun Akademik Aktif
+        $ta = TahunAkademik::where('status_ta', 1)->first();
+        if (!$ta) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tahun Akademik Aktif tidak ditemukan.',
+            ], 400);
+        }
+
+        // Validasi input data
+        $validated = $request->validate([
+            'krs' => 'required|array|min:1',       // Harus array dan minimal ada 1 item
+            'krs.*' => 'integer|exists:kurikulum,kurikulum_id', // Setiap item harus integer dan ada di tabel 'kurikulums'
+        ]);
+
+        try {
+            foreach ($validated['krs'] as $kurikulumId) {
+                // Periksa apakah data KRS sudah ada
+                $existingKrs = Krs::where('kurikulum_id', $kurikulumId)
+                    ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                    ->where('ta_id', $ta->ta_id)
+                    ->first();
+
+                if (!$existingKrs) {
+                    // Jika tidak ada, buat entri baru
+                    Krs::create([
+                        'kurikulum_id' => $kurikulumId,
+                        'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                        'ta_id' => $ta->ta_id,
+                    ]);
+                }
             }
 
-            // Ambil Tahun Akademik Aktif
-            $ta = TahunAkademik::where('status_ta', 1)->first();
-            if (!$ta) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tahun Akademik Aktif tidak ditemukan.',
-                ], 400);
-            }
-
-            // Validasi input data
-            $validated = $request->validate([
-                'krs' => 'required|array|min:1',       // Harus array dan minimal ada 1 item
-                'krs.*' => 'integer|exists:kurikulum,kurikulum_id', // Setiap item harus integer dan ada di tabel 'kurikulums'
+            return response()->json([
+                'success' => true,
+                'message' => 'KRS berhasil disimpan.',
             ]);
-
-            try {
-                foreach ($validated['krs'] as $kurikulumId) {
-                    // Periksa apakah data KRS sudah ada
-                    $existingKrs = Krs::where('kurikulum_id', $kurikulumId)
-                        ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                        ->where('ta_id', $ta->ta_id)
-                        ->first();
-
-                    if (!$existingKrs) {
-                        // Jika tidak ada, buat entri baru
-                        Krs::create([
-                            'kurikulum_id' => $kurikulumId,
-                            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-                            'ta_id' => $ta->ta_id,
-                        ]);
-                    }
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'KRS berhasil disimpan.',
-                ]);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Terjadi kesalahan saat menyimpan KRS: ' . $e->getMessage(),
-                ], 500);
-            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menyimpan KRS: ' . $e->getMessage(),
+            ], 500);
         }
+    }
 
 
     public function tampilkanKrs()
     {
-         $mahasiswa = Auth::guard('mahasiswa')->user();
-            if (!$mahasiswa) {
-                return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
-            }
-           $mahasiswaId = $mahasiswa->mahasiswa_id;
-           $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        if (!$mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+        $mahasiswaId = $mahasiswa->mahasiswa_id;
+        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
 
-            // Pastikan ada tahun ajaran aktif
-            if (!$activeTA) {
-                if ($request->ajax()) {
-                    return response()->json([
-                        'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                    ], 422);
-                }
-                return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        // Pastikan ada tahun ajaran aktif
+        if (!$activeTA) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
+                ], 422);
             }
+            return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        }
 
         try {
-               $krs = Krs::with(['kurikulum.mataKuliah'])
+            $krs = Krs::with(['kurikulum.mataKuliah'])
                 ->where('mahasiswa_id', $mahasiswaId)
                 ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
                     $query->where('smt', $mahasiswa->semester);
@@ -156,44 +156,50 @@ class AkademikController extends Controller
 
     public function cetakKapro()
     {
-        $mahasiswa = Auth::guard('mahasiswa')->user(); // Mendapatkan data user yang login
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        if ($mahasiswa->status_krs == 0) {
+            return back()->with('error', 'Anda belum diizinkan mencetak Kartu KRS.');
+        } // Mendapatkan data user yang login
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']);
+
+
+
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         $settings = Setting::first(); // atau sesuai struktur tabel kamu
         $taId = $ta->ta_id;
         $headerKrs = null;
-            if ($mahasiswa && $mahasiswa->programStudi->header_kapro) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_kapro);
-                if (file_exists($logoPath)) {
-                    $headerKrs = base64_encode(file_get_contents($logoPath));
-                }
+        if ($mahasiswa && $mahasiswa->programStudi->header_kapro) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_kapro);
+            if (file_exists($logoPath)) {
+                $headerKrs = base64_encode(file_get_contents($logoPath));
             }
-            $ttd = null;
-            if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-                if (file_exists($logoPath)) {
-                    $ttd = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $ttd = null;
+        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+            if (file_exists($logoPath)) {
+                $ttd = base64_encode(file_get_contents($logoPath));
             }
-            $logo = null;
-            $setting = Setting::first(); // atau ->where('id', 1)->first();
-            if ($setting && $setting->logo) {
-                $logoPath = public_path('storage/' . $setting->logo);
-                if (file_exists($logoPath)) {
-                    $logo = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $logo = null;
+        $setting = Setting::first(); // atau ->where('id', 1)->first();
+        if ($setting && $setting->logo) {
+            $logoPath = public_path('storage/' . $setting->logo);
+            if (file_exists($logoPath)) {
+                $logo = base64_encode(file_get_contents($logoPath));
             }
+        }
 
         try {
             $krs = Krs::with(['kurikulum.mataKuliah'])
-            ->where('mahasiswa_id', $mahasiswaId)
-            ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                $query->where('smt', $mahasiswa->semester);
-            })
-            ->get();
+                ->where('mahasiswa_id', $mahasiswaId)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-kapro', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta','logo','settings'))
+            $pdf = PDF::loadView('students.krs.cetak-pdf-kapro', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta', 'logo', 'settings'))
                 ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                 ->setPaper('a4', 'portrait');
 
@@ -207,46 +213,49 @@ class AkademikController extends Controller
     public function cetakDospem()
     {
         $mahasiswa = Auth::guard('mahasiswa')->user(); // Mendapatkan data user yang login
+        if ($mahasiswa->status_krs == 0) {
+            return back()->with('error', 'Anda belum diizinkan mencetak Kartu KRS.');
+        } //
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']); // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
-                $settings = Setting::first(); // atau sesuai struktur tabel kamu
+        $settings = Setting::first(); // atau sesuai struktur tabel kamu
 
         $headerKrs = null;
-            if ($mahasiswa && $mahasiswa->programStudi->header_dospem) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_dospem);
-                if (file_exists($logoPath)) {
-                    $headerKrs = base64_encode(file_get_contents($logoPath));
-                }
+        if ($mahasiswa && $mahasiswa->programStudi->header_dospem) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_dospem);
+            if (file_exists($logoPath)) {
+                $headerKrs = base64_encode(file_get_contents($logoPath));
             }
-            $ttd = null;
-            if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-                if (file_exists($logoPath)) {
-                    $ttd = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $ttd = null;
+        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+            if (file_exists($logoPath)) {
+                $ttd = base64_encode(file_get_contents($logoPath));
             }
-               $logo = null;
-            $setting = Setting::first(); // atau ->where('id', 1)->first();
-            if ($setting && $setting->logo) {
-                $logoPath = public_path('storage/' . $setting->logo);
-                if (file_exists($logoPath)) {
-                    $logo = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $logo = null;
+        $setting = Setting::first(); // atau ->where('id', 1)->first();
+        if ($setting && $setting->logo) {
+            $logoPath = public_path('storage/' . $setting->logo);
+            if (file_exists($logoPath)) {
+                $logo = base64_encode(file_get_contents($logoPath));
             }
+        }
 
         try {
-             $krs = Krs::with(['kurikulum.mataKuliah'])
-            ->where('mahasiswa_id', $mahasiswaId)
-            ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                $query->where('smt', $mahasiswa->semester);
-            })
-            ->get();
+            $krs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswaId)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-dospem', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta','logo','settings'))
-                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
-                    ->setPaper('a4', 'portrait');
+            $pdf = PDF::loadView('students.krs.cetak-pdf-dospem', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta', 'logo', 'settings'))
+                ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+                ->setPaper('a4', 'portrait');
 
             // Download file PDF
             return $pdf->stream('KRS-Mahasiswa-Dospem.pdf');
@@ -258,46 +267,49 @@ class AkademikController extends Controller
     public function cetakBaak()
     {
         $mahasiswa = Auth::guard('mahasiswa')->user(); // Mendapatkan data user yang login
+        if ($mahasiswa->status_krs == 0) {
+            return back()->with('error', 'Anda belum diizinkan mencetak Kartu KRS.');
+        } //
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']); // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
         $settings = Setting::first(); // atau sesuai struktur tabel kamu
 
         $headerKrs = null;
-            if ($mahasiswa && $mahasiswa->programStudi->header_baak) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_baak);
-                if (file_exists($logoPath)) {
-                    $headerKrs = base64_encode(file_get_contents($logoPath));
-                }
+        if ($mahasiswa && $mahasiswa->programStudi->header_baak) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_baak);
+            if (file_exists($logoPath)) {
+                $headerKrs = base64_encode(file_get_contents($logoPath));
             }
-            $ttd = null;
-            if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-                if (file_exists($logoPath)) {
-                    $ttd = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $ttd = null;
+        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+            if (file_exists($logoPath)) {
+                $ttd = base64_encode(file_get_contents($logoPath));
             }
-         $logo = null;
-            $setting = Setting::first(); // atau ->where('id', 1)->first();
-            if ($setting && $setting->logo) {
-                $logoPath = public_path('storage/' . $setting->logo);
-                if (file_exists($logoPath)) {
-                    $logo = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $logo = null;
+        $setting = Setting::first(); // atau ->where('id', 1)->first();
+        if ($setting && $setting->logo) {
+            $logoPath = public_path('storage/' . $setting->logo);
+            if (file_exists($logoPath)) {
+                $logo = base64_encode(file_get_contents($logoPath));
             }
+        }
 
         try {
-             $krs = Krs::with(['kurikulum.mataKuliah'])
-            ->where('mahasiswa_id', $mahasiswaId)
-            ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                $query->where('smt', $mahasiswa->semester);
-            })
-            ->get();
+            $krs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswaId)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-baak', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta','logo','settings'))
-                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
-                    ->setPaper('a4', 'portrait');
+            $pdf = PDF::loadView('students.krs.cetak-pdf-baak', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta', 'logo', 'settings'))
+                ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+                ->setPaper('a4', 'portrait');
 
             // Download file PDF
             return $pdf->stream('KRS-Mahasiswa-BAAK.pdf');
@@ -306,49 +318,52 @@ class AkademikController extends Controller
             return redirect()->back()->with('error', 'Gagal mencetak KRS: ' . $e->getMessage());
         }
     }
-     public function cetakMahasiswa()
+    public function cetakMahasiswa()
     {
         $mahasiswa = Auth::guard('mahasiswa')->user(); // Mendapatkan data user yang login
+        if ($mahasiswa->status_krs == 0) {
+            return back()->with('error', 'Anda belum diizinkan mencetak Kartu KRS.');
+        } //
         $mahasiswaId = $mahasiswa->mahasiswa_id; // ID Mahasiswa
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama','semester']); // Ambil ID dan Nama Tahun Akademik Aktif
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']); // Ambil ID dan Nama Tahun Akademik Aktif
         $taId = $ta->ta_id;
         $settings = Setting::first(); // atau sesuai struktur tabel kamu
 
         $headerKrs = null;
-            if ($mahasiswa && $mahasiswa->programStudi->header_mhs) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_mhs);
-                if (file_exists($logoPath)) {
-                    $headerKrs = base64_encode(file_get_contents($logoPath));
-                }
+        if ($mahasiswa && $mahasiswa->programStudi->header_mhs) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->header_mhs);
+            if (file_exists($logoPath)) {
+                $headerKrs = base64_encode(file_get_contents($logoPath));
             }
-            $ttd = null;
-            if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-                $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-                if (file_exists($logoPath)) {
-                    $ttd = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $ttd = null;
+        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
+            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+            if (file_exists($logoPath)) {
+                $ttd = base64_encode(file_get_contents($logoPath));
             }
-         $logo = null;
-            $setting = Setting::first(); // atau ->where('id', 1)->first();
-            if ($setting && $setting->logo) {
-                $logoPath = public_path('storage/' . $setting->logo);
-                if (file_exists($logoPath)) {
-                    $logo = base64_encode(file_get_contents($logoPath));
-                }
+        }
+        $logo = null;
+        $setting = Setting::first(); // atau ->where('id', 1)->first();
+        if ($setting && $setting->logo) {
+            $logoPath = public_path('storage/' . $setting->logo);
+            if (file_exists($logoPath)) {
+                $logo = base64_encode(file_get_contents($logoPath));
             }
+        }
 
         try {
-             $krs = Krs::with(['kurikulum.mataKuliah'])
-            ->where('mahasiswa_id', $mahasiswaId)
-            ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                $query->where('smt', $mahasiswa->semester);
-            })
-            ->get();
+            $krs = Krs::with(['kurikulum.mataKuliah'])
+                ->where('mahasiswa_id', $mahasiswaId)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('students.krs.cetak-pdf-mhs', compact('krs', 'mahasiswa', 'taId','headerKrs','ttd','ta','logo','settings'))
-                    ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
-                    ->setPaper('a4', 'portrait');
+            $pdf = PDF::loadView('students.krs.cetak-pdf-mhs', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta', 'logo', 'settings'))
+                ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
+                ->setPaper('a4', 'portrait');
 
             // Download file PDF
             return $pdf->stream('KRS-Mahasiswa.pdf');
@@ -361,6 +376,14 @@ class AkademikController extends Controller
     {
         $mahasiswa = Auth::guard('mahasiswa')->user();
 
+        if (!$mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+
+        // ✅ Tambahan Validasi Status Akhir
+        if ($mahasiswa->status_akhir != 1) {
+            return redirect()->back()->with('error', 'Akses KHS ditolak. Silahkan selesaikan kewajiban terlebih dahulu.');
+        }
         if (!$mahasiswa) {
             return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
         }
@@ -397,7 +420,6 @@ class AkademikController extends Controller
             $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
 
             return view('students.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
-
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: ' . $e->getMessage());
         }
@@ -449,7 +471,7 @@ class AkademikController extends Controller
     }
 
 
-   public function cetakKhs()
+    public function cetakKhs()
     {
         $settings = Setting::first();
         $mahasiswa = Auth::guard('mahasiswa')->user();
@@ -487,17 +509,17 @@ class AkademikController extends Controller
         try {
             // Ambil KHS Semester Aktif
             $khs = Krs::with(['kurikulum.mataKuliah'])
-                    ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                    ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                        $query->where('smt', $mahasiswa->semester);
-                    })
-                    ->get()
-                    ->filter(function ($item) {
-                        return $item->kurikulum && $item->kurikulum->mataKuliah;
-                    });
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
+                    $query->where('smt', $mahasiswa->semester);
+                })
+                ->get()
+                ->filter(function ($item) {
+                    return $item->kurikulum && $item->kurikulum->mataKuliah;
+                });
 
-                [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
-                $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
+            [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
+            $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
 
 
             // Ambil Semua KHS untuk Hitung IPK
@@ -516,7 +538,15 @@ class AkademikController extends Controller
 
             // Generate PDF
             $pdf = PDF::loadView('students.khs.pdf', compact(
-                'khs', 'mahasiswa', 'ta', 'logoBase64', 'headerColor', 'textColor', 'ips', 'ipk', 'predikat'
+                'khs',
+                'mahasiswa',
+                'ta',
+                'logoBase64',
+                'headerColor',
+                'textColor',
+                'ips',
+                'ipk',
+                'predikat'
             ))->setPaper('a4', 'portrait');
 
             return $pdf->stream('khs-' . $mahasiswa->nama . '.pdf');
@@ -525,7 +555,7 @@ class AkademikController extends Controller
         }
     }
 
- public function cetakTranskrip()
+    public function cetakTranskrip()
     {
         $mahasiswa = Auth::guard('mahasiswa')->user(); // Data mahasiswa login
         $mahasiswaId = $mahasiswa->mahasiswa_id;
@@ -541,10 +571,10 @@ class AkademikController extends Controller
         try {
             // Ambil Data KRS beserta Mata Kuliah
             $khs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-            ->where('krs.mahasiswa_id', $mahasiswaId)
-            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
-            ->get();
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->where('krs.mahasiswa_id', $mahasiswaId)
+                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
+                ->get();
 
 
             if ($khs->isEmpty()) {
@@ -558,10 +588,10 @@ class AkademikController extends Controller
 
             // Perhitungan IPK (Dari Semua Semester)
             $allKhs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-            ->where('krs.mahasiswa_id', $mahasiswaId)
-            ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
-            ->get();
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->where('krs.mahasiswa_id', $mahasiswaId)
+                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
+                ->get();
 
             // Filter data agar hanya yang memiliki nilai 'khs' yang tidak null
             $filteredAllKhs = $allKhs->filter(fn($item) => !is_null($item->khs));
@@ -589,7 +619,14 @@ class AkademikController extends Controller
 
             // Generate PDF
             $pdf = PDF::loadView('students.pengajuan.cetak-transkrip', compact(
-                'khs', 'mahasiswa', 'ta', 'ips', 'ipk', 'predikat', 'headerColor', 'textColor'
+                'khs',
+                'mahasiswa',
+                'ta',
+                'ips',
+                'ipk',
+                'predikat',
+                'headerColor',
+                'textColor'
             ))->setPaper('F4', 'portrait');
 
             // dd($pdf); // Untuk cek isi $pdf

@@ -19,73 +19,90 @@ use RealRashid\SweetAlert\Facades\Alert;
 class EdomController extends Controller
 {
 
-      public function index()
+    public function index()
     {
-        // Ambil data mahasiswa yang sedang login
+        // 1️⃣ Ambil mahasiswa login
         $mahasiswa = Auth::guard('mahasiswa')->user();
-        $semester = $mahasiswa->semester;
 
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        if (!$mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+
+        // 2️⃣ Ambil Tahun Akademik aktif
+        $activeTA = TahunAkademik::where('status_ta', 1)
+            ->first(['ta_id', 'nama', 'semester']);
+
         if (!$activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
 
-        $mahasiswa = Auth::guard('mahasiswa')->user();
         $mahasiswaId = $mahasiswa->mahasiswa_id;
-        $jenisKelas = $mahasiswa->kelas;
         $semester = $mahasiswa->semester;
 
+        // 3️⃣ Mapping kelas mahasiswa
+        $kelasMap = [
+            'pagi' => 'reguler',
+            'reguler' => 'reguler',
+            'karyawan' => 'karyawan'
+        ];
+
+        $searchKelas = $kelasMap[strtolower($mahasiswa->kelas)] ?? strtolower($mahasiswa->kelas);
+
+        // 4️⃣ Ambil data KRS + relasi
         $krsList = Krs::with([
-                'kurikulum.mataKuliah',
-                'kurikulum.dosenToMatakuliah.dosen'
-            ])
+            'kurikulum.mataKuliah',
+            'kurikulum.dosenToMatakuliah.dosen'
+        ])
             ->where('mahasiswa_id', $mahasiswaId)
-            ->whereHas('kurikulum', function ($query) use ($semester) {
-                $query->whereHas('mataKuliah', function ($q) use ($semester) {
-                    $q->where('smt', $semester);
-                });
-            })
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($jenisKelas) {
-                $query->where(function ($q) use ($jenisKelas) {
-                    if ($jenisKelas === 'reguler') {
-                        $q->where('jenis_kelas', 'reguler');
-                    } elseif ($jenisKelas === 'karyawan') {
-                        $q->where('jenis_kelas', 'karyawan');
-                    }
-                });
+            ->whereHas('kurikulum.mataKuliah', function ($q) use ($semester) {
+                $q->where('smt', $semester);
             })
             ->get()
-            ->map(function ($krs) use ($mahasiswa) {
+            ->map(function ($krs) use ($mahasiswa, $searchKelas) {
+
                 return [
                     'krs_id' => $krs->krs_id,
+                    'kurikulum_id' => $krs->kurikulum_id,
                     'kode_matakuliah' => $krs->kurikulum->mataKuliah->matakuliah_id ?? null,
                     'nama_matakuliah' => $krs->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
+
                     'dosen' => $krs->kurikulum->dosenToMatakuliah
-                        ->where('jenis_kelas', $mahasiswa->kelas === 'pagi' ? 'reguler' : $mahasiswa->kelas) // Filter jenis_kelas berdasarkan kondisi
-                        ->map(function ($dosenToMatakuliah) use ($mahasiswa, $krs) {
+                        ->filter(function ($dtm) use ($searchKelas) {
+                            return strtolower($dtm->jenis_kelas ?? '') === $searchKelas;
+                        })
+                        ->map(function ($dtm) use ($mahasiswa, $krs) {
+
                             $isAlreadyRated = \DB::table('penilaian')
                                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                                ->where('dosen_id', $dosenToMatakuliah->dosen->dosen_id ?? null)
+                                ->where('dosen_id', $dtm->dosen->dosen_id ?? null)
                                 ->where('kurikulum_id', $krs->kurikulum_id)
                                 ->exists();
 
                             return [
-                                'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
-                                'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
-                                'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                'id' => $dtm->dosen->dosen_id ?? null,
+                                'nama' => $dtm->dosen->nama ?? 'Tidak ada data',
+                                'jenis_dosen' => strtolower($dtm->jenis_dosen ?? ''),
                                 'is_rated' => $isAlreadyRated,
                             ];
-                        })->unique('id')->values(),
+                        })
+                        ->unique('id')
+                        ->values(),
                 ];
             });
 
-            // ✅ Perbaikan $allFilled
-            $allFilled = $krsList->every(function ($kurikulum) {
-                return collect($kurikulum['dosen'])->every(fn($dosen) => $dosen['is_rated']);
-            });
+        // 5️⃣ Cek apakah semua dosen sudah dinilai
+        $allFilled = $krsList->every(function ($item) {
+            return collect($item['dosen'])
+                ->every(fn($dosen) => $dosen['is_rated']);
+        });
 
-        // Return view dengan data yang diperlukan
-        return view('students.edom.index', compact('mahasiswa', 'activeTA', 'krsList', 'allFilled'));
+        // 6️⃣ Return ke view
+        return view('students.edom.index', compact(
+            'mahasiswa',
+            'activeTA',
+            'krsList',
+            'allFilled'
+        ));
     }
 
     public function form($krs_id)
@@ -150,7 +167,6 @@ class EdomController extends Controller
                 'jenis_dosen' => $dosenData->jenis_dosen,
                 'title' => 'Formulir EDOM', // Judul halaman
             ]);
-
         } catch (ModelNotFoundException $e) {
             // Redirect kembali jika data tidak ditemukan
             return redirect()
@@ -225,7 +241,6 @@ class EdomController extends Controller
                 ->autoClose(3000);
 
             return redirect()->route('mahasiswa.edom.index');
-
         } catch (\Exception $e) {
             // Jika ada error saat menyimpan
             return redirect()
@@ -235,7 +250,7 @@ class EdomController extends Controller
         }
     }
 
-   public function konfirmasiEdom(Request $request)
+    public function konfirmasiEdom(Request $request)
     {
         // Ambil data mahasiswa yang sedang login
         $mahasiswa = Auth::guard('mahasiswa')->user();
@@ -283,7 +298,6 @@ class EdomController extends Controller
 
             DB::commit();
             Alert::success('Berhasil', 'Konfirmasi EDOM berhasil!');
-
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error saat mengupdate status EDOM:', ['error' => $e->getMessage()]);
@@ -292,6 +306,4 @@ class EdomController extends Controller
 
         return redirect()->route('mahasiswa.edom.index');
     }
-
-
 }

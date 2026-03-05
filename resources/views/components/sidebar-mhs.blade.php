@@ -99,23 +99,25 @@ $user = Auth::guard('mahasiswa')->user();
                 </li>
             </ul>
             <!-- Akademik -->
-        <li class="menu-item @if(Route::is('mahasiswa.khs.index')) active open @endif">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
+            @php
+            $mahasiswa = auth()->guard('mahasiswa')->user();
+            @endphp
+
+        <li class="menu-item {{ Route::is('mahasiswa.kartu-hasil.index') ? 'active open' : '' }}">
+            <a href="{{ $mahasiswa && $mahasiswa->status_akhir == 1 ? route('mahasiswa.kartu-hasil.index') : '#' }}"
+                class="menu-link {{ $mahasiswa && $mahasiswa->status_akhir == 0 ? 'disabled opacity-50' : '' }}"
+                @if($mahasiswa && $mahasiswa->status_akhir == 0)
+                data-bs-toggle="modal"
+                data-bs-target="#blockedModal"
+                @endif
+                >
                 <i class="menu-icon tf-icons bx bx-food-menu"></i>
-                <div data-i18n="Barang">Kartu Hasil Studi(KHS)</div>
+                <div>Kartu Hasil Studi (KHS)</div>
+
+                @if($mahasiswa && $mahasiswa->status_akhir == 0)
+                <i class="bx bx-lock-alt ms-2 text-danger"></i>
+                @endif
             </a>
-            <ul class="menu-sub">
-                <li class="menu-item @if(Route::is('mahasiswa.kartu-hasil.index')) active @endif">
-                    <a href="{{ route('mahasiswa.kartu-hasil.index') }}" class="menu-link">
-                        <div data-i18n="Kurikulum">Lihat Kartu Hasil Studi</div>
-                    </a>
-                </li>
-                {{-- <li class="menu-item @if(Route::is('admin.index.assign')) active @endif">
-                    <a href="{{ route('admin.index.assign') }}" class="menu-link">
-                        <div data-i18n="Kurikulum">Download Kartu Hasil Studi</div>
-                    </a>
-                </li> --}}
-            </ul>
         </li>
         <li
             class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.nilai-akhir.index') || Route::is('mahasiswa.uap.index') ) active open @endif">
@@ -204,3 +206,24 @@ $user = Auth::guard('mahasiswa')->user();
         </li>
     </ul>
 </aside>
+<div class="modal fade" id="blockedModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Akses Ditolak</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-0">
+                    Anda belum menyelesaikan kewajiban akademik.<br>
+                    Silahkan menyelesaikan proses terlebih dahulu sebelum mengakses KHS.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

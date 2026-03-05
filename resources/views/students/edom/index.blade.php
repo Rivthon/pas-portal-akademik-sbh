@@ -89,8 +89,9 @@
                                         <!-- Dosen Teori -->
                                         <td>
                                             @php
-                                            $dosenTeori = $kurikulum['dosen']->where('jenis_dosen', 'teori');
+                                            $dosenTeori = collect($kurikulum['dosen'])->where('jenis_dosen', 'teori');
                                             @endphp
+
                                             @if ($dosenTeori->isNotEmpty())
                                             @foreach ($dosenTeori as $dosen)
                                             <div>
@@ -98,6 +99,7 @@
                                                     href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}">
                                                     {{ $dosen['nama'] }}
                                                 </a>
+
                                                 @if ($dosen['is_rated'])
                                                 <i class="bx bxs-check-circle text-success"></i>
                                                 @else
@@ -113,24 +115,25 @@
                                         <!-- Dosen Praktik -->
                                         <td>
                                             @php
-                                            $dosenPraktik = $kurikulum['dosen']->where('jenis_dosen', 'praktik');
+                                            $dosenPraktik = collect($kurikulum['dosen'])->where('jenis_dosen',
+                                            'praktik');
                                             @endphp
+
                                             @if ($dosenPraktik->isNotEmpty())
                                             @foreach ($dosenPraktik as $dosen)
                                             <div>
                                                 {{ $dosen['nama'] }}
+
                                                 @if ($dosen['is_rated'])
                                                 <i class="bx bxs-check-circle text-success"></i>
                                                 @else
-                                                <form
-                                                    action="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id']]) }}"
-                                                    method="GET">
-                                                    @csrf
+                                                <form action="{{ route('mahasiswa.edom.form') }}" method="GET">
                                                     <input type="hidden" name="krs_id"
                                                         value="{{ $kurikulum['krs_id'] }}">
                                                     <input type="hidden" name="dosen_id" value="{{ $dosen['id'] }}">
-                                                    <button type="submit" class="btn btn-primary btn-sm mt-1">Isi
-                                                        EDOM</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm mt-1">
+                                                        Isi EDOM
+                                                    </button>
                                                 </form>
                                                 @endif
                                             </div>

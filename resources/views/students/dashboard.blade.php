@@ -66,11 +66,29 @@
 
             <div class="col-md-4 mb-3">
                 <div class="card text-center shadow-sm border-0 rounded-3">
+                    @php
+                    $mahasiswa = auth()->guard('mahasiswa')->user();
+                    @endphp
                     <div class="card-body">
-                        <i class="bx bx-bar-chart fs-1 text-success mb-2"></i>
+                        @php
+                        $mahasiswa = auth()->guard('mahasiswa')->user();
+                        @endphp
+
+                        <i
+                            class="bx bx-bar-chart fs-1 {{ $mahasiswa->status_edom == 1 ? 'text-success' : 'text-secondary' }} mb-2"></i>
                         <h6 class="card-title text-secondary mb-1">IPK</h6>
-                        <p class="display-4 fw-bold text-dark mb-0">{{ number_format($ipk, 2) }}</p>
+
+                        @if($mahasiswa->status_edom == 1)
+                        <p class="display-4 fw-bold text-dark mb-0">
+                            {{ number_format($ipk, 2) }}
+                        </p>
                         <small class="text-muted">Indeks Prestasi Kumulatif</small>
+                        @else
+                        <p class="display-6 fw-semibold text-danger mb-0">
+                            <i class="bx bx-lock-alt"></i> Terkunci
+                        </p>
+                        <small class="text-muted">Silahkan isi EDOM terlebih dahulu</small>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -80,7 +98,21 @@
                     <div class="card-body">
                         <i class="bx bx-award fs-1 text-warning mb-2"></i>
                         <h6 class="card-title text-secondary mb-1">Predikat</h6>
+
+
+                        @php
+                        $mahasiswa = auth()->guard('mahasiswa')->user();
+                        @endphp
+
                         <p class="fs-4 fw-semibold text-dark mb-0">
+
+                            @if(optional($mahasiswa)->status_edom == 0)
+                            <span class="text-danger">
+                                Silahkan mengisi EDOM terlebih dahulu
+                            </span>
+
+                            @elseif(optional($mahasiswa)->status_edom == 1)
+
                             @if($ipk >= 3.51)
                             Pujian (Cum Laude)
                             @elseif($ipk >= 3.01)
@@ -92,6 +124,14 @@
                             @else
                             Gagal (Fail)
                             @endif
+
+                            @else
+                            <span class="text-muted">
+                                Data belum tersedia
+                            </span>
+
+                            @endif
+
                         </p>
                         <small class="text-muted">Predikat berdasarkan IPK</small>
                     </div>

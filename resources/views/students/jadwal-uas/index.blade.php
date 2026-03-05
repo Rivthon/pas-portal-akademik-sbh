@@ -6,19 +6,25 @@
     <div class="col-md-12">
         @php
         $user = auth()->guard('mahasiswa')->user();
-        $status_jadwal_uts = $user->status_uts;
+        $status_jadwal_uas = $user->status_uas;
         $kelas = $user->kelas;
         @endphp
-        @if($status_jadwal_uts == 0)
+        @if($status_jadwal_uas == 0)
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center row g-0">
                 <!-- Image Section -->
                 <div class="col-md-5 text-center">
                     <div class="p-3">
-                        <img src="../assets/img/illustrations/error-404.png" class="img-fluid"
+                        <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
                             alt="Illustration of a schedule" style="max-height: 200px;">
                     </div>
                 </div>
+                @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Gagal!</strong> {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                @endif
                 <!-- Content Section -->
                 <div class="col-md-7">
                     <div class="card-body">
@@ -57,7 +63,7 @@
 
             </div>
         </div>
-        @else($status_jadwal_uts == 1)
+        @else($status_jadwal_uas == 1)
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center row g-0">
                 <!-- Content Section -->
