@@ -67,7 +67,7 @@
                         <!-- Description -->
                         <p class="mb-4 text-muted" style="line-height: 1.6;">
                             List Kartu Hasil Studi (Semester {{ $mahasiswa->semester }}) - Tahun Ajaran: {{
-                            $ta->nama }}
+                            $ta->nama }} {{ $ta->semester ? '(' . $ta->semester . ')' : '' }}
                         </p>
                         <!-- CTA Button -->
                         <div class="mb-3">

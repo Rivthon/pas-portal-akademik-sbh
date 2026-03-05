@@ -388,14 +388,11 @@ class AkademikController extends Controller
             return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
         }
 
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama']);
-        if (!$ta) {
-            return redirect()->back()->with('error', 'Tahun Akademik tidak ditemukan.');
-        }
+        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
         try {
             // Ambil KHS semester aktif
-            $khs = Krs::with(['kurikulum.mataKuliah'])
+            $khs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
                 ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
                     $query->where('smt', $mahasiswa->semester);
@@ -404,6 +401,12 @@ class AkademikController extends Controller
                 ->filter(function ($item) {
                     return $item->kurikulum && $item->kurikulum->mataKuliah;
                 });
+
+            // Ambil tahun ajaran dari data KRS yang sebenarnya
+            $krsTA = $khs->first()?->kurikulum?->tahunAjaran;
+            if ($krsTA) {
+                $ta = $krsTA;
+            }
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
             $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
@@ -462,9 +465,9 @@ class AkademikController extends Controller
 
     {
         return match (true) {
-            $ipk >= 3.51 => 'Cumlaude',
-            $ipk >= 3.00 => 'Sangat Memuaskan',
-            $ipk >= 2.50 => 'Memuaskan',
+            $ipk >= 3.51 => 'Dengan Pujian',
+            $ipk >= 3.00 => 'Sangat Baik',
+            $ipk >= 2.50 => 'Baik',
             $ipk >= 2.00 => 'Cukup',
             default => 'Kurang',
         };
@@ -508,7 +511,7 @@ class AkademikController extends Controller
 
         try {
             // Ambil KHS Semester Aktif
-            $khs = Krs::with(['kurikulum.mataKuliah'])
+            $khs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
                 ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
                     $query->where('smt', $mahasiswa->semester);
@@ -517,6 +520,12 @@ class AkademikController extends Controller
                 ->filter(function ($item) {
                     return $item->kurikulum && $item->kurikulum->mataKuliah;
                 });
+
+            // Ambil tahun ajaran dari data KRS yang sebenarnya
+            $krsTA = $khs->first()?->kurikulum?->tahunAjaran;
+            if ($krsTA) {
+                $ta = $krsTA;
+            }
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
             $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;

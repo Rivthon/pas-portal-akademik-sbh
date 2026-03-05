@@ -298,6 +298,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/admin/assign/dosen', [DosenKurikulumController::class, 'index'])->name('index.assign');
         Route::post('/admin/assign/dosen', [DosenKurikulumController::class, 'store'])->name('assign.dosen');
         Route::get('/admin/assign/filter', [DosenKurikulumController::class, 'filter'])->name('admin.assign.filter');
+        Route::get('/admin/assign/kurikulum/{taId}', [DosenKurikulumController::class, 'getKurikulumByTA'])->name('assign.kurikulum.byTA');
 
           });
         // Route untuk remove relasi dosen dan kurikulum

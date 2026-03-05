@@ -18,22 +18,15 @@ class DosenKurikulumController extends Controller
 {
     $dosens = Dosen::all();
     $programStudi = ProgramStudi::all();
-    $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
-
-    // Query kurikulums
-    $kurikulums = Kurikulum::with(['matakuliah', 'tahunAjaran'])
-        ->whereHas('tahunAjaran', function ($query) {
-            $query->where('status_ta', 1);
-        })
-        ->select('kurikulum_id', 'matakuliah_id', 'ta_id')
-        ->get();
+    $tahunAjaranList = TahunAkademik::orderBy('ta_id', 'desc')->get();
+    $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
 
     $search = $request->input('search');
 
     // Query assigned data dengan filter pencarian
-    $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.matakuliah.programStudi'])
+    $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.mataKuliah.programStudi'])
         ->when($search, function ($query) use ($search) {
-            $query->whereHas('kurikulum.matakuliah', function ($q) use ($search) {
+            $query->whereHas('kurikulum.mataKuliah', function ($q) use ($search) {
                 $q->where('matakuliah_id', 'like', "%{$search}%")
                   ->orWhereHas('programStudi', function ($p) use ($search) {
                       $p->where('nama', 'like', "%{$search}%");
@@ -42,27 +35,51 @@ class DosenKurikulumController extends Controller
         })
         ->paginate(10);
 
-    return view('kurikulum.assign-dosen', compact('dosens', 'kurikulums', 'assignedData', 'tahunAjaran','programStudi'))
+    return view('kurikulum.assign-dosen', compact('dosens', 'assignedData', 'tahunAjaranList', 'tahunAjaranAktif', 'programStudi'))
         ->with('i', (request()->input('page', 1) - 1) * 10);
 }
+
+  public function getKurikulumByTA($taId)
+  {
+      $kurikulums = Kurikulum::with(['mataKuliah'])
+          ->where('ta_id', $taId)
+          ->whereHas('mataKuliah')
+          ->select('kurikulum_id', 'matakuliah_id', 'ta_id')
+          ->get()
+          ->map(function ($k) {
+              return [
+                  'kurikulum_id' => $k->kurikulum_id,
+                  'matakuliah_id' => $k->matakuliah_id,
+                  'nama' => $k->mataKuliah->nama ?? '-',
+                  'smt' => $k->mataKuliah->smt ?? '-',
+                  'semester' => $k->mataKuliah->semester ?? '-',
+              ];
+          });
+
+      return response()->json($kurikulums);
+  }
 
 public function filter(Request $request)
 {
     $programStudi = $request->input('programStudi');
     $semester = $request->input('semester');
-    $jenisKelas = $request->input('jenis_kelas');
+    $tahunAjaran = $request->input('tahunAjaran');
 
-    $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.matakuliah'])
-        ->whereHas('kurikulum.matakuliah', function ($query) use ($programStudi, $semester, $jenisKelas) {
-            if ($programStudi) {
-                $query->where('jurusan_id', $programStudi);
+    $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.mataKuliah'])
+        ->whereHas('kurikulum', function ($query) use ($programStudi, $semester, $tahunAjaran) {
+            // Filter berdasarkan tahun ajaran
+            if ($tahunAjaran) {
+                $query->where('ta_id', $tahunAjaran);
             }
-            if ($semester) {
-                $query->where('smt', $semester);
-            }
-            if ($jenisKelas) {
-                $query->where('jenis_kelas', $jenisKelas);
-            }
+            // Filter berdasarkan program studi dan semester via matakuliah
+            $query->whereHas('mataKuliah', function ($q) use ($programStudi, $semester) {
+                if ($programStudi) {
+                    $q->where('jurusan_id', $programStudi);
+                }
+                if ($semester) {
+                    $q->where('smt', $semester);
+                }
+            });
         })
         ->get();
 

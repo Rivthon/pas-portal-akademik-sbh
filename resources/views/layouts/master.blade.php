@@ -689,7 +689,7 @@ async function fetchData(url) {
 
                         if (response.success) {
                             alert("Data nilai berhasil disimpan!");
-                            $("#mata-kuliah").trigger("change");
+                            // Don't reload the table - keep user's current input state
                         } else {
                             showError(response.message || "Gagal menyimpan data");
                         }

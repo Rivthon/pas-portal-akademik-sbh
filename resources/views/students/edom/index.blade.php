@@ -122,19 +122,15 @@
                                             @if ($dosenPraktik->isNotEmpty())
                                             @foreach ($dosenPraktik as $dosen)
                                             <div>
-                                                {{ $dosen['nama'] }}
+                                                <a class="badge bg-success"
+                                                    href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}">
+                                                    {{ $dosen['nama'] }}
+                                                </a>
 
                                                 @if ($dosen['is_rated'])
                                                 <i class="bx bxs-check-circle text-success"></i>
                                                 @else
-                                                <form action="{{ route('mahasiswa.edom.form') }}" method="GET">
-                                                    <input type="hidden" name="krs_id"
-                                                        value="{{ $kurikulum['krs_id'] }}">
-                                                    <input type="hidden" name="dosen_id" value="{{ $dosen['id'] }}">
-                                                    <button type="submit" class="btn btn-primary btn-sm mt-1">
-                                                        Isi EDOM
-                                                    </button>
-                                                </form>
+                                                <span class="badge bg-warning">Belum Dinilai</span>
                                                 @endif
                                             </div>
                                             @endforeach

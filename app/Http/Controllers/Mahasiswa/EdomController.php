@@ -68,7 +68,21 @@ class EdomController extends Controller
 
                     'dosen' => $krs->kurikulum->dosenToMatakuliah
                         ->filter(function ($dtm) use ($searchKelas) {
-                            return strtolower($dtm->jenis_kelas ?? '') === $searchKelas;
+                            $jenisKelas = strtolower($dtm->jenis_kelas ?? '');
+                            $jenisDosen = strtolower($dtm->jenis_dosen ?? '');
+
+                            // Untuk dosen teori, filter berdasarkan jenis_kelas mahasiswa
+                            if ($jenisDosen === 'teori') {
+                                return $jenisKelas === $searchKelas;
+                            }
+
+                            // Untuk dosen praktik, terima jika jenis_kelas cocok ATAU jika jenis_kelas kosong
+                            if ($jenisDosen === 'praktik') {
+                                return $jenisKelas === $searchKelas || $jenisKelas === '';
+                            }
+
+                            // Default: filter berdasarkan jenis_kelas
+                            return $jenisKelas === $searchKelas;
                         })
                         ->map(function ($dtm) use ($mahasiswa, $krs) {
 
@@ -85,7 +99,11 @@ class EdomController extends Controller
                                 'is_rated' => $isAlreadyRated,
                             ];
                         })
-                        ->unique('id')
+                        // Unique berdasarkan kombinasi id + jenis_dosen agar dosen yang sama
+                        // bisa muncul sebagai teori DAN praktik
+                        ->unique(function ($item) {
+                            return $item['id'] . '_' . $item['jenis_dosen'];
+                        })
                         ->values(),
                 ];
             });

@@ -14,7 +14,9 @@
                             pilih
                             dosen dan mata kuliah terlebih dahulu untuk menambahkan relasi baru.
                             <br>
-                            Tahun Ajaran {{ $tahunAjaran->nama }} ({{ $tahunAjaran->semester }})
+                            @if($tahunAjaranAktif)
+                            Tahun Ajaran Aktif: {{ $tahunAjaranAktif->nama }} ({{ $tahunAjaranAktif->semester }})
+                            @endif
                         </p>
                     </div>
 
@@ -28,13 +30,23 @@
             </div>
         </div>
         <div class="card">
-            {{-- <div class="card-header">
-                <h5>List Pengajaran Dosen</h5>
-            </div> --}}
             <div class="card-body">
                 <form action="{{ route('admin.assign.dosen') }}" method="POST">
                     @csrf
                     <div class="row">
+                        <!-- Pilihan Tahun Ajaran -->
+                        <div class="col-md-6 mb-3">
+                            <label for="ta_id" class="form-label">Pilih Tahun Ajaran</label>
+                            <select name="ta_id" id="ta_id" class="form-control select2">
+                                <option value="" disabled selected>Pilih Tahun Ajaran</option>
+                                @foreach($tahunAjaranList as $ta)
+                                <option value="{{ $ta->ta_id }}" {{ $tahunAjaranAktif && $ta->ta_id == $tahunAjaranAktif->ta_id ? 'selected' : '' }}>
+                                    {{ $ta->nama }} ({{ $ta->semester }}) {!! $ta->status_ta == 1 ? '<span class="text-success">● Aktif</span>' : '' !!}
+                                </option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <!-- Pilihan Dosen -->
                         <div class="col-md-6 mb-3">
                             <label for="dosen_id" class="form-label">Pilih Dosen</label>
@@ -46,17 +58,11 @@
                             </select>
                         </div>
 
-                        <!-- Pilihan Mata Kuliah  -->
+                        <!-- Pilihan Mata Kuliah (Loaded via AJAX) -->
                         <div class="col-md-6 mb-3">
                             <label for="kurikulum_id" class="form-label">Pilih Mata Kuliah</label>
-                            <select name="kurikulum_id" id="kurikulum_id" class="form-control select2">
-                                <option value="" disabled selected>Pilih Mata Kuliah</option>
-                                @foreach($kurikulums as $kurikulum)
-                                <option value="{{ $kurikulum->kurikulum_id }}">
-                                    {{ $kurikulum->matakuliah_id }} - {{ $kurikulum->matakuliah->nama}} -{{
-                                    $kurikulum->matakuliah->smt}} - {{ $kurikulum->matakuliah->semester}}
-                                </option>
-                                @endforeach
+                            <select name="kurikulum_id" id="kurikulum_id" class="form-control select2" disabled>
+                                <option value="" disabled selected>-- Pilih Tahun Ajaran Dahulu --</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -92,18 +98,29 @@
     <div class="card-body">
         <h5 class="card-title">Filter Pengajaran Dosen</h5>
         <div class="row g-3">
-            <div class="col-md-6">
-                <label for="program-studi" class="form-label fw-bold">Pilih Program Studi</label>
-                <select id="program-studi" class="form-select">
+            <div class="col-md-4">
+                <label for="filter-tahun-ajaran" class="form-label fw-bold">Pilih Tahun Ajaran</label>
+                <select id="filter-tahun-ajaran" class="form-select">
+                    <option value="">-- Pilih Tahun Ajaran --</option>
+                    @foreach ($tahunAjaranList as $ta)
+                    <option value="{{ $ta->ta_id }}" {{ $tahunAjaranAktif && $ta->ta_id == $tahunAjaranAktif->ta_id ? 'selected' : '' }}>
+                        {{ $ta->nama }} ({{ $ta->semester }}) {!! $ta->status_ta == 1 ? '● Aktif' : '' !!}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="filter-program-studi" class="form-label fw-bold">Pilih Program Studi</label>
+                <select id="filter-program-studi" class="form-select">
                     <option value="">-- Pilih Program Studi --</option>
                     @foreach ($programStudi as $ps)
                     <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6">
-                <label for="semester" class="form-label fw-bold">Pilih Semester</label>
-                <select id="semester" class="form-select">
+            <div class="col-md-4">
+                <label for="filter-semester" class="form-label fw-bold">Pilih Semester</label>
+                <select id="filter-semester" class="form-select">
                     <option value="">-- Pilih Semester --</option>
                     @for ($i = 1; $i <= 8; $i++) <option value="{{ $i }}">Semester {{ $i }}</option>
                         @endfor
@@ -151,8 +168,9 @@
 
 <script>
     document.getElementById('search-btn').addEventListener('click', function () {
-        let programStudi = document.getElementById('program-studi').value;
-        let semester = document.getElementById('semester').value;
+        let tahunAjaran = document.getElementById('filter-tahun-ajaran').value;
+        let programStudi = document.getElementById('filter-program-studi').value;
+        let semester = document.getElementById('filter-semester').value;
         let alertContainer = document.getElementById('alert-container');
         let loading = document.getElementById('loading');
         let table = document.getElementById('dosen-table');
@@ -162,13 +180,13 @@
         table.style.display = "none";
         tbody.innerHTML = "";
 
-        if (!programStudi || !semester) {
-            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih program studi dan semester terlebih dahulu.</div>`;
+        if (!tahunAjaran || !programStudi || !semester) {
+            alertContainer.innerHTML = `<div class="alert alert-warning">Silakan pilih tahun ajaran, program studi, dan semester terlebih dahulu.</div>`;
             return;
         }
 
         loading.style.display = "block";
-        fetch(`{{ route('admin.admin.assign.filter') }}?programStudi=${encodeURIComponent(programStudi)}&semester=${encodeURIComponent(semester)}`)
+        fetch(`{{ route('admin.admin.assign.filter') }}?tahunAjaran=${encodeURIComponent(tahunAjaran)}&programStudi=${encodeURIComponent(programStudi)}&semester=${encodeURIComponent(semester)}`)
             .then(response => response.json())
             .then(data => {
                 loading.style.display = "none";
@@ -185,11 +203,12 @@
 
                 data.forEach(dosen => {
                     let kurikulumId = dosen.kurikulum.kurikulum_id;
+                    let mk = dosen.kurikulum.mata_kuliah || dosen.kurikulum.matakuliah || dosen.kurikulum.mata_Kuliah;
                     if (!groupedData.has(kurikulumId)) {
                         groupedData.set(kurikulumId, {
-                            matakuliah_nama: dosen.kurikulum.matakuliah.nama,
-                            matakuliah_id: dosen.kurikulum.matakuliah.matakuliah_id,
-                            semester: dosen.kurikulum.matakuliah.smt,
+                            matakuliah_nama: mk ? mk.nama : '-',
+                            matakuliah_id: mk ? mk.matakuliah_id : '-',
+                            semester: mk ? mk.smt : '-',
                             reguler: [],
                             karyawan: []
                         });
@@ -300,8 +319,52 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function() {
+        // AJAX: Load kurikulum berdasarkan tahun ajaran
+        $('#ta_id').on('change', function() {
+            let taId = $(this).val();
+            let kurikulumSelect = $('#kurikulum_id');
+
+            // Reset dan disable
+            kurikulumSelect.empty().append('<option value="" disabled selected>Memuat mata kuliah...</option>');
+            kurikulumSelect.prop('disabled', true);
+
+            if (!taId) return;
+
+            $.ajax({
+                url: `/admin/admin/assign/kurikulum/${taId}`,
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    kurikulumSelect.empty().append('<option value="" disabled selected>Pilih Mata Kuliah</option>');
+
+                    if (data.length > 0) {
+                        data.forEach(function(k) {
+                            kurikulumSelect.append(
+                                `<option value="${k.kurikulum_id}">${k.matakuliah_id} - ${k.nama} - ${k.smt} - ${k.semester}</option>`
+                            );
+                        });
+                        kurikulumSelect.prop('disabled', false);
+                    } else {
+                        kurikulumSelect.empty().append('<option value="" disabled selected>Tidak ada mata kuliah untuk tahun ajaran ini</option>');
+                    }
+
+                    // Re-initialize Select2
+                    kurikulumSelect.trigger('change');
+                },
+                error: function() {
+                    kurikulumSelect.empty().append('<option value="" disabled selected>Gagal memuat mata kuliah</option>');
+                }
+            });
+        });
+
+        // Auto-trigger jika tahun ajaran sudah terpilih (aktif)
+        if ($('#ta_id').val()) {
+            $('#ta_id').trigger('change');
+        }
+
+        // Form submit via AJAX
         $('form').submit(function(e) {
-            e.preventDefault(); // Mencegah reload halaman
+            e.preventDefault();
 
             let formData = {
                 _token: $('input[name="_token"]').val(),
@@ -316,9 +379,11 @@
                 type: "POST",
                 data: formData,
                 success: function(response) {
-                    alert(response.message); // Tampilkan pesan sukses
-                    $('form')[0].reset(); // Reset form
-                    $('.select2').val(null).trigger('change'); // Reset Select2
+                    alert(response.message);
+                    $('form')[0].reset();
+                    $('.select2').val(null).trigger('change');
+                    // Re-load kurikulum setelah reset
+                    $('#kurikulum_id').empty().append('<option value="" disabled selected>-- Pilih Tahun Ajaran Dahulu --</option>').prop('disabled', true);
                 },
                 error: function(xhr) {
                     if (xhr.status === 422) {
