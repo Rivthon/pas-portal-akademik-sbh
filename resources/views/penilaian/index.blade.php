@@ -63,10 +63,9 @@
                     </div>
 
                     <!-- Program Studi -->
-                    @if (isset($programStudi))
                     <div class="col-md-4">
                         <label for="jurusan_id" class="form-label">Program Studi</label>
-                        <select name="jurusan_id" id="jurusan_id" class="form-select select2">
+                        <select name="jurusan_id" id="jurusan_id" class="form-select select2" onchange="this.form.submit()">
                             <option value="">-- Pilih Program Studi --</option>
                             @foreach ($programStudi as $ps)
                             <option value="{{ $ps->jurusan_id }}" {{ (isset($jurusan_id) && $jurusan_id==$ps->
@@ -77,18 +76,17 @@
                             @endforeach
                         </select>
                     </div>
-                    @endif
 
                     <!-- Mata Kuliah -->
                     @if (isset($kurikulum))
                     <div class="col-md-4">
                         <label for="kurikulum_id" class="form-label">Mata Kuliah</label>
-                        <select name="kurikulum_id" id="kurikulum_id" class="form-select select2">
+                        <select name="kurikulum_id" id="kurikulum_id" class="form-select select2" onchange="this.form.submit()">
                             <option value="">-- Pilih Mata Kuliah --</option>
                             @foreach ($kurikulum as $k)
                             <option value="{{ $k->kurikulum_id }}" {{ (isset($kurikulum_id) && $kurikulum_id==$k->
                                 kurikulum_id) ? 'selected' : '' }}>
-                                {{ $k->mataKuliah->nama }} - {{ $k->programStudi->nama }}
+                                {{ $k->mataKuliah?->nama ?? '-' }} - {{ $k->programStudi?->nama ?? '-' }}
                             </option>
                             @endforeach
                         </select>
@@ -105,7 +103,11 @@
                             <option value="{{ $d->dosen_id }}" {{ (isset($dosen_id) && $dosen_id==$d->dosen_id) ?
                                 'selected'
                                 : '' }}>
-                                {{ $d->nama }}
+                                @if(isset($dosenSudahEdom) && in_array($d->dosen_id, $dosenSudahEdom))
+                                    ✅ {{ $d->nama }} (Sudah EDOM)
+                                @else
+                                    {{ $d->nama }}
+                                @endif
                             </option>
                             @endforeach
                         </select>
@@ -114,7 +116,7 @@
 
                     <!-- Jenis Dosen -->
                     <div class="col-md-6">
-                        <label for="jenis_dosen" class="form-label">Jenis Dosen</label>
+                        <label for="jenis_dosen" class="form-label">Metode Ajar</label>
                         <select name="jenis_dosen" id="jenis_dosen" class="form-select">
                             <option value="">-- Pilih Jenis Dosen --</option>
                             <option value="teori" {{ (isset($jenis_dosen) && $jenis_dosen=='teori' ) ? 'selected' : ''
@@ -128,6 +130,9 @@
 
                 <!-- Tombol Submit -->
                 <div class="text-end mt-4">
+                    <a href="{{ route('admin.penilaian.index') }}" class="btn btn-secondary me-2">
+                        <i class="fas fa-undo"></i> Reset
+                    </a>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter"></i> Filter
                     </button>
@@ -138,8 +143,19 @@
     <!-- Display Data Table -->
     @if (isset($penilaian) && $ta_id && $jurusan_id && $kurikulum_id && $dosen_id)
     <div class="card mt-3">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Hasil Penilaian</h6>
+            <form action="{{ route('admin.penilaian.cetak-pdf') }}" method="POST" target="_blank">
+                @csrf
+                <input type="hidden" name="ta_id" value="{{ $ta_id }}">
+                <input type="hidden" name="jurusan_id" value="{{ $jurusan_id }}">
+                <input type="hidden" name="kurikulum_id" value="{{ $kurikulum_id }}">
+                <input type="hidden" name="dosen_id" value="{{ $dosen_id }}">
+                <input type="hidden" name="jenis_dosen" value="{{ $jenis_dosen ?? '' }}">
+                <button type="submit" class="btn btn-danger btn-sm">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </button>
+            </form>
         </div>
         <div class="card-body mt-2">
             <div class="table-responsive">
@@ -209,7 +225,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($sarans as $key => $saran)
+                                @foreach ($sarans->unique('mahasiswa_id') as $saran)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ $saran->mahasiswa->nama ?? '-' }}</td>

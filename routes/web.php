@@ -326,6 +326,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
         Route::get('/penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
         Route::post('/penilaian/filter', [PenilaianController::class, 'filter'])->name('penilaian.filter');
+        Route::post('/penilaian/cetak-pdf', [PenilaianController::class, 'cetakPdf'])->name('penilaian.cetak-pdf');
         Route::post('/mahasiswa/reset-edom', [PenilaianController::class, 'resetEdom'])->name('reset.edom');
         Route::post('/mahasiswa/setup-edom', [PenilaianController::class, 'setupEdom'])->name('setup.edom');
 

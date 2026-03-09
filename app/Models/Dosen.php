@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Mahasiswa;
+use App\Models\DosenMatakuliah;
+use App\Models\Penilaian;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -54,5 +56,15 @@ class Dosen extends Authenticatable
    public function mahasiswa()
    {
        return $this->hasMany(Mahasiswa::class, 'dosen_id');
+   }
+
+   public function dosenMatakuliah()
+   {
+       return $this->hasMany(DosenMatakuliah::class, 'dosen_id');
+   }
+
+   public function penilaian()
+   {
+       return $this->hasMany(Penilaian::class, 'dosen_id');
    }
 }
