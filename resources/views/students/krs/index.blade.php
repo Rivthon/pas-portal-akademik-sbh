@@ -8,49 +8,41 @@
     $krs_status = $user->status_krs;
     @endphp
     @if($krs_status == 0)
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4 border-top border-5 border-danger">
         <div class="d-flex align-items-center row g-0">
             <!-- Image Section -->
             <div class="col-md-5 text-center">
-                <div class="p-3">
+                <div class="p-4">
                     <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
-                        alt="Illustration of a schedule" style="max-height: 200px;">
+                        alt="Restricted Access" style="max-height: 180px;">
                 </div>
             </div>
             <!-- Content Section -->
             <div class="col-md-7">
                 <div class="card-body">
                     <!-- Title -->
-                    <h5 class="card-title text-primary mb-3 fw-bold">
-                        Kartu Rencana Studi (Mahasiswa)
+                    <h5 class="card-title text-danger mb-3 fw-bold">
+                        <i class="bx bx-lock me-1"></i> Akses Kartu Rencana Studi Dikunci
                     </h5>
                     <!-- Conditional Alert -->
-                    <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3"
-                        role="alert">
+                    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                        <i class="bx bx-error-circle fs-4 me-2 border-danger"></i>
                         <div>
-                            <strong>Perhatian:</strong> Status KRS belum aktif.
+                            <strong>Perhatian:</strong> Status pengisian KRS Anda masih dinonaktifkan.
                         </div>
-                        <i class="bx bx-info-circle fs-4 text-warning"></i>
                     </div>
                     <!-- Description -->
                     <p class="mb-4 text-muted" style="line-height: 1.6;">
-                        Temukan kartu rencana studi Anda dengan mudah. Kartu ini mencakup informasi mata kuliah,
-                        semester, dan jumlah SKS yang diambil.
-                    </p>
-                    <!-- Additional Message -->
-                    <p class="text-danger fw-bold mb-4">
-                        Silahkan untuk melakukan verifikasi pembayaran kepada BAUK agar bisa mengisi dan
-                        melihat KRS (Kartu Rencana Studi).
+                        Anda belum diizinkan untuk melihat dan mengisi Kartu Rencana Studi (KRS). Harap selesaikan verifikasi administrasi dan pembayaran kepada bagian <strong>Keuangan/BAUK</strong> untuk membuka akses KRS Anda di sistem.
                     </p>
                     <!-- CTA Button -->
                     <div class="mb-3">
-                        <a href="#" class="btn btn-primary disabled" aria-disabled="true">
-                            Cetak Jadwal Ujian Tengah Semester
+                        <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-arrow-back me-1"></i> Kembali ke Dasbor
                         </a>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 

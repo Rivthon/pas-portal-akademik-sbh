@@ -16,65 +16,65 @@ use App\Models\TahunAkademik;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
 
 class PerkuliahanController extends Controller
 {
-    public function index(Request $request)
-
+    /**
+     * Cache TahunAkademik aktif agar tidak query berulang
+     */
+    private function getActiveTA()
     {
-        $semester = Auth::guard('mahasiswa')->user()->semester;
-        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-        $search = $request->input('search');
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+        return Cache::remember('active_tahun_akademik', 3600, function () {
+            return TahunAkademik::where('status_ta', 1)->first();
+        });
+    }
+
+    /**
+     * Ambil data mahasiswa yang sedang login (sekali saja)
+     */
+    private function getMahasiswa()
+    {
+        return Auth::guard('mahasiswa')->user();
+    }
+
+    public function index(Request $request)
+    {
+        $mahasiswa = $this->getMahasiswa();
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
+
+        $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
         if (!$activeTA) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                ], 422);
-            }
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
-        // Query awal dengan eager loading
-        $semester = Auth::guard('mahasiswa')->user()->semester;
-        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-        $search = $request->input('search');
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
-
-        // Pastikan ada tahun ajaran aktif
-        if (!$activeTA) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                ], 422);
-            }
-            return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
-        }
-
-        // Query awal dengan eager loading
+        // Query dengan eager loading - Auth::guard() hanya dipanggil sekali di atas
         $jadwals = Jadwal::with([
-            'kurikulum.mataKuliah', // Ambil mata kuliah dari kurikulum
-            'kurikulum.dosenToMatakuliah.dosen', // Ambil dosen dari relasi dosenToMatakuliah
+            'kurikulum.mataKuliah',
+            'kurikulum.dosenToMatakuliah.dosen',
             'programStudi',
-            'ruangan' // Ambil program studi untuk filter
+            'ruangan'
         ])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'reguler') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('kurikulum.mataKuliah', function ($query) use ($semester) {
-                $query->where('smt', $semester); // Filter berdasarkan semester mata kuliah
+                $query->where('smt', $semester);
             })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id; // Ambil jurusan_id dari mahasiswa
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->get()
             ->map(function ($jadwal) {
@@ -95,55 +95,48 @@ class PerkuliahanController extends Controller
                             'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                         ];
                     })->filter(function ($dosen) {
-                        return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
+                        return $dosen['jenis_dosen'] === 'teori';
                     })->unique('id')->values(),
                 ];
             });
-        // Jika bukan AJAX, kirim ke view utama
+
         return view('students.jadwal.index', compact('jadwals'));
     }
 
     public function jadwalPraktik(Request $request)
-
     {
-        $semester = Auth::guard('mahasiswa')->user()->semester;
-        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-        $search = $request->input('search');
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+        $mahasiswa = $this->getMahasiswa();
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
+
+        $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
         if (!$activeTA) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                ], 422);
-            }
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
-        // Query awal dengan eager loading
+        // Query dengan eager loading
         $jadwals = JadwalPraktik::with([
-            'kurikulum.mataKuliah', // Ambil mata kuliah dari kurikulum
-            'kurikulum.dosenToMatakuliah.dosen', // Ambil dosen dari relasi dosenToMatakuliah
+            'kurikulum.mataKuliah',
+            'kurikulum.dosenToMatakuliah.dosen',
             'programStudi',
-            'ruangan' // Ambil program studi untuk filter
+            'ruangan'
         ])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'reguler') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'reguler') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('kurikulum.mataKuliah', function ($query) use ($semester) {
-                $query->where('smt', $semester); // Filter berdasarkan semester mata kuliah
+                $query->where('smt', $semester);
             })
-
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id; // Ambil jurusan_id dari mahasiswa
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->get()
             ->map(function ($jadwal) {
@@ -164,105 +157,93 @@ class PerkuliahanController extends Controller
                             'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                         ];
                     })->filter(function ($dosen) {
-                        return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                        return $dosen['jenis_dosen'] === 'praktik';
                     })->unique('id')->values(),
                 ];
             });
-        // Jika bukan AJAX, kirim ke view utama
+
         return view('students.jadwal.praktik', compact('jadwals'));
     }
 
 
     public function jadwalUts(Request $request)
     {
-        $semester = Auth::guard('mahasiswa')->user()->semester;
-        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-        $search = $request->input('search');
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+        $mahasiswa = $this->getMahasiswa();
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
+
+        $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
         if (!$activeTA) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                ], 422);
-            }
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
-        // Query awal dengan eager loading
+        // Query dengan eager loading
         $jadwalUts = Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'pagi') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('mataKuliah', function ($query) use ($semester) {
                 $query->where('smt', $semester);
             })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->orderBy('tanggal')
             ->orderBy('jam_mulai')
             ->get();
-        // Jika bukan AJAX, kirim ke view utama
+
         return view('students.jadwal-uts.index', compact('jadwalUts'));
     }
 
 
     public function jadwalUas(Request $request)
     {
+        $mahasiswa = $this->getMahasiswa();
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
 
-        $semester = Auth::guard('mahasiswa')->user()->semester;
-        $prodi = Auth::guard('mahasiswa')->user()->jurusan_id;
-
-        $search = $request->input('search');
-        $activeTA = TahunAkademik::where('status_ta', 1)->first(); // Ambil Tahun Ajaran Aktif
+        $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
         if (!$activeTA) {
-            if ($request->ajax()) {
-                return response()->json([
-                    'error' => 'Tidak ada Tahun Ajaran yang aktif.'
-                ], 422);
-            }
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
-        // Query awal dengan eager loading
+        // Query dengan eager loading
         $jadwalUas = Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'pagi') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('mataKuliah', function ($query) use ($semester) {
                 $query->where('smt', $semester);
             })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->orderBy('tanggal')
             ->orderBy('jam_mulai')
             ->get();
-        // Jika bukan AJAX, kirim ke view utama
+
         return view('students.jadwal-uas.index', compact('jadwalUas'));
     }
 
     public function jadwalUap()
     {
-        $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+        $tahunAjaran = $this->getActiveTA();
 
         if (!$tahunAjaran) {
             return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
@@ -275,151 +256,71 @@ class PerkuliahanController extends Controller
             return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
         }
 
-        // Ambil semua jadwal UAP (tanpa relasi matakuliah dan ruangan)
+        // Ambil semua jadwal UAP
         $jadwal = Jadwaluap::where('ta_id', $tahunAjaran->ta_id)->get();
 
         return view('students.jadwal-uap.index', compact('jadwal'));
     }
 
-    public function cetakUts()
+    /**
+     * Helper: Build query jadwal UTS untuk reuse antara tampil dan cetak
+     */
+    private function buildJadwalUtsQuery($activeTA, $semester, $kelas, $prodi)
     {
-
-        // Ambil data mahasiswa yang sedang login
-        $mahasiswa = auth()->guard('mahasiswa')->user();
-        if ($mahasiswa->status_uts == 0) {
-            return back()->with('error', 'Anda belum diizinkan mencetak Kartu UTS.');
-        }
-        $settings = Setting::first();
-        $semester = $mahasiswa->semester;
-        $prodi = $mahasiswa->jurusan_id;
-
-        // Ambil Tahun Akademik Aktif
-        $activeTA = TahunAkademik::where('status_ta', 1)->first();
-
-        if (!$activeTA) {
-            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
-        }
-        $logoBase64 = null;
-        if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
-            if (file_exists($logoPath)) {
-                $logoBase64 = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        $ttd = null;
-        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        // Query awal dengan eager loading
-        $jadwalUts = Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
+        return Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'pagi') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('mataKuliah', function ($query) use ($semester) {
                 $query->where('smt', $semester);
             })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->orderBy('tanggal')
             ->orderBy('jam_mulai')
             ->get();
-
-        // Nama file PDF
-        $fileName = 'Kartu_UTS_' . $mahasiswa->nama . '.pdf';
-        // Generate PDF
-        $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd'));
-        return $pdf->download($fileName);
     }
 
-
-    public function cetakUas()
+    /**
+     * Helper: Build query jadwal UAS untuk reuse antara tampil dan cetak
+     */
+    private function buildJadwalUasQuery($activeTA, $semester, $kelas, $prodi)
     {
-        $mahasiswa = auth()->guard('mahasiswa')->user();
-        if ($mahasiswa->status_uas == 0) {
-            return back()->with('error', 'Anda belum diizinkan mencetak Kartu UTS.');
-        }
-        $settings = Setting::first();
-        $semester = $mahasiswa->semester;
-        $prodi = $mahasiswa->jurusan_id;
-
-        // Ambil Tahun Akademik Aktif
-        $activeTA = TahunAkademik::where('status_ta', 1)->first();
-
-        if (!$activeTA) {
-            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
-        }
-        $logoBase64 = null;
-        if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
-            if (file_exists($logoPath)) {
-                $logoBase64 = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        $ttd = null;
-        if ($mahasiswa && $mahasiswa->programStudi->ttd) {
-            $logoPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        // Query awal dengan eager loading
-        // Query awal dengan eager loading
-        $jadwalUas = Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
+        return Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) {
-                $jenisKelas = Auth::guard('mahasiswa')->user()->kelas;
-                if ($jenisKelas === 'pagi') {
+            ->where(function ($query) use ($kelas) {
+                if ($kelas === 'pagi') {
                     $query->where('jenis_kelas', 'reguler');
-                } elseif ($jenisKelas === 'karyawan') {
+                } elseif ($kelas === 'karyawan') {
                     $query->where('jenis_kelas', 'karyawan');
                 }
             })
             ->whereHas('mataKuliah', function ($query) use ($semester) {
                 $query->where('smt', $semester);
             })
-            ->whereHas('programStudi', function ($query) {
-                $jurusanId = Auth::guard('mahasiswa')->user()->jurusan_id;
-                $query->where('jurusan_id', $jurusanId);
+            ->whereHas('programStudi', function ($query) use ($prodi) {
+                $query->where('jurusan_id', $prodi);
             })
             ->orderBy('tanggal')
             ->orderBy('jam_mulai')
             ->get();
-        // Nama file PDF
-        $fileName = 'Kartu_UAS_' . $mahasiswa->nama . '.pdf';
-
-        // Generate PDF
-        $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd'));
-        return $pdf->download($fileName);
     }
 
-
-    public function cetakUap()
+    /**
+     * Helper: Ambil logo dan ttd base64 untuk cetak PDF
+     */
+    private function getLogoAndTtd($mahasiswa)
     {
-        $mahasiswa = auth()->guard('mahasiswa')->user();
-        if ($mahasiswa->status_uap == 0) {
-            return back()->with('error', 'Anda belum diizinkan mencetak Kartu UAP.');
-        }
-        $settings = Setting::first();
-        $semester = $mahasiswa->semester;
-        $prodi = $mahasiswa->jurusan_id;
-        // Ambil Tahun Akademik Aktif
-        $activeTA = TahunAkademik::where('status_ta', 1)->first();
-        if (!$activeTA) {
-            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
-        }
+        $settings = Cache::remember('app_settings', 3600, function () {
+            return Setting::first();
+        });
 
-        // Ambil logo base64 jika ada
         $logoBase64 = null;
         if ($settings && $settings->logo) {
             $logoPath = public_path('storage/' . $settings->logo);
@@ -428,7 +329,6 @@ class PerkuliahanController extends Controller
             }
         }
 
-        // Ambil ttd base64 jika ada
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
             $ttdPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
@@ -436,6 +336,97 @@ class PerkuliahanController extends Controller
                 $ttd = base64_encode(file_get_contents($ttdPath));
             }
         }
+
+        return [$logoBase64, $ttd];
+    }
+
+    public function cetakUts()
+    {
+        $mahasiswa = $this->getMahasiswa();
+
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
+
+        $activeTA = $this->getActiveTA();
+        if (!$activeTA) {
+            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
+        }
+
+        [$logoBase64, $ttd] = $this->getLogoAndTtd($mahasiswa);
+
+        // Reuse query builder
+        $jadwalUts = $this->buildJadwalUtsQuery($activeTA, $semester, $kelas, $prodi);
+
+        // QR Code Verifikasi Keabsahan Dokumen
+        $payload = json_encode(['m' => $mahasiswa->mahasiswa_id, 't' => $activeTA->ta_id, 'type' => 'UTS']);
+        $token = base64_encode(Crypt::encryptString($payload));
+        $verifyUrl = route('verify.ujian', ['token' => $token]);
+
+        $qrCode = new QrCode($verifyUrl);
+        $qrCode->setSize(150);
+        $qrCode->setMargin(0);
+        
+        $writer = new PngWriter();
+        $qrResult = $writer->write($qrCode);
+        $qrBase64 = base64_encode($qrResult->getString());
+
+        $fileName = 'Kartu_UTS_' . $mahasiswa->nama . '.pdf';
+        $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd', 'qrBase64'));
+        return $pdf->download($fileName);
+    }
+
+
+    public function cetakUas()
+    {
+        $mahasiswa = $this->getMahasiswa();
+
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+        $kelas = $mahasiswa->kelas;
+
+        $activeTA = $this->getActiveTA();
+        if (!$activeTA) {
+            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
+        }
+
+        [$logoBase64, $ttd] = $this->getLogoAndTtd($mahasiswa);
+
+        // Reuse query builder
+        $jadwalUas = $this->buildJadwalUasQuery($activeTA, $semester, $kelas, $prodi);
+
+        // QR Code Verifikasi Keabsahan Dokumen
+        $payload = json_encode(['m' => $mahasiswa->mahasiswa_id, 't' => $activeTA->ta_id, 'type' => 'UAS']);
+        $token = base64_encode(Crypt::encryptString($payload));
+        $verifyUrl = route('verify.ujian', ['token' => $token]);
+
+        $qrCode = new QrCode($verifyUrl);
+        $qrCode->setSize(150);
+        $qrCode->setMargin(0);
+        
+        $writer = new PngWriter();
+        $qrResult = $writer->write($qrCode);
+        $qrBase64 = base64_encode($qrResult->getString());
+
+        $fileName = 'Kartu_UAS_' . $mahasiswa->nama . '.pdf';
+        $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd', 'qrBase64'));
+        return $pdf->download($fileName);
+    }
+
+
+    public function cetakUap()
+    {
+        $mahasiswa = $this->getMahasiswa();
+
+        $semester = $mahasiswa->semester;
+        $prodi = $mahasiswa->jurusan_id;
+
+        $activeTA = $this->getActiveTA();
+        if (!$activeTA) {
+            return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
+        }
+
+        [$logoBase64, $ttd] = $this->getLogoAndTtd($mahasiswa);
 
         // Ambil jadwal UAP sesuai prodi dan semester mahasiswa
         $jadwalUap = Jadwaluap::with(['programStudi'])

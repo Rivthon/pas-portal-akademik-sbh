@@ -6,9 +6,41 @@
     @php
     $user = auth()->guard('mahasiswa')->user();
     $edom = $user->status_edom;
+    $status_akhir = $user->status_akhir;
     @endphp
-    @if($edom == 0)
-    <div class="card shadow-sm mb-4">
+
+    @if($status_akhir != 1)
+    <div class="card shadow-sm mb-4 border-top border-5 border-danger">
+        <div class="d-flex align-items-center row g-0">
+            <div class="col-md-5 text-center">
+                <div class="p-4">
+                    <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
+                        alt="Restricted Access" style="max-height: 180px;">
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card-body">
+                    <h5 class="card-title text-danger mb-3 fw-bold">
+                        <i class="bx bx-lock me-1"></i> Akses Kartu Hasil Studi Belum Tersedia
+                    </h5>
+                    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                        <i class="bx bx-error-circle fs-4 me-2 border-danger"></i>
+                        <div>
+                            <strong>Perhatian:</strong> Akses KHS Anda masih dikunci oleh sistem administrasi.
+                        </div>
+                    </div>
+                    <p class="mb-4 text-muted" style="line-height: 1.6;">
+                        Kartu Hasil Studi Anda belum diaktifkan. Harap selesaikan kewajiban pembayaran/administrasi terlebih dahulu, lalu hubungi bagian BAAK/Keuangan untuk membuka akses laporan KHS Anda.
+                    </p>
+                    <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="bx bx-arrow-back me-1"></i> Kembali ke Dasbor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @elseif($edom == 0)
+    <div class="card shadow-sm mb-4 border-top border-5 border-warning">
         <div class="d-flex align-items-center row g-0">
             <!-- Image Section -->
             <div class="col-md-5 text-center">
@@ -21,7 +53,7 @@
             <div class="col-md-7">
                 <div class="card-body">
                     <!-- Title -->
-                    <h5 class="card-title text-primary mb-3 fw-bold">
+                    <h5 class="card-title text-warning mb-3 fw-bold">
                         Evaluasi Dosen Mengajar (EDOM)
                     </h5>
                     <!-- Conditional Alert -->
@@ -44,8 +76,8 @@
 
                     <!-- CTA Button -->
                     <div class="mb-3">
-                        <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-primary" aria-disabled="true">
-                            Mulai Mengis EDOM
+                        <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning" aria-disabled="true">
+                            <i class="bx bx-edit"></i> Mulai Mengisi EDOM
                         </a>
                     </div>
                 </div>

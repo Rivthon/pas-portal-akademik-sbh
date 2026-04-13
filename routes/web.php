@@ -66,6 +66,9 @@ Route::get('/', function () {
     return redirect('/mahasiswa/login');
 });
 
+// Rute Publik (Verifikasi Keaslian Dokumen)
+Route::get('/verify-ujian/{token}', [App\Http\Controllers\VerificationController::class, 'verifyUjian'])->name('verify.ujian');
+
 // Routes untuk login mahasiswa
 Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('login', [MahasiswaLoginController::class, 'showLoginForm'])->name('login');
@@ -86,9 +89,9 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('jadwal-uas', [PerkuliahanController::class, 'jadwalUas'])->name('jadwal-uas.index');
         Route::get('jadwal-uap', [PerkuliahanController::class, 'jadwalUap'])->name('jadwal-uap.index');
 
-        Route::get('/cetak-kartu-uts', [PerkuliahanController::class, 'cetakUts'])->name('cetak.kartu.uts');
-        Route::get('/cetak-kartu-uas', [PerkuliahanController::class, 'cetakUas'])->name('cetak.kartu.uas');
-        Route::get('/cetak-kartu-uap', [PerkuliahanController::class, 'cetakUap'])->name('cetak.kartu.uap');
+        Route::get('/cetak-kartu-uts', [PerkuliahanController::class, 'cetakUts'])->middleware('mhs.status:uts')->name('cetak.kartu.uts');
+        Route::get('/cetak-kartu-uas', [PerkuliahanController::class, 'cetakUas'])->middleware('mhs.status:uas')->name('cetak.kartu.uas');
+        Route::get('/cetak-kartu-uap', [PerkuliahanController::class, 'cetakUap'])->middleware('mhs.status:uap')->name('cetak.kartu.uap');
 
         Route::post('/krs/simpan', [AkademikController::class, 'nyimpenKrs'])->name('simpan.krs');
         Route::get('/krs', [AkademikController::class, 'index'])->name('krs.index');
@@ -98,10 +101,10 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/kartu-hasil-studi/mhs', [AkademikController::class, 'tampilanKartuHasil'])->name('kartu-hasil.index');
         Route::get('/khs/cetak-pdf', [AkademikController::class, 'cetakKhs'])->name('khs.cetak');
 
-        Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->name('krs.cetak-kapro');
-        Route::get('/krs/cetak-pdf-baak', [AkademikController::class, 'cetakBaak'])->name('krs.cetak-krs-baak');
-        Route::get('/krs/cetak-pdf-dospem', [AkademikController::class, 'cetakDospem'])->name('krs.cetak-krs-dospem');
-        Route::get('/krs/cetak-pdf-mahasiswa', [AkademikController::class, 'cetakMahasiswa'])->name('krs.cetak-krs-mahasiswa');
+        Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->middleware('mhs.status:krs')->name('krs.cetak-kapro');
+        Route::get('/krs/cetak-pdf-baak', [AkademikController::class, 'cetakBaak'])->middleware('mhs.status:krs')->name('krs.cetak-krs-baak');
+        Route::get('/krs/cetak-pdf-dospem', [AkademikController::class, 'cetakDospem'])->middleware('mhs.status:krs')->name('krs.cetak-krs-dospem');
+        Route::get('/krs/cetak-pdf-mahasiswa', [AkademikController::class, 'cetakMahasiswa'])->middleware('mhs.status:krs')->name('krs.cetak-krs-mahasiswa');
 
         Route::get('/krs/cetak-transkrip-mahasiswa', [AkademikController::class, 'cetakTranskrip'])->name('cetak-transkrip');
 
@@ -252,6 +255,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/detail/{id}', [TagihanMahasiswaController::class, 'show'])->name('show');
 
 
+        Route::post('/mata-kuliah/store-multiple', [KurikulumController::class, 'storeMultiple'])->middleware('permission:kurikulum-create')->name('kurikulum.storeMultiple');
         Route::get('/mata-kuliah/filter', [KurikulumController::class, 'filter'])->middleware('permission:kurikulum-list')->name('kurikulum.filter');
 
 

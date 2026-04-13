@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
 use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Support\Facades\Validator;
 
@@ -21,23 +22,23 @@ class JadwalUtsController extends Controller
         public function index()
         {
             try {
-                // Ambil tahun ajaran yang statusnya aktif
-                $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
-                $matakuliah = Matakuliah::all();
-                $programStudi = ProgramStudi::all(); // Ambil semua jurusan
-                $ruangan = Ruangan::all();
+                $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
+                    return TahunAkademik::where('status_ta', 1)->first();
+                });
+
                 if (!$tahunAjaran) {
                     return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
                 }
 
-                // Ambil semua program studi
+                $matakuliah = Matakuliah::all();
                 $programStudi = ProgramStudi::all();
+                $ruangan = Ruangan::all();
 
                 if ($programStudi->isEmpty()) {
                     return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
                 }
 
-                return view('jadwal-uts.index', compact('programStudi', 'tahunAjaran','matakuliah','ruangan','programStudi'));
+                return view('jadwal-uts.index', compact('programStudi', 'tahunAjaran', 'matakuliah', 'ruangan'));
             } catch (\Exception $e) {
                 return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
             }
@@ -110,7 +111,9 @@ class JadwalUtsController extends Controller
             }
 
             // Ambil tahun ajaran yang statusnya aktif
-            $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+            $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
+                return TahunAkademik::where('status_ta', 1)->first();
+            });
 
             if (!$tahunAjaran) {
                 return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);

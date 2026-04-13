@@ -11,6 +11,7 @@ use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class JadwalController extends Controller
@@ -18,8 +19,10 @@ class JadwalController extends Controller
    public function index()
 {
     try {
-        // Ambil tahun ajaran yang statusnya aktif
-        $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+        // Ambil tahun ajaran yang statusnya aktif (cached)
+        $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
+            return TahunAkademik::where('status_ta', 1)->first();
+        });
 
         if (!$tahunAjaran) {
             return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
@@ -116,7 +119,10 @@ class JadwalController extends Controller
             }
 
             // Ambil tahun ajaran yang statusnya aktif
-            $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
+            // Ambil tahun ajaran yang statusnya aktif (cached)
+            $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
+                return TahunAkademik::where('status_ta', 1)->first();
+            });
 
             if (!$tahunAjaran) {
                 return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);

@@ -63,7 +63,7 @@
 
             </div>
         </div>
-        @else($status_jadwal_uts == 1)
+        @elseif($status_jadwal_uts == 1)
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center row g-0">
                 <!-- Content Section -->

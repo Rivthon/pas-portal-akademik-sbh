@@ -1,19 +1,20 @@
 @extends('layouts.master')
 @section('title', 'Data Mahasiswa')
 @section('content')
-<div class="card shadow-sm mb-4">
+
+<!-- Header Info dan Import -->
+<div class="card shadow-sm mb-4 border-top border-5 border-success">
     <div class="d-flex align-items-center row g-0">
         <!-- Content Section -->
         <div class="col-md-8">
             <div class="card-body">
                 <!-- Title -->
-                <h5 class="card-title text-primary mb-3 fw-bold">
-                    Data Mahasiswa
+                <h5 class="card-title text-success mb-3 fw-bold">
+                    <i class="bx bx-import me-2"></i>Import Data Mahasiswa
                 </h5>
                 <!-- Description -->
                 <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Berikut adalah daftar mahasiswa yang terdaftar di sistem. Anda dapat melakukan import data mahasiswa
-                    dengan mengunggah file excel yang berisi data mahasiswa.
+                    Berikut adalah manajemen seluruh data mahasiswa yang terdaftar di sistem terpusat. Anda dapat melakukan import data mahasiswa secara massal dengan mengunggah file spreadsheet (.xlsx atau .csv) yang berisi biodata mahasiswa baru.
                 </p>
                 <!-- CTA Button -->
                 <div class="mb-3">
@@ -21,28 +22,21 @@
                     <form action="{{ route('admin.mahasiswa.import') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <!-- File Upload Section -->
-                        <div class="row mb-4">
-                            <div class="col-md-8">
-                                <label for="file" class="form-label fw-bold">Upload File Excel</label>
-                                <div class="input-group">
-                                    <input type="file" name="file" id="file" class="form-control" required>
-                                    <label class="input-group-text" for="file">Choose file</label>
-                                </div>
-                                <small class="text-muted">Pastikan file berformat .xlsx atau .csv</small>
+                        <div class="row align-items-end g-3">
+                            <div class="col-md-6">
+                                <label for="file" class="form-label fw-bold text-dark">Upload File Excel</label>
+                                <input type="file" name="file" id="file" class="form-control" accept=".xlsx, .csv" required>
+                                <small class="text-muted"><i class="bx bx-info-circle"></i> Pastikan file berformat sesuai template</small>
                             </div>
-                        </div>
-
-                        <!-- Submit and Download Buttons on the Same Row -->
-                        <div class="row">
-                            <div class="col-md-8">
+                            
+                            <div class="col-md-3">
                                 <button type="submit" class="btn btn-success w-100">
-                                    <i class="fa fa-upload"></i> Import Mahasiswa
+                                    <i class="bx bx-upload me-1"></i> Mulai Import
                                 </button>
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <a href="{{ route('admin.mahasiswa.download-template') }}"
-                                    class="btn btn-outline-info w-100">
-                                    <i class="fa fa-download"></i> Download Contoh File
+                            <div class="col-md-3">
+                                <a href="{{ route('admin.mahasiswa.download-template') }}" class="btn btn-outline-info w-100" title="Download Template Excel Kosong">
+                                    <i class="bx bx-download me-1"></i> Template
                                 </a>
                             </div>
                         </div>
@@ -51,29 +45,38 @@
             </div>
         </div>
         <!-- Image Section -->
-        <div class="col-md-4 text-center">
+        <div class="col-md-4 text-center d-none d-md-block">
             <div class="p-3">
                 <img src="../assets/img/illustrations/mahasiswa-2.png" class="img-fluid"
-                    alt="Illustration of a schedule" style="max-height: 200px;">
+                    alt="Illustration of students" style="max-height: 180px;">
             </div>
         </div>
     </div>
 </div>
-<div class="card">
-    <div class="card-header">
-        <h5 class="card-title text-primary fw-bold">Pencarian Mahasiswa</h5>
+
+<!-- Main Data Board -->
+<div class="card border-top border-5 border-primary shadow-sm">
+    <div class="card-header bg-white pb-0 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title text-primary fw-bold mb-0">Direktori Pencarian Mahasiswa</h5>
+            <small class="text-muted">Gunakan filter di bawah untuk melakukan pencarian spesifik.</small>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-12">
+    
+    <div class="card-body mt-4">
+        <div class="bg-label-primary p-4 rounded mb-4">
+            <div class="row g-3">
                 <!-- Input Search -->
-                <div class="mb-3">
-                    <input type="text" id="search" class="form-control" placeholder="Cari Nama, NIM, dll...">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-primary"><i class="bx bx-search-alt"></i> Kata Kunci</label>
+                    <input type="text" id="search" class="form-control border-primary text-primary" placeholder="Ketik Nama / NIM...">
                 </div>
+                
                 <!-- Program Studi -->
-                <div class="mb-3">
-                    <select id="program-studi" class="form-select">
-                        <option value="">-- Pilih Program Studi --</option>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-primary"><i class="bx bx-book"></i> Program Studi</label>
+                    <select id="program-studi" class="form-select border-primary text-primary">
+                        <option value="">Semua Program Studi</option>
                         @foreach ($programStudi as $ps)
                         <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
                         @endforeach
@@ -81,19 +84,21 @@
                 </div>
 
                 <!-- Tahun Masuk -->
-                <div class="mb-3">
-                    <select id="tahun-masuk" class="form-select">
-                        <option value="">-- Pilih Tahun Masuk --</option>
-                        @for ($year = 2019; $year <= date('Y'); $year++) <option value="{{ $year }}">{{ $year }}
-                            </option>
-                            @endfor
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-primary"><i class="bx bx-calendar-event"></i> Tahun Masuk</label>
+                    <select id="tahun-masuk" class="form-select border-primary text-primary">
+                        <option value="">Semua Tahun</option>
+                        @for ($year = 2019; $year <= date('Y'); $year++) 
+                            <option value="{{ $year }}">{{ $year }}</option>
+                        @endfor
                     </select>
                 </div>
 
                 <!-- Status -->
-                <div class="mb-3">
-                    <select id="status" class="form-select">
-                        <option value="">-- Pilih Status --</option>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-primary"><i class="bx bx-user-check"></i> Status Mahasiswa</label>
+                    <select id="status" class="form-select border-primary text-primary">
+                        <option value="">Semua Status</option>
                         <option value="Aktif">Aktif</option>
                         <option value="Lulus">Lulus</option>
                         <option value="Nonaktif">Nonaktif</option>
@@ -101,34 +106,33 @@
                         <option value="Dropout">Dropout</option>
                     </select>
                 </div>
+            </div>
 
-                <!-- Tombol Cari -->
-                <div class="row g-2">
-                    <div class="col-md-8 d-grid">
-                        <button id="search-btn" class="btn btn-primary">
-                            <i class="bx bx-search"></i> Cari Mahasiswa
-                        </button>
-                    </div>
-                    <div class="col-md-4 d-grid">
-                        <button id="export-btn" class="btn btn-outline-success">
-                            <i class="fa fa-file-excel"></i> Export Excel
-                            <input type="hidden" id="export-url" value="{{ route('admin.export') }}">
-                        </button>
-
-                    </div>
+            <!-- Tombol Aksi -->
+            <div class="row mt-3 justify-content-end">
+                <div class="col-auto">
+                    <button id="search-btn" class="btn btn-primary px-4 fw-bold shadow-sm">
+                        <i class="bx bx-search me-1"></i> Terapkan Filter
+                    </button>
+                    <button id="export-btn" class="btn btn-outline-success px-4 ms-2 fw-bold shadow-sm">
+                        <i class="bx bx-file me-1"></i> Export Excel
+                        <input type="hidden" id="export-url" value="{{ route('admin.export') }}">
+                    </button>
                 </div>
-
             </div>
         </div>
 
         <!-- Alert -->
-        <div id="alert-container" class="mt-3"></div>
+        <div id="alert-container"></div>
 
         <!-- Tabel Hasil Pencarian -->
-        <div class="table-responsive mt-4" id="table-container"></div>
+        <div class="table-responsive" id="table-container" style="min-height: 250px;">
+            <div class="text-center py-5">
+                <i class="bx bx-table text-muted mb-3" style="font-size: 3rem;"></i><br>
+                <span class="text-muted fw-semibold">Silakan klik "Terapkan Filter" untuk mulai menampilkan data mahasiswa.</span>
+            </div>
+        </div>
     </div>
 </div>
-
-
 
 @endsection

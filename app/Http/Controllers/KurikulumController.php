@@ -32,12 +32,13 @@ class KurikulumController extends Controller
 
             // Ambil semua program studi
             $programStudi = ProgramStudi::all();
+            $mataKuliah = Matakuliah::orderBy('smt')->orderBy('nama')->get();
 
             if ($programStudi->isEmpty()) {
                 return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
             }
 
-            return view('kurikulum.index', compact('programStudi', 'tahunAjaran'));
+            return view('kurikulum.index', compact('programStudi', 'tahunAjaran', 'mataKuliah'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
         }
@@ -180,15 +181,77 @@ class KurikulumController extends Controller
 
 
 
+    /**
+     * Simpan multiple mata kuliah sekaligus via AJAX
+     */
+    public function storeMultiple(Request $request)
+    {
+        $request->validate([
+            'matakuliah_ids'   => 'required|array|min:1',
+            'matakuliah_ids.*' => 'required|string',
+            'ta_id'            => 'required|string',
+        ]);
+
+        $taId = $request->ta_id;
+        $matakuliahIds = $request->matakuliah_ids;
+        $created = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($matakuliahIds as $mkId) {
+            try {
+                $matakuliah = Matakuliah::find($mkId);
+                if (!$matakuliah) {
+                    $errors[] = "Matakuliah {$mkId} tidak ditemukan.";
+                    continue;
+                }
+
+                // Cek apakah sudah ada di kurikulum (hindari duplikat)
+                $exists = Kurikulum::where('matakuliah_id', $mkId)
+                    ->where('ta_id', $taId)
+                    ->where('jurusan_id', $matakuliah->jurusan_id)
+                    ->exists();
+
+                if ($exists) {
+                    $skipped++;
+                    continue;
+                }
+
+                Kurikulum::create([
+                    'matakuliah_id' => $mkId,
+                    'ta_id'         => $taId,
+                    'jurusan_id'    => $matakuliah->jurusan_id,
+                ]);
+
+                $created++;
+            } catch (\Exception $e) {
+                $errors[] = "Gagal menyimpan {$mkId}: " . $e->getMessage();
+            }
+        }
+
+        $message = "{$created} mata kuliah berhasil ditambahkan.";
+        if ($skipped > 0) {
+            $message .= " {$skipped} dilewati (sudah ada).";
+        }
+        if (count($errors) > 0) {
+            $message .= " " . count($errors) . " gagal.";
+        }
+
+        return response()->json([
+            'success' => $created > 0 || $skipped > 0,
+            'message' => $message,
+            'created' => $created,
+            'skipped' => $skipped,
+            'errors'  => $errors,
+        ]);
+    }
+
     public function store(Request $request)
     {
         // Validasi input
         $validated = $request->validate([
             'matakuliah_id' => 'required|string',
             'ta_id'         => 'required|string',
-            // 'ruangan_id'    => 'required|string',
-            // 'jam_mulai'     => 'required|date_format:H:i',
-            // 'jam_selesai'   => 'required|date_format:H:i|after:jam_mulai',
         ]);
 
         try {
@@ -209,17 +272,15 @@ class KurikulumController extends Controller
 
             // Berikan toast alert sukses di tengah layar
             Alert::toast('Kurikulum berhasil ditambahkan.', 'success')
-                ->position('center')  // Menampilkan alert di tengah layar
+                ->position('center')
                 ->autoClose(3000);
 
-            return redirect()->route('admin.kurikulum.index'); // Redirect ke route admin.kurikulum.index
+            return redirect()->route('admin.kurikulum.index');
         } catch (\Exception $e) {
-            // Tangani kesalahan dan tampilkan pesan error dengan alert
             Alert::toast('Gagal menyimpan kurikulum. Silakan coba lagi.', 'error')
-                ->position('center')  // Menampilkan alert di tengah layar
+                ->position('center')
                 ->autoClose(3000);
 
-            // Kembalikan ke halaman sebelumnya dengan input yang sudah diisi
             return back()->withErrors(['error' => 'Gagal menyimpan kurikulum. Silakan coba lagi.'])->withInput();
         }
     }

@@ -3,6 +3,44 @@
 @section('content')
 
 <div class="row mt-4">
+    @php
+    $user = auth()->guard('mahasiswa')->user();
+    $krs_status = $user->status_krs;
+    @endphp
+
+    @if($krs_status == 0)
+    <div class="col-md-12">
+        <div class="card shadow-sm mb-4 border-top border-5 border-danger">
+            <div class="d-flex align-items-center row g-0">
+                <div class="col-md-5 text-center">
+                    <div class="p-4">
+                        <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
+                            alt="Restricted Access" style="max-height: 180px;">
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="card-body">
+                        <h5 class="card-title text-danger mb-3 fw-bold">
+                            <i class="bx bx-lock me-1"></i> Akses Status KRS Dikunci
+                        </h5>
+                        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                            <i class="bx bx-error-circle fs-4 me-2 border-danger"></i>
+                            <div>
+                                <strong>Perhatian:</strong> Anda belum menyelesaikan proses KRS.
+                            </div>
+                        </div>
+                        <p class="mb-4 text-muted" style="line-height: 1.6;">
+                            Detail dan fasilitas cetak Kartu Rencana Studi (KRS) tidak dapat diakses saat ini. Harap selesaikan verifikasi administrasi dan pembayaran kepada bagian <strong>Keuangan/BAUK</strong> terlebih dahulu.
+                        </p>
+                        <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-outline-secondary">
+                            <i class="bx bx-arrow-back me-1"></i> Kembali ke Dasbor
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @else
     <div class="col-md-12">
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center row g-0">
@@ -86,6 +124,6 @@
         </div>
     </div>
 </div>
-
+    @endif
 </div>
 @endsection
