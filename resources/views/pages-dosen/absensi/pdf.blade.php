@@ -189,10 +189,9 @@
         </table>
     </div>
 
-    <!-- QR Code di bawah tabel -->
     <div class="qr-code">
-        @if(!empty($qrCodeBase64))
-        <img src="data:image/png;base64,{{ $qrCodeBase64 }}" alt="QR Code">
+        @if(isset($qrFilePath))
+        <img src="{{ $qrFilePath }}" alt="QR Code" style="width: 100px; height: 100px;">
         @endif
     </div>
 

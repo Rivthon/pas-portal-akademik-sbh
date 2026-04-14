@@ -6,13 +6,12 @@ use PDF;
 use Carbon\Carbon;
 use App\Models\Jadwal;
 use App\Models\Setting;
-use Endroid\QrCode\QrCode;
 use Illuminate\Http\Request;
 use App\Models\JadwalPraktik;
 use App\Models\TahunAkademik;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use Endroid\QrCode\Writer\PngWriter;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Storage;
 
 class LaporanAbsensiController extends Controller
@@ -186,13 +185,13 @@ class LaporanAbsensiController extends Controller
             ->select('dosen.nama')
             ->get();
         // Generate QR code
-        $qrCode = new QrCode($websiteUrl);
-        $writer = new PngWriter();
-        $qrCodeResult = $writer->write($qrCode);
-
-        // Simpan QR code ke storage sementara
-        $qrCodePath = 'temp/qr-code.png';
-        Storage::put($qrCodePath, $qrCodeResult->getString());
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($websiteUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($websiteUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
 
         // Ambil logo dalam base64
         $logoBase64 = null;
@@ -210,7 +209,7 @@ class LaporanAbsensiController extends Controller
             'totalPertemuan' => $totalPertemuan,
             'settings' => $settings,
             'logoBase64' => $logoBase64,
-            'qrCodePath' => Storage::url($qrCodePath),
+            'qrFilePath' => $qrFilePath,
             'dosenMatakuliah' => $dosenMatakuliah,
         ])->setPaper('a4', 'landscape');
 
@@ -293,13 +292,13 @@ class LaporanAbsensiController extends Controller
             ->select('dosen.nama')
             ->get();
         // Generate QR code
-        $qrCode = new QrCode($websiteUrl);
-        $writer = new PngWriter();
-        $qrCodeResult = $writer->write($qrCode);
-
-        // Simpan QR code ke storage sementara
-        $qrCodePath = 'temp/qr-code.png';
-        Storage::put($qrCodePath, $qrCodeResult->getString());
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($websiteUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($websiteUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
 
         // Ambil logo dalam base64
         $logoBase64 = null;
@@ -317,7 +316,7 @@ class LaporanAbsensiController extends Controller
             'totalPertemuan' => $totalPertemuan,
             'settings' => $settings,
             'logoBase64' => $logoBase64,
-            'qrCodePath' => Storage::url($qrCodePath),
+            'qrFilePath' => $qrFilePath,
             'dosenMatakuliah' => $dosenMatakuliah,
         ])->setPaper('a4', 'landscape');
 

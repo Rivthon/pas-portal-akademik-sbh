@@ -11,8 +11,7 @@ use App\Models\Setting;
 use App\Models\Mahasiswa;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\PngWriter;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Storage;
 
 class LaporanController extends Controller
@@ -72,18 +71,18 @@ class LaporanController extends Controller
     }
 
 
-private function mapAbsensiStatus($status)
-{
-    // Map attendance status to a concise format
-    $statusMapping = [
-        'hadir' => 'H',
-        'tidak hadir' => 'T',
-        'izin' => 'I',
-        // Add more mappings if needed
-    ];
+    private function mapAbsensiStatus($status)
+    {
+        // Map attendance status to a concise format
+        $statusMapping = [
+            'hadir' => 'H',
+            'tidak hadir' => 'T',
+            'izin' => 'I',
+            // Add more mappings if needed
+        ];
 
-    return $statusMapping[$status] ?? null; // Return null for unknown statuses
-}
+        return $statusMapping[$status] ?? null; // Return null for unknown statuses
+    }
 
     public function generatePDFDocument($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan)
     {
@@ -91,13 +90,13 @@ private function mapAbsensiStatus($status)
         $websiteUrl = $settings->website_url ?? 'https://example.com';
 
         // Generate QR code
-        $qrCode = new QrCode($websiteUrl);
-        $writer = new PngWriter();
-        $qrCodeResult = $writer->write($qrCode);
-
-        // Simpan QR code ke storage sementara
-        $qrCodePath = 'temp/qr-code.png';
-        Storage::put($qrCodePath, $qrCodeResult->getString());
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($websiteUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($websiteUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
 
         // Ambil logo dalam base64
         $logoBase64 = null;
@@ -115,7 +114,7 @@ private function mapAbsensiStatus($status)
             'totalPertemuan' => $totalPertemuan,
             'settings' => $settings,
             'logoBase64' => $logoBase64,
-            'qrCodePath' => Storage::url($qrCodePath),
+            'qrFilePath' => $qrFilePath,
         ])->setPaper('a4', 'landscape');
 
         $filename = 'rekap-absensi-' . $jadwal->mataKuliah->name . '-' . now()->format('YmdHis') . '.pdf';

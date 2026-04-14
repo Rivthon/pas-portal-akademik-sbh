@@ -2,24 +2,30 @@
 
 namespace App\Http\Controllers\mahasiswa;
 
-use PDF;
+// --- Framework & Facades ---
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+
+// --- Controllers ---
+use App\Http\Controllers\Controller;
+
+// --- Models ---
 use App\Models\Jadwal;
-use App\Models\Setting;
+use App\Models\JadwalPraktik;
 use App\Models\Jadwaluap;
 use App\Models\Jadwaluas;
 use App\Models\Jadwaluts;
 use App\Models\Kurikulum;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
-use App\Models\JadwalPraktik;
+use App\Models\Setting;
 use App\Models\TahunAkademik;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\PngWriter;
+
+// --- Third-Party Libraries ---
+use PDF;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class PerkuliahanController extends Controller
 {
@@ -363,16 +369,19 @@ class PerkuliahanController extends Controller
         $token = base64_encode(Crypt::encryptString($payload));
         $verifyUrl = route('verify.ujian', ['token' => $token]);
 
-        $qrCode = new QrCode($verifyUrl);
-        $qrCode->setSize(150);
-        $qrCode->setMargin(0);
-        
-        $writer = new PngWriter();
-        $qrResult = $writer->write($qrCode);
-        $qrBase64 = base64_encode($qrResult->getString());
+        // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
+        // ------------------------------
 
         $fileName = 'Kartu_UTS_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd', 'qrBase64'));
+        $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
         return $pdf->download($fileName);
     }
 
@@ -400,16 +409,19 @@ class PerkuliahanController extends Controller
         $token = base64_encode(Crypt::encryptString($payload));
         $verifyUrl = route('verify.ujian', ['token' => $token]);
 
-        $qrCode = new QrCode($verifyUrl);
-        $qrCode->setSize(150);
-        $qrCode->setMargin(0);
-        
-        $writer = new PngWriter();
-        $qrResult = $writer->write($qrCode);
-        $qrBase64 = base64_encode($qrResult->getString());
+        // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
+        // ------------------------------
 
         $fileName = 'Kartu_UAS_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd', 'qrBase64'));
+        $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
         return $pdf->download($fileName);
     }
 
@@ -442,8 +454,24 @@ class PerkuliahanController extends Controller
             return back()->with('error', 'Jadwal UAP tidak tersedia.');
         }
 
+        // QR Code Verifikasi Keabsahan Dokumen
+        $payload = json_encode(['m' => $mahasiswa->mahasiswa_id, 't' => $activeTA->ta_id, 'type' => 'UAP']);
+        $token = base64_encode(Crypt::encryptString($payload));
+        $verifyUrl = route('verify.ujian', ['token' => $token]);
+
+        // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
+        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
+        $qrTempDir = storage_path('app/temp');
+        if (!file_exists($qrTempDir)) {
+            mkdir($qrTempDir, 0755, true);
+        }
+        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        file_put_contents($qrFilePath, $qrCodeSvg);
+        // ------------------------------
+
         $fileName = 'Kartu_UAP_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd'));
-        return $pdf->stream($fileName);
+        $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
+        return $pdf->download($fileName);
     }
 }

@@ -194,17 +194,28 @@
         <li>Kartu Ujian ini wajib dibawa setiap pelaksanaan ujian</li>
     </ul>
 
-    <div style="text-align: right; margin-top: 30px;">
-        <p>Ketua Program Studi
-
-        </p>
-        @if ($ttd)
-        <img src="data:image/png;base64,{{ $ttd }}" alt="Tanda Tangan Kaprodi" style="height: 60px;">
-        @else
-        <div class="placeholder"></div>
-        @endif
-        <p>
-            {{ auth('mahasiswa')->user()->programStudi->kaprod }}
-        </p>
-    </div>
+    <table style="width: 100%; border: none; margin-top: 20px;">
+        <tr>
+            <!-- Kolom QR Code -->
+            <td style="width: 50%; text-align: left; vertical-align: top; border: none;">
+                @if(isset($qrFilePath))
+                <p style="font-size: 10px; margin-bottom: 5px;">Scan kode QR ini untuk verifikasi<br>keabsahan data Kartu Ujian:</p>
+                <img src="{{ $qrFilePath }}" alt="QR Code Verifikasi" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 3px;">
+                @endif
+            </td>
+            
+            <!-- Kolom Tanda Tangan -->
+            <td style="width: 50%; text-align: right; vertical-align: top; border: none;">
+                <p style="margin-bottom: 5px;">Ketua Program Studi</p>
+                @if ($ttd)
+                <img src="data:image/png;base64,{{ $ttd }}" alt="Tanda Tangan Kaprodi" style="height: 60px; margin: 5px 0;">
+                @else
+                <div class="placeholder" style="height: 60px;"></div>
+                @endif
+                <p style="text-decoration: underline; font-weight: bold; margin-top: 5px;">
+                    {{ auth('mahasiswa')->user()->programStudi->kaprod }}
+                </p>
+            </td>
+        </tr>
+    </table>
 </div>

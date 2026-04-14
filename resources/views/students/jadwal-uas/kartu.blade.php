@@ -196,9 +196,9 @@
         <tr>
             <!-- Kolom QR Code -->
             <td style="width: 50%; text-align: left; vertical-align: top; border: none;">
-                @if(isset($qrBase64))
+                @if(isset($qrFilePath))
                 <p style="font-size: 10px; margin-bottom: 5px;">Scan kode QR ini untuk verifikasi<br>keabsahan data Kartu Ujian:</p>
-                <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QR Code Verifikasi" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 3px;">
+                <img src="{{ $qrFilePath }}" alt="QR Code Verifikasi" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 3px;">
                 @endif
             </td>
             

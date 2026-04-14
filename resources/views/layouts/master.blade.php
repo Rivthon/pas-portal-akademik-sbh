@@ -278,71 +278,7 @@
     });
 });
 
- document.addEventListener('DOMContentLoaded', function () {
-    // Menggunakan event delegation pada document untuk menangani toggle yang muncul setelah paginasi atau pencarian
-    document.addEventListener('change', function (event) {
-        if (event.target.classList.contains('toggle-status')) {
-            const toggle = event.target;
-            const mahasiswaId = toggle.dataset.id;
-            const type = toggle.dataset.type;
-            const status = toggle.checked ? 1 : 0;
-
-            fetch('{{ route("admin.aktivasi-mhs.updateStatus") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mahasiswa_id: mahasiswaId,
-                    type: type,
-                    status: status,
-                }),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                    } else {
-                        alert('Gagal memperbarui status: ' + data.message);
-                        toggle.checked = !toggle.checked; // Kembalikan nilai toggle jika gagal
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat memperbarui status.');
-                    toggle.checked = !toggle.checked; // Kembalikan nilai toggle jika gagal
-                });
-        }
-    });
-
-
-    // Event listener untuk tombol reset semua status
-    document.getElementById('reset-all-status').addEventListener('click', function () {
-        if (confirm('Apakah Anda yakin ingin mereset semua status menjadi 0?')) {
-            fetch('{{ route("admin.reset.all.status") }}', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload(); // Refresh halaman untuk menampilkan perubahan
-                    } else {
-                        alert('Gagal mereset status: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Terjadi kesalahan saat mereset status.');
-                });
-        }
-    });
-});
+ // Toggle-status & reset-all-status handlers moved to aktivasi-mhs/index.blade.php
 
         //generate tagihan mahasiswa
         $('#generate-tagihan').on('click', function () {
@@ -471,13 +407,24 @@ async function fetchData(url) {
                 const loadingSpinner = $("#loading-spinner");
                 const errorMessage = $("#error-message");
 
+                // Global bobot storage
+                let currentBobot = { uts: 25, uas: 35, tugas: 20, absensi: 10, praktik: 10 };
+                let currentKonfigurasi = {};
+
                 // Utility Functions
-                const showTableMessage = (message) => {
-                    tableBody.html(`<tr><td colspan="9" class="text-center">${message}</td></tr>`);
+                const showTableMessage = (message, sub) => {
+                    const subHtml = sub ? `<div class="empty-sub">${sub}</div>` : '';
+                    tableBody.html(`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon"><i class="bx bx-search-alt"></i></div><div class="empty-text">${message}</div>${subHtml}</div></td></tr>`);
+                    $('#table-info').text(message);
+                    $('#save-bar').hide();
                 };
 
                 const showError = (message) => {
-                    errorMessage.text(message).fadeIn().delay(3000).fadeOut();
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(message, 'Error!');
+                    } else {
+                        errorMessage.text(message).fadeIn().delay(3000).fadeOut();
+                    }
                 };
 
                 const setLoading = (isLoading) => {
@@ -502,17 +449,117 @@ async function fetchData(url) {
                     return 'E';
                 };
 
+                // Auto-calculate row
+                const autoCalcRow = ($row) => {
+                    const uts = parseFloat($row.find('input[name^="uts"]').val()) || 0;
+                    const uas = parseFloat($row.find('input[name^="uas"]').val()) || 0;
+                    const tugas = parseFloat($row.find('input[name^="tugas"]').val()) || 0;
+                    const absensi = parseFloat($row.find('input[name^="absensi"]').val()) || 0;
+                    const praktik = parseFloat($row.find('input[name^="praktik"]').val()) || 0;
+
+                    const nilaiAkhir = (
+                        (uts * currentBobot.uts / 100) +
+                        (uas * currentBobot.uas / 100) +
+                        (tugas * currentBobot.tugas / 100) +
+                        (absensi * currentBobot.absensi / 100) +
+                        (praktik * currentBobot.praktik / 100)
+                    ).toFixed(2);
+
+                    const hurufMutu = calculateGrade(parseFloat(nilaiAkhir));
+
+                    $row.find('.nilai-akhir').text(nilaiAkhir);
+                    $row.find('.nilai-huruf').text(hurufMutu);
+                };
+
+                // Render bobot panel
+                const renderBobotPanel = (bobot, konfigurasi) => {
+                    const source = konfigurasi.bobot_source === 'custom' ?
+                        '<span class="badge bg-label-success"><i class="bx bx-check-circle me-1"></i>Custom MK</span>' :
+                        '<span class="badge bg-label-warning"><i class="bx bx-info-circle me-1"></i>Default Prodi</span>';
+
+                    const totalPersen = parseFloat(bobot.uts) + parseFloat(bobot.uas) + parseFloat(bobot.tugas) + parseFloat(bobot.absensi) + parseFloat(bobot.praktik);
+
+                    const html = `
+                        <div id="bobot-panel" class="card mb-3 border" style="border-color: rgba(105,108,255,.15) !important;">
+                            <div class="card-header d-flex align-items-center justify-content-between py-2" style="background: rgba(105,108,255,.04);">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bx bx-calculator text-primary"></i>
+                                    <span class="fw-bold" style="font-size: .85rem;">Bobot Penilaian</span>
+                                    ${source}
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted" style="font-size: .75rem;">Total: <strong class="${totalPersen === 100 ? 'text-success' : 'text-danger'}">${totalPersen}%</strong></span>
+                                    <button type="button" id="btn-edit-bobot" class="btn btn-sm btn-outline-primary" style="font-size: .72rem;">
+                                        <i class="bx bx-edit-alt me-1"></i>Ubah Bobot
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="bobot-display" class="card-body py-2">
+                                <div class="d-flex flex-wrap gap-3">
+                                    <span class="badge bg-label-primary">UTS: ${bobot.uts}%</span>
+                                    <span class="badge bg-label-primary">UAS: ${bobot.uas}%</span>
+                                    <span class="badge bg-label-primary">Tugas: ${bobot.tugas}%</span>
+                                    <span class="badge bg-label-primary">Absen: ${bobot.absensi}%</span>
+                                    <span class="badge bg-label-primary">Praktik: ${bobot.praktik}%</span>
+                                </div>
+                            </div>
+                            <div id="bobot-edit" class="card-body py-3" style="display: none;">
+                                <div class="row g-2 align-items-end">
+                                    <div class="col">
+                                        <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UTS (%)</label>
+                                        <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uts" value="${bobot.uts}" min="0" max="100">
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UAS (%)</label>
+                                        <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uas" value="${bobot.uas}" min="0" max="100">
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Tugas (%)</label>
+                                        <input type="number" class="form-control form-control-sm bobot-input" id="bobot-tugas" value="${bobot.tugas}" min="0" max="100">
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Absen (%)</label>
+                                        <input type="number" class="form-control form-control-sm bobot-input" id="bobot-absen" value="${bobot.absensi}" min="0" max="100">
+                                    </div>
+                                    <div class="col">
+                                        <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Praktik (%)</label>
+                                        <input type="number" class="form-control form-control-sm bobot-input" id="bobot-praktik" value="${bobot.praktik}" min="0" max="100">
+                                    </div>
+                                    <div class="col-auto">
+                                        <button type="button" id="btn-save-bobot" class="btn btn-sm btn-primary">
+                                            <i class="bx bx-save me-1"></i>Simpan
+                                        </button>
+                                        <button type="button" id="btn-cancel-bobot" class="btn btn-sm btn-outline-secondary">Batal</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    $('#bobot-panel').remove();
+                    $('#bobot-panel-container').html(html);
+                };
+
+                // Update table header with bobot %
+                const updateTableHeader = (bobot) => {
+                    $('.th-komponen').eq(0).html(`UTS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.uts}%)</small>`);
+                    $('.th-komponen').eq(1).html(`UAS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.uas}%)</small>`);
+                    $('.th-komponen').eq(2).html(`TUGAS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.tugas}%)</small>`);
+                    $('.th-komponen').eq(3).html(`ABSEN <small class="text-muted badge bg-label-secondary ms-1">(${bobot.absensi}%)</small>`);
+                    $('.th-komponen').eq(4).html(`PRAKTIK <small class="text-muted badge bg-label-secondary ms-1">(${bobot.praktik}%)</small>`);
+                };
+
                 // Tahun Ajaran Change Handler
                 $("#tahun-ajaran").on("change", function() {
                     const tahunAjaranId = $(this).val();
                     $("#program-studi").val(null).trigger("change");
                     $("#mata-kuliah").val(null).trigger("change");
-
-                    // Only disable program studi if no tahun ajaran selected
                     $("#program-studi").prop("disabled", !tahunAjaranId);
-
-                    // NEVER disable mata kuliah here
-                    showTableMessage(tahunAjaranId ? "Silakan pilih program studi" : "Silakan pilih tahun ajaran");
+                    $('#bobot-panel-container').empty();
+                    showTableMessage(
+                        tahunAjaranId ? "Silakan pilih program studi" : "Silakan pilih tahun ajaran",
+                        "Ikuti langkah di atas untuk memulai input nilai"
+                    );
                 });
 
                 // Program Studi Change Handler
@@ -522,8 +569,10 @@ async function fetchData(url) {
                 const mataKuliahSelect = $("#mata-kuliah");
 
                 mataKuliahSelect.val(null).trigger("change");
-                showTableMessage("Memuat data mata kuliah...");
+                showTableMessage("Memuat data mata kuliah...", "Mohon tunggu sebentar");
                 saveButton.hide();
+                $('#save-bar').hide();
+                $('#bobot-panel-container').empty();
 
                 if (!programStudiId || !tahunAjaranId) return;
 
@@ -546,40 +595,39 @@ async function fetchData(url) {
                                 </option>`
                             );
                         });
-                        // Ensure mata kuliah is always enabled when we have options
                         mataKuliahSelect.prop("disabled", false);
-                        showTableMessage("Silakan pilih mata kuliah");
+                        showTableMessage("Silakan pilih mata kuliah", "Pilih mata kuliah dari dropdown di atas");
                     } else {
                         showTableMessage("Tidak ada mata kuliah tersedia");
                         showError("Tidak ditemukan mata kuliah untuk program studi ini");
-                        // Keep mata kuliah enabled but empty
                         mataKuliahSelect.prop("disabled", false);
                     }
                 } catch (error) {
                     console.error("Error:", error);
                     showError("Gagal memuat mata kuliah");
                     showTableMessage("Gagal memuat data");
-                    // Keep mata kuliah enabled even on error
                     mataKuliahSelect.prop("disabled", false);
                 } finally {
                     setLoading(false);
                 }
             });
 
+                // Mata Kuliah Change Handler — load mahasiswa + bobot
                 $("#mata-kuliah").on("change", async function() {
                     const mataKuliahId = $(this).val();
                     const tahunAjaranId = $("#tahun-ajaran").val();
 
                     tableBody.empty();
                     saveButton.hide();
+                    $('#bobot-panel-container').empty();
 
                     if (!mataKuliahId || !tahunAjaranId) {
-                        showTableMessage("Silakan pilih mata kuliah");
+                        showTableMessage("Silakan pilih mata kuliah", "Pilih mata kuliah dari dropdown di atas");
                         return;
                     }
 
                     setLoading(true);
-                    showTableMessage("Memuat data mahasiswa...");
+                    showTableMessage("Memuat data mahasiswa...", "Mohon tunggu sebentar");
 
                     try {
                         const response = await $.ajax({
@@ -589,66 +637,98 @@ async function fetchData(url) {
                         });
 
                         if (response.mahasiswa && response.mahasiswa.length > 0) {
+                            // Store bobot globally
+                            currentBobot = response.konfigurasi.bobot;
+                            currentKonfigurasi = response.konfigurasi;
+
+                            // Render bobot panel
+                            renderBobotPanel(currentBobot, currentKonfigurasi);
+                            updateTableHeader(currentBobot);
+
+                            // Render table
                             renderMahasiswaTable(response.mahasiswa);
                             saveButton.show();
+                            $('#save-bar').show();
+                            $('#table-info').text(response.mahasiswa.length + ' Mahasiswa ditemukan');
+                            
+                            // Tampilkan tombol export
+                            $('#table-actions').show();
+                            $('#btn-export-excel').attr('href', `/admin/mahasiswa/input-nilai/export/${mataKuliahId}/${tahunAjaranId}/excel`);
+                            $('#btn-export-pdf').attr('href', `/admin/mahasiswa/input-nilai/export/${mataKuliahId}/${tahunAjaranId}/pdf`);
+
                         } else {
-                            showTableMessage("Tidak ada mahasiswa yang mengambil mata kuliah ini");
+                            showTableMessage("Tidak ada mahasiswa", "Tidak ada mahasiswa aktif yang mengambil mata kuliah ini");
+                            $('#table-actions').hide();
                         }
                     } catch (error) {
                         console.error("Error:", error);
-                        showError("Gagal memuat data mahasiswa");
-                        showTableMessage("Gagal memuat data");
+                        const errMsg = error.responseJSON?.message || "Gagal memuat data mahasiswa";
+                        showError(errMsg);
+                        showTableMessage("Gagal memuat data", errMsg);
                     } finally {
                         setLoading(false);
-                        // Ensure mata kuliah stays enabled after loading
                         $("#mata-kuliah").prop("disabled", false);
                     }
                 });
 
 
-                // Render Mahasiswa Table
+                // Render Mahasiswa Table — with auto-calculated akhir & khs
                 const renderMahasiswaTable = (students) => {
                     tableBody.empty();
 
                     $.each(students, function(index, mhs) {
+                        // Pre-calculate nilai akhir
+                        const uts = parseFloat(mhs.uts) || 0;
+                        const uas = parseFloat(mhs.uas) || 0;
+                        const tugas = parseFloat(mhs.tugas) || 0;
+                        const absen = parseFloat(mhs.absen) || 0;
+                        const praktik = parseFloat(mhs.praktik) || 0;
+
+                        const nilaiAkhir = (
+                            (uts * currentBobot.uts / 100) +
+                            (uas * currentBobot.uas / 100) +
+                            (tugas * currentBobot.tugas / 100) +
+                            (absen * currentBobot.absensi / 100) +
+                            (praktik * currentBobot.praktik / 100)
+                        ).toFixed(2);
+
+                        const hurufMutu = calculateGrade(parseFloat(nilaiAkhir));
+
                         const row = `
                             <tr>
                                 <td class="text-center">${index + 1}</td>
-                                <td>${mhs.nama} (${mhs.mahasiswa_id})</td>
+                                <td>${mhs.nama}<br><small class="text-muted">${mhs.nim}</small></td>
                                 <td>
                                     <input type="hidden" name="krs_id[${mhs.mahasiswa_id}]" value="${mhs.krs_id || ''}">
                                     <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]"
-                                        class="form-control" value="${mhs.uts || ''}"
-                                        min="0" max="100">
+                                        class="form-control form-control-sm komponen-nilai" value="${mhs.uts || ''}"
+                                        min="0" max="100" style="width: 80px;">
                                 </td>
                                 <td>
                                     <input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]"
-                                        class="form-control" value="${mhs.uas || ''}"
-                                        min="0" max="100">
+                                        class="form-control form-control-sm komponen-nilai" value="${mhs.uas || ''}"
+                                        min="0" max="100" style="width: 80px;">
                                 </td>
                                 <td>
                                     <input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]"
-                                        class="form-control" value="${mhs.tugas || ''}"
-                                        min="0" max="100">
+                                        class="form-control form-control-sm komponen-nilai" value="${mhs.tugas || ''}"
+                                        min="0" max="100" style="width: 80px;">
                                 </td>
                                 <td>
                                     <input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]"
-                                        class="form-control" value="${mhs.absensi || ''}"
-                                        min="0" max="100">
+                                        class="form-control form-control-sm komponen-nilai" value="${mhs.absen || ''}"
+                                        min="0" max="100" style="width: 80px;">
                                 </td>
                                 <td>
                                     <input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]"
-                                        class="form-control" value="${mhs.praktik || ''}"
-                                        min="0" max="100">
+                                        class="form-control form-control-sm komponen-nilai" value="${mhs.praktik || ''}"
+                                        min="0" max="100" style="width: 80px;">
                                 </td>
-                                <td>
-                                    <input type="number" step="0.01" name="akhir[${mhs.mahasiswa_id}]"
-                                        class="form-control nilai-akhir" value="${mhs.akhir || ''}"
-                                        min="0" max="100">
+                                <td class="text-center">
+                                    <strong class="nilai-akhir" style="font-size: .9rem;">${nilaiAkhir}</strong>
                                 </td>
-                                <td>
-                                    <input type="text" name="khs[${mhs.mahasiswa_id}]"
-                                        class="form-control nilai-huruf" value="${mhs.khs || ''}" readonly>
+                                <td class="text-center">
+                                    <span class="badge ${hurufMutu === 'A' || hurufMutu === 'AB' ? 'bg-success' : hurufMutu === 'BA' || hurufMutu === 'B' ? 'bg-primary' : hurufMutu === 'BC' || hurufMutu === 'C' ? 'bg-warning' : 'bg-danger'} nilai-huruf">${hurufMutu}</span>
                                 </td>
                             </tr>
                         `;
@@ -656,15 +736,80 @@ async function fetchData(url) {
                     });
                 };
 
-                // Auto calculate grade when akhir value changes
-                $(document).on("input", ".nilai-akhir", function() {
-                    const nilai = parseFloat($(this).val());
-                    const hurufInput = $(this).closest("tr").find(".nilai-huruf");
+                // Auto-calculate on any komponen nilai input change
+                $(document).on("input", ".komponen-nilai", function() {
+                    const $row = $(this).closest("tr");
+                    autoCalcRow($row);
+                });
 
-                    if (!isNaN(nilai) && nilai >= 0 && nilai <= 100) {
-                        hurufInput.val(calculateGrade(nilai));
-                    } else {
-                        hurufInput.val("");
+                // Bobot panel: toggle edit mode
+                $(document).on("click", "#btn-edit-bobot", function() {
+                    $('#bobot-display').hide();
+                    $('#bobot-edit').show();
+                });
+                $(document).on("click", "#btn-cancel-bobot", function() {
+                    $('#bobot-edit').hide();
+                    $('#bobot-display').show();
+                });
+
+                // Bobot panel: save bobot via AJAX
+                $(document).on("click", "#btn-save-bobot", async function() {
+                    const btn = $(this);
+                    btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Menyimpan...');
+
+                    const newBobot = {
+                        program_studi_id: currentKonfigurasi.program_studi_id,
+                        matakuliah_id: currentKonfigurasi.matakuliah_id,
+                        persen_uts: parseFloat($('#bobot-uts').val()) || 0,
+                        persen_uas: parseFloat($('#bobot-uas').val()) || 0,
+                        persen_tugas: parseFloat($('#bobot-tugas').val()) || 0,
+                        persen_absen: parseFloat($('#bobot-absen').val()) || 0,
+                        persen_praktik: parseFloat($('#bobot-praktik').val()) || 0,
+                    };
+
+                    try {
+                        const response = await $.ajax({
+                            url: '{{ route("admin.bobot-nilai.save") }}',
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}',
+                                ...newBobot,
+                            },
+                            dataType: 'json'
+                        });
+
+                        if (response.success) {
+                            // Update global bobot
+                            currentBobot = {
+                                uts: newBobot.persen_uts,
+                                uas: newBobot.persen_uas,
+                                tugas: newBobot.persen_tugas,
+                                absensi: newBobot.persen_absen,
+                                praktik: newBobot.persen_praktik,
+                            };
+                            currentKonfigurasi.bobot = currentBobot;
+                            currentKonfigurasi.bobot_source = 'custom';
+
+                            // Re-render bobot panel
+                            renderBobotPanel(currentBobot, currentKonfigurasi);
+                            updateTableHeader(currentBobot);
+
+                            // Recalculate all rows
+                            $('#table-mahasiswa tbody tr').each(function() {
+                                autoCalcRow($(this));
+                            });
+
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('Bobot berhasil disimpan & nilai diperbarui.', 'Berhasil!');
+                            }
+                        } else {
+                            showError(response.message || 'Gagal menyimpan bobot');
+                        }
+                    } catch (error) {
+                        console.error("Error:", error);
+                        showError("Gagal menyimpan bobot nilai");
+                    } finally {
+                        btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Simpan');
                     }
                 });
 
@@ -688,8 +833,11 @@ async function fetchData(url) {
                         });
 
                         if (response.success) {
-                            alert("Data nilai berhasil disimpan!");
-                            // Don't reload the table - keep user's current input state
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success(response.message, 'Berhasil!', { timeOut: 3000, progressBar: true });
+                            } else {
+                                Swal.fire({ title: 'Berhasil!', text: response.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                            }
                         } else {
                             showError(response.message || "Gagal menyimpan data");
                         }
@@ -702,26 +850,16 @@ async function fetchData(url) {
                     }
                 });
             });
-         // Clear Selection Button - MODIFIED to properly handle mata kuliah state
+         // Clear Selection Button
            $("#clear-selection").on("click", function() {
-    // Clear and reset mata kuliah dropdown
             $("#mata-kuliah").val(null).trigger("change").prop("disabled", false);
-
-            // Clear and reset program studi dropdown
             $("#program-studi").val(null).trigger("change");
-
-            // Reset table message
-            showTableMessage("Silakan pilih program studi dan mata kuliah");
-
-            // Hide save button
+            showTableMessage("Silakan pilih mata kuliah", "Ikuti langkah di atas untuk memulai input nilai");
             $("#save-nilai").hide();
-
-            // Ensure proper enabled states:
-            // - Program studi enabled only if tahun ajaran is selected
+            $('#save-bar').hide();
+            $('#bobot-panel-container').empty();
             const tahunAjaranSelected = $("#tahun-ajaran").val();
             $("#program-studi").prop("disabled", !tahunAjaranSelected);
-
-            // Mata kuliah always enabled after clear
             $("#mata-kuliah").prop("disabled", false);
         });
     </script>

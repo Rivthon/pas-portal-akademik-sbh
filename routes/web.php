@@ -313,8 +313,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/input-nilai', [InputNilaiController::class, 'index'])->name('input-nilai.index');
         Route::get('/mata-kuliah/{programStudiId}/{tahunAjaranId}', [InputNilaiController::class, 'getMataKuliah']);
         Route::get('/mahasiswa/input-nilai/{mataKuliahId}/{tahunAjaranId}', [InputNilaiController::class, 'getMahasiswa']);
+        Route::get('/mahasiswa/input-nilai/export/{mataKuliahId}/{tahunAjaranId}/{format}', [InputNilaiController::class, 'export'])->name('nilai.export');
         Route::post('/nilai/save', [InputNilaiController::class, 'saveNilai'])->name('nilai.save');
         Route::post('bobot-nilai', [InputNilaiController::class, 'store'])->name('bobot-nilai.store');
+        Route::post('bobot-nilai/save', [InputNilaiController::class, 'saveBobotNilai'])->name('bobot-nilai.save');
           });
 
         Route::middleware(['permission:list-nilai'])->group(function () {
@@ -326,6 +328,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware(['permission:list-aktivasi'])->group(function () {
         Route::get('/aktivasi-mhs', [AktivasiController::class,'index'])->name('aktivasi.index');
         Route::post('/aktivasi-mhs/update-status', [AktivasiController::class, 'updateStatus'])->name('aktivasi-mhs.updateStatus');
+        Route::post('/aktivasi-mhs/bulk-update', [AktivasiController::class, 'bulkUpdateStatus'])->name('aktivasi-mhs.bulkUpdate');
         Route::post('/reset-status', [AktivasiController::class, 'resetAllStatus'])->name('reset.all.status');
         });
         Route::get('/penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
