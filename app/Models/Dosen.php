@@ -43,6 +43,18 @@ class Dosen extends Authenticatable
         'remember_token',
     ];
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+        ];
+    }
+
     // Relasi ke Program Studi
     public function programStudi()
     {

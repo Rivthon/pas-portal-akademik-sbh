@@ -22,7 +22,7 @@ class KurikulumController extends Controller
         $this->middleware('permission:kurikulum-edit', ['only' => ['edit', 'update']]);
         $this->middleware('permission:kurikulum-delete', ['only' => ['destroy']]);
     }
-   public function index()
+    public function index()
     {
         try {
             // Ambil tahun ajaran yang statusnya aktif
@@ -65,11 +65,11 @@ class KurikulumController extends Controller
 
             // Ambil data Kurikulum berdasarkan program studi & semester
             $kurikulums = Kurikulum::select(
-                    'kurikulum.*',
-                    'matakuliah.nama as nama_matakuliah',
-                    'matakuliah.smt as semester',
-                    // 'ruangan.nama as nama_ruangan'
-                )
+                'kurikulum.*',
+                'matakuliah.nama as nama_matakuliah',
+                'matakuliah.smt as semester',
+                // 'ruangan.nama as nama_ruangan'
+            )
                 ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
                 ->where('kurikulum.jurusan_id', $programStudi)
                 ->where('kurikulum.ta_id', $tahunAjaran->ta_id) // Tahun ajaran aktif
@@ -141,7 +141,7 @@ class KurikulumController extends Controller
         $programStudi = ProgramStudi::all();
         $mataKuliah = Matakuliah::all();
         $ruangan = Ruangan::all();
-         // Ambil Tahun Akademik dengan status_ta = 1
+        // Ambil Tahun Akademik dengan status_ta = 1
         $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
 
         if (!$tahunAjaranAktif) {
@@ -189,9 +189,9 @@ class KurikulumController extends Controller
     public function storeMultiple(Request $request)
     {
         $request->validate([
-            'matakuliah_ids'   => 'required|array|min:1',
+            'matakuliah_ids' => 'required|array|min:1',
             'matakuliah_ids.*' => 'required|string',
-            'ta_id'            => 'required|string',
+            'ta_id' => 'required|string',
         ]);
 
         $taId = $request->ta_id;
@@ -221,8 +221,8 @@ class KurikulumController extends Controller
 
                 Kurikulum::create([
                     'matakuliah_id' => $mkId,
-                    'ta_id'         => $taId,
-                    'jurusan_id'    => $matakuliah->jurusan_id,
+                    'ta_id' => $taId,
+                    'jurusan_id' => $matakuliah->jurusan_id,
                 ]);
 
                 $created++;
@@ -244,7 +244,7 @@ class KurikulumController extends Controller
             'message' => $message,
             'created' => $created,
             'skipped' => $skipped,
-            'errors'  => $errors,
+            'errors' => $errors,
         ]);
     }
 
@@ -253,7 +253,7 @@ class KurikulumController extends Controller
         // Validasi input
         $validated = $request->validate([
             'matakuliah_id' => 'required|string',
-            'ta_id'         => 'required|string',
+            'ta_id' => 'required|string',
         ]);
 
         try {
@@ -295,7 +295,7 @@ class KurikulumController extends Controller
         // Validasi input
         $validated = $request->validate([
             'matakuliah_id' => 'required|string',
-            'ta_id'         => 'required|string',
+            'ta_id' => 'required|string',
             // 'ruangan_id'    => 'required|string',
             // 'jam_mulai'     => 'required|date_format:H:i',
             // 'jam_selesai'   => 'required|date_format:H:i|after:jam_mulai',
@@ -337,13 +337,22 @@ class KurikulumController extends Controller
         }
     }
 
-    public function destroy(Kurikulum $kurikulum): RedirectResponse
+    public function destroy(Kurikulum $kurikulum)
     {
         $kurikulum->delete();
 
+        // Deteksi jika request datang dari AJAX/Fetch
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Data kurikulum berhasil dihapus.'
+            ]);
+        }
+
+        // Fallback jika dihapus tidak menggunakan AJAX (opsional, untuk jaga-jaga)
         Alert::toast('kurikulum berhasil dihapus.', 'info')
-            ->position('bottom-end') // Posisi toast
-            ->autoClose(3000);    // Durasi dalam milidetik
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         return redirect()->route('admin.kurikulum.index');
     }

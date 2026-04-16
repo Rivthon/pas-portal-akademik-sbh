@@ -27,10 +27,6 @@ class Kurikulum extends Model
         'matakuliah_id',
         'ta_id',
         'jurusan_id',
-        // 'hari',
-        // 'ruangan_id',
-        // 'jam_mulai',
-        // 'jam_selesai'
     ];
 
     public function mataKuliah()

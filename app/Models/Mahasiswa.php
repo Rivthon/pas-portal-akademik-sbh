@@ -49,7 +49,6 @@ class Mahasiswa extends Authenticatable
         'no_telp_ibu',
         'alamat_ortu',
         'semester',
-        'password',
         'asal_sekolah',
         'tahun_masuk',
         'tahun_lulus',
@@ -88,27 +87,18 @@ class Mahasiswa extends Authenticatable
     ];
 
     /**
-     * Kolom yang di-cast ke tipe data tertentu.
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
      */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
 
-    /**
-     * Hash password sebelum menyimpan ke database.
-     */
-
-    /**
-     * Relasi ke Program Studi.
-     */
-    // public function programStudi()
-    // {
-    //     return $this->belongsTo(ProgramStudi::class, 'program_studi_id');
-    // }
-    // public function absensi()
-    // {
-    //     return $this->hasMany(Absensi::class, 'mahasiswa_id');
-    // }
     // Relasi ke model ProgramStudi
     public function programStudi()
     {

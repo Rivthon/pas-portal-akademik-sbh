@@ -48,13 +48,16 @@ class TarifController extends Controller
 
         // Jika tidak ada parameter filter yang dikirim (inisial buka halaman), tidak usah nge-load ribuan data!
         if (!$request->has('program_studi') && !$request->has('tahun_masuk') && !$request->has('gelombang_id')) {
-            $tarif = collect(); // Kosong
+            $tarif = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50, 1, ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath()]);
+            
+            $pageIndex = 0;
+
             if ($request->ajax()) {
                 return response()->json([
-                    'html' => view('admin.keuangan.tarif.partial_list', compact('tarif'))->render(),
+                    'html' => view('admin.keuangan.tarif.partial_list', compact('tarif', 'pageIndex'))->render(),
                 ]);
             }
-            return view('admin.keuangan.tarif.index', compact('tarif', 'programStudiList', 'gelombangsList', 'tahunMasukList'));
+            return view('admin.keuangan.tarif.index', compact('tarif', 'pageIndex', 'programStudiList', 'gelombangsList', 'tahunMasukList'));
         }
 
         // Start building the query

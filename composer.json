@@ -10,22 +10,23 @@
     "require": {
         "php": "^8.4",
         "barryvdh/laravel-dompdf": "^3.1",
-        "simplesoftwareio/simple-qrcode": "^4.2",
-        "laravel/framework": "^11.0",
+        "laravel/framework": "^12.0",
         "laravel/tinker": "^2.9",
         "laravel/ui": "^4.5",
-        "maatwebsite/excel": "^3.1",
+        "maatwebsite/excel": "^3.1.68",
         "realrashid/sweet-alert": "^7.2",
-        "spatie/laravel-permission": "^6.7",
-        "yajra/laravel-datatables": "^11.0"
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "spatie/laravel-permission": "^7.3",
+        "yajra/laravel-datatables": "^12.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^11.0.1",
+        "nunomaduro/collision": "^8.5",
+        "phpunit/phpunit": "^11.5",
+        "rector/rector": "^2.4",
         "spatie/laravel-ignition": "^2.4"
     },
     "autoload": {

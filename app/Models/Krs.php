@@ -37,20 +37,22 @@ class Krs extends Model
      *
      * @var array
      */
-    protected $casts = [
-        'krs_id' => 'integer',
-        'kurikulum_id' => 'integer',
-        'ta_id' => 'integer',
-        'mahasiswa_id' => 'integer',
-        'khs' => 'string',
-        'uts' => 'string',
-
-        'uas' => 'string',
-        'akhir' => 'string',
-        'tugas' => 'string',
-        'absen' => 'string',
-        'praktik' => 'string',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'krs_id' => 'integer',
+            'kurikulum_id' => 'integer',
+            'ta_id' => 'integer',
+            'mahasiswa_id' => 'integer',
+            'khs' => 'string',
+            'uts' => 'string',
+            'uas' => 'string',
+            'akhir' => 'string',
+            'tugas' => 'string',
+            'absen' => 'string',
+            'praktik' => 'string',
+        ];
+    }
      public function mataKuliah()
     {
         return $this->belongsTo(MataKuliah::class, 'matakuliah_id');

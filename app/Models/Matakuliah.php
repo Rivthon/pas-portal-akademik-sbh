@@ -48,9 +48,9 @@ class Matakuliah extends Model
         return $this->hasMany(Krs::class, 'matakuliah_id');
     }
     public function penilaian()
-{
-    return $this->hasMany(Penilaian::class, 'mahasiswa_id');
-}
+    {
+        return $this->hasManyThrough(Penilaian::class, Kurikulum::class, 'matakuliah_id', 'kurikulum_id', 'matakuliah_id', 'kurikulum_id');
+    }
     public function getSemesterLabelAttribute()
         {
             if (!$this->smt) {
