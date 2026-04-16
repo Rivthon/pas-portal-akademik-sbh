@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\mahasiswa;
+namespace App\Http\Controllers\Mahasiswa;
 
 // --- Framework & Facades ---
 use Illuminate\Http\Request;
@@ -15,9 +15,9 @@ use App\Http\Controllers\Controller;
 // --- Models ---
 use App\Models\Jadwal;
 use App\Models\JadwalPraktik;
-use App\Models\Jadwaluap;
-use App\Models\Jadwaluas;
-use App\Models\Jadwaluts;
+use App\Models\JadwalUap;
+use App\Models\JadwalUas;
+use App\Models\JadwalUts;
 use App\Models\Kurikulum;
 use App\Models\ProgramStudi;
 use App\Models\Setting;
@@ -106,7 +106,7 @@ class PerkuliahanController extends Controller
                 ];
             });
 
-        return view('students.jadwal.index', compact('jadwals'));
+        return view('mahasiswa.jadwal.index', compact('jadwals'));
     }
 
     public function jadwalPraktik(Request $request)
@@ -168,7 +168,7 @@ class PerkuliahanController extends Controller
                 ];
             });
 
-        return view('students.jadwal.praktik', compact('jadwals'));
+        return view('mahasiswa.jadwal.praktik', compact('jadwals'));
     }
 
 
@@ -187,7 +187,7 @@ class PerkuliahanController extends Controller
         }
 
         // Query dengan eager loading
-        $jadwalUts = Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
+        $jadwalUts = JadwalUts::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
                 if ($kelas === 'pagi') {
@@ -206,7 +206,7 @@ class PerkuliahanController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        return view('students.jadwal-uts.index', compact('jadwalUts'));
+        return view('mahasiswa.jadwal-uts.index', compact('jadwalUts'));
     }
 
 
@@ -225,7 +225,7 @@ class PerkuliahanController extends Controller
         }
 
         // Query dengan eager loading
-        $jadwalUas = Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
+        $jadwalUas = JadwalUas::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
                 if ($kelas === 'pagi') {
@@ -244,7 +244,7 @@ class PerkuliahanController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
-        return view('students.jadwal-uas.index', compact('jadwalUas'));
+        return view('mahasiswa.jadwal-uas.index', compact('jadwalUas'));
     }
 
     public function jadwalUap()
@@ -263,9 +263,9 @@ class PerkuliahanController extends Controller
         }
 
         // Ambil semua jadwal UAP
-        $jadwal = Jadwaluap::where('ta_id', $tahunAjaran->ta_id)->get();
+        $jadwal = JadwalUap::where('ta_id', $tahunAjaran->ta_id)->get();
 
-        return view('students.jadwal-uap.index', compact('jadwal'));
+        return view('mahasiswa.jadwal-uap.index', compact('jadwal'));
     }
 
     /**
@@ -273,7 +273,7 @@ class PerkuliahanController extends Controller
      */
     private function buildJadwalUtsQuery($activeTA, $semester, $kelas, $prodi)
     {
-        return Jadwaluts::with(['programStudi', 'mataKuliah', 'ruangan'])
+        return JadwalUts::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
                 if ($kelas === 'pagi') {
@@ -298,7 +298,7 @@ class PerkuliahanController extends Controller
      */
     private function buildJadwalUasQuery($activeTA, $semester, $kelas, $prodi)
     {
-        return Jadwaluas::with(['programStudi', 'mataKuliah', 'ruangan'])
+        return JadwalUas::with(['programStudi', 'mataKuliah', 'ruangan'])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
                 if ($kelas === 'pagi') {
@@ -441,7 +441,7 @@ class PerkuliahanController extends Controller
         [$logoBase64, $ttd] = $this->getLogoAndTtd($mahasiswa);
 
         // Ambil jadwal UAP sesuai prodi dan semester mahasiswa
-        $jadwalUap = Jadwaluap::with(['programStudi'])
+        $jadwalUap = JadwalUap::with(['programStudi'])
             ->where('ta_id', $activeTA->ta_id)
             ->whereHas('programStudi', function ($query) use ($prodi) {
                 $query->where('jurusan_id', $prodi);

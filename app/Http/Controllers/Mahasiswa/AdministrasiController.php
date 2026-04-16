@@ -32,15 +32,24 @@ class AdministrasiController extends Controller
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
-        // Ambil tagihan berdasarkan mahasiswa yang login, semester, dan Tahun Akademik aktif
-        $pembayaran = TagihanMahasiswa::whereHas('mahasiswa', function ($query) use ($user) {
-            $query->where('mahasiswa_id', $user->mahasiswa_id);
-        })
-        ->where('semester', $semester)
-        ->with(['mahasiswa', 'tahunAjaran', 'tenorPembayaran'])
+        // Ambil SEMUA tagihan berdasarkan mahasiswa yang login, diurutkan dari semester terbaru
+        $pembayaran = TagihanMahasiswa::where('mahasiswa_id', $user->mahasiswa_id)
+        ->with(['tahunAjaran', 'tenorPembayaran', 'transaksi'])
+        ->orderBy('semester', 'desc')
+        ->orderBy('jatuh_tempo', 'desc')
         ->get();
 
-        return view('students.administrasi.index', compact('pembayaran'));
+        // Hitung aggregat global untuk summary dashboard
+        $totalTagihanGlobal = $pembayaran->sum('jumlah_tagihan');
+        
+        $totalDibayarGlobal = 0;
+        foreach($pembayaran as $tagihan) {
+            $totalDibayarGlobal += $tagihan->transaksi->where('status_verifikasi', 'diterima')->sum('nominal_bayar');
+        }
+        
+        $sisaGlobal = $totalTagihanGlobal - $totalDibayarGlobal;
+
+        return view('mahasiswa.administrasi.index', compact('pembayaran', 'totalTagihanGlobal', 'totalDibayarGlobal', 'sisaGlobal'));
     }
 
 }

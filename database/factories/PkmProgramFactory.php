@@ -5,7 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Pkm_program>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PkmProgram>
  */
 class PkmProgramFactory extends Factory
 {

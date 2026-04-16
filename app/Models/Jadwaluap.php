@@ -6,7 +6,7 @@ use App\Models\TahunAkademik;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Jadwaluap extends Model
+class JadwalUap extends Model
 {
    use HasFactory;
     protected $table = 'jadwal_uap'; // Pastikan nama tabel sesuai

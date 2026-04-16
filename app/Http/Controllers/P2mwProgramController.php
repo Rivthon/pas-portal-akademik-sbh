@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\P2mw_program;
+use App\Models\P2mwProgram;
 use App\Http\Requests\StoreP2mw_programRequest;
 use App\Http\Requests\UpdateP2mw_programRequest;
 
@@ -35,7 +35,7 @@ class P2mwProgramController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(P2mw_program $p2mw_program)
+    public function show(P2mwProgram $p2mw_program)
     {
         //
     }
@@ -43,7 +43,7 @@ class P2mwProgramController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(P2mw_program $p2mw_program)
+    public function edit(P2mwProgram $p2mw_program)
     {
         //
     }
@@ -51,7 +51,7 @@ class P2mwProgramController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateP2mw_programRequest $request, P2mw_program $p2mw_program)
+    public function update(UpdateP2mw_programRequest $request, P2mwProgram $p2mw_program)
     {
         //
     }
@@ -59,7 +59,7 @@ class P2mwProgramController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(P2mw_program $p2mw_program)
+    public function destroy(P2mwProgram $p2mw_program)
     {
         //
     }

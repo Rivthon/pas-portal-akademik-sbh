@@ -115,7 +115,7 @@ class EdomController extends Controller
         });
 
         // 6️⃣ Return ke view
-        return view('students.edom.index', compact(
+        return view('mahasiswa.edom.index', compact(
             'mahasiswa',
             'activeTA',
             'krsList',
@@ -178,7 +178,7 @@ class EdomController extends Controller
             $evaluasis = Evaluasi::all();
 
             // Return view dengan data lengkap
-            return view('students.edom.form', [
+            return view('mahasiswa.edom.form', [
                 'krs' => $krs,
                 'dosen' => $dosen,
                 'evaluasis' => $evaluasis,

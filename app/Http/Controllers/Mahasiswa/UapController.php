@@ -18,6 +18,6 @@ class UapController extends Controller
 
             ->get();
 
-        return view('students.uap.index', compact('nilaiUap'));
+        return view('mahasiswa.uap.index', compact('nilaiUap'));
     }
 }

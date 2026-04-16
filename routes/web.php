@@ -3,57 +3,57 @@
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\DosenController;
-use App\Http\Controllers\NilaiController;
-use App\Http\Controllers\TarifController;
-use App\Http\Controllers\BeritaController;
-use App\Http\Controllers\JadwalController;
-use App\Http\Controllers\AbsensiController;
-use App\Http\Controllers\LaporanController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RuanganController;
-use App\Http\Controllers\SettingController;
-use App\Http\Controllers\AktivasiController;
-use App\Http\Controllers\EvaluasiController;
-use App\Http\Controllers\UapNilaiController;
-use App\Http\Controllers\GelombangController;
-use App\Http\Controllers\JadwaluapController;
-use App\Http\Controllers\JadwaluasController;
-use App\Http\Controllers\JadwalutsController;
-use App\Http\Controllers\KurikulumController;
-use App\Http\Controllers\MahasiswaController;
-use App\Http\Controllers\PenilaianController;
-use App\Http\Controllers\PertemuanController;
-use App\Http\Controllers\ValidatorController;
+use App\Http\Controllers\Admin\HomeController;
+use App\Http\Controllers\Admin\MasterData\RoleController;
+use App\Http\Controllers\Admin\MasterData\UserController;
+use App\Http\Controllers\Admin\MasterData\DosenController;
+use App\Http\Controllers\Admin\Penilaian\NilaiController;
+use App\Http\Controllers\Admin\Keuangan\TarifController;
+use App\Http\Controllers\Admin\BeritaController;
+use App\Http\Controllers\Admin\Akademik\JadwalController;
+use App\Http\Controllers\Admin\Akademik\AbsensiController;
+use App\Http\Controllers\Admin\LaporanController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\Akademik\RuanganController;
+use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\Kemahasiswaan\AktivasiController;
+use App\Http\Controllers\Admin\Penilaian\EvaluasiController;
+use App\Http\Controllers\Admin\Penilaian\UapNilaiController;
+use App\Http\Controllers\Admin\Keuangan\GelombangController;
+use App\Http\Controllers\Admin\Akademik\JadwalUapController;
+use App\Http\Controllers\Admin\Akademik\JadwalUasController;
+use App\Http\Controllers\Admin\Akademik\JadwalUtsController;
+use App\Http\Controllers\Admin\Akademik\KurikulumController;
+use App\Http\Controllers\Admin\Kemahasiswaan\MahasiswaController;
+use App\Http\Controllers\Admin\Penilaian\PenilaianController;
+use App\Http\Controllers\Admin\Akademik\PertemuanController;
+use App\Http\Controllers\Admin\ValidatorController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\InputNilaiController;
-use App\Http\Controllers\MatakuliahController;
-use App\Http\Controllers\PermintaanController;
-use App\Http\Controllers\ProgramStudiController;
-use App\Http\Controllers\JadwalPraktikController;
-use App\Http\Controllers\TahunAkademikController;
-use App\Http\Controllers\DosenKurikulumController;
+use App\Http\Controllers\Admin\Penilaian\InputNilaiController;
+use App\Http\Controllers\Admin\Akademik\MatakuliahController;
+use App\Http\Controllers\Admin\Kemahasiswaan\PermintaanController;
+use App\Http\Controllers\Admin\MasterData\ProgramStudiController;
+use App\Http\Controllers\Admin\Akademik\JadwalPraktikController;
+use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
+use App\Http\Controllers\Admin\DosenKurikulumController;
 use App\Http\Controllers\Mahasiswa\EdomController;
 use App\Http\Controllers\Mahasiswa\SkpiController;
 use App\Http\Controllers\Mahasiswa\UjianController;
-use App\Http\Controllers\TenorPembayaranController;
-use App\Http\Controllers\CalenderAkademikController;
+use App\Http\Controllers\Admin\Keuangan\TenorPembayaranController;
+use App\Http\Controllers\Admin\Akademik\CalendarAkademikController;
 use App\Http\Controllers\Dosen\LoginDosenController;
-use App\Http\Controllers\TagihanMahasiswaController;
+use App\Http\Controllers\Admin\Keuangan\TagihanMahasiswaController;
 use App\Http\Controllers\Dosen\ProfileDosenController;
 use App\Http\Controllers\Mahasiswa\AkademikController;
-use App\Http\Controllers\PengajuanTranskripController;
+use App\Http\Controllers\Admin\Kemahasiswaan\PengajuanTranskripController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
 use App\Http\Controllers\Dosen\ModulAkademikController;
 use App\Http\Controllers\Mahasiswa\DashboardController;
 use App\Http\Controllers\Dosen\DashboardDosenController;
 use App\Http\Controllers\Dosen\LaporanAbsensiController;
 use App\Http\Controllers\Mahasiswa\PerkuliahanController;
-use App\Http\Controllers\Mahasiswa\PerminataanController;
+use App\Http\Controllers\Mahasiswa\PermintaanController as MhsPermintaanController;
 use App\Http\Controllers\Mahasiswa\ProfileUserController;
 use App\Http\Controllers\Dosen\PerkuliahanDosenController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
@@ -108,9 +108,9 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
 
         Route::get('/krs/cetak-transkrip-mahasiswa', [AkademikController::class, 'cetakTranskrip'])->name('cetak-transkrip');
 
-        Route::get('/mahasiswa/nilai-uts', [UjianController::class, 'tampikanNilaiUts'])->name('nilai-uts.index');
-        Route::get('/mahasiswa/nilai-uas', [UjianController::class, 'tampikanNilaiUas'])->name('nilai-uas.index');
-        Route::get('/mahasiswa/nilai-akhir', [UjianController::class, 'tampikanNilaiAkhir'])->name('nilai-akhir.index');
+        Route::get('/mahasiswa/nilai-uts', [UjianController::class, 'tampilkanNilaiUts'])->name('nilai-uts.index');
+        Route::get('/mahasiswa/nilai-uas', [UjianController::class, 'tampilkanNilaiUas'])->name('nilai-uas.index');
+        Route::get('/mahasiswa/nilai-akhir', [UjianController::class, 'tampilkanNilaiAkhir'])->name('nilai-akhir.index');
 
         Route::get('/mahasiswa/edom', [EdomController::class, 'index'])->name('edom.index');
         Route::get('/mahasiswa/edom/form/{krs_id}', [EdomController::class, 'form'])->name('edom.form');
@@ -177,10 +177,10 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
 
         Route::get('/transkrip/download', [PengajuanTranskripController::class, 'downloadTranskrip'])
          ->name('pengajuan.cetak');
-        Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
-        Route::get('/permintaan/create', [PerminataanController::class, 'create'])->name('permintaan.create');
-        Route::post('/permintaan', [PerminataanController::class, 'store'])->name('permintaan.store');
-        Route::delete('/permintaan/{id}', [PerminataanController::class, 'destroy'])->name('permintaan.destroy');
+        Route::get('/permintaan', [MhsPermintaanController::class, 'index'])->name('permintaan.index');
+        Route::get('/permintaan/create', [MhsPermintaanController::class, 'create'])->name('permintaan.create');
+        Route::post('/permintaan', [MhsPermintaanController::class, 'store'])->name('permintaan.store');
+        Route::delete('/permintaan/{id}', [MhsPermintaanController::class, 'destroy'])->name('permintaan.destroy');
         Route::get('/nilai-uap', [App\Http\Controllers\Mahasiswa\UapController::class, 'index'])->name('uap.index');
 
     });
@@ -192,7 +192,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('login', [LoginController::class, 'login']);
         Route::post('logout', [LoginController::class, 'logout'])->name('logout');
         Route::middleware('auth')->group(function () {
-        Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+        Route::get('/home', [HomeController::class, 'index'])->name('home');
 
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
@@ -224,9 +224,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/tarif/import/template', [TarifController::class, 'downloadTemplate'])->name('tarif.download-template');
         Route::resource('gelombang', GelombangController::class);
 
-        Route::get('/calender', [CalenderAkademikController::class, 'index'])->name('calender.index');
-        Route::get('/calender/{id}/edit', [CalenderAkademikController::class, 'edit'])->name('calender.edit');
-        Route::put('/calender/{id}', [CalenderAkademikController::class, 'update'])->name('calender.update');
+        Route::get('/calender', [CalendarAkademikController::class, 'index'])->name('calender.index');
+        Route::get('/calender/{id}/edit', [CalendarAkademikController::class, 'edit'])->name('calender.edit');
+        Route::put('/calender/{id}', [CalendarAkademikController::class, 'update'])->name('calender.update');
 
         Route::get('tenor-pembayaran', [TenorPembayaranController::class, 'index'])->name('tenor-pembayaran.index');
         Route::get('tenor-pembayaran/create', [TenorPembayaranController::class, 'create'])->name('tenor-pembayaran.create');
@@ -259,23 +259,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/mata-kuliah/filter', [KurikulumController::class, 'filter'])->middleware('permission:kurikulum-list')->name('kurikulum.filter');
 
 
-        Route::get('/jadwaluts', [JadwalutsController::class, 'index'])->middleware('permission:jadwal-uts-list')->name('jadwal-uts.index');
-        Route::get('/jadwaluts/filter', [JadwalutsController::class, 'filter'])->middleware('permission:jadwal-uts-list')->name('jadwal-uts.filter');
-        Route::post('/jadwal-uts/generate', [JadwalutsController::class, 'generateJadwalUTS'])->name('jadwal-uts.generate');
-        Route::get('/jadwaluts/create', [JadwalutsController::class, 'create'])->middleware('permission:jadwal-uts-create')->name('jadwal-uts.create');
-        Route::post('/jadwaluts', [JadwalutsController::class, 'store'])->middleware('permission:jadwal-uts-create')->name('jadwal-uts.store');
-        Route::get('/jadwaluts/{id}/edit', [JadwalutsController::class, 'edit'])->middleware('permission:jadwal-uts-edit')->name('jadwal-uts.edit');
-        Route::post('/jadwal-uts/update/{id}', [JadwalutsController::class, 'update'])->name('jadwal-uts.update');
-        Route::delete('/jadwal-uts/delete/{id}', [JadwalutsController::class, 'destroy'])->middleware('permission:jadwal-uts-delete')->name('jadwal-uts.destroy');
+        Route::get('/jadwaluts', [JadwalUtsController::class, 'index'])->middleware('permission:jadwal-uts-list')->name('jadwal-uts.index');
+        Route::get('/jadwaluts/filter', [JadwalUtsController::class, 'filter'])->middleware('permission:jadwal-uts-list')->name('jadwal-uts.filter');
+        Route::post('/jadwal-uts/generate', [JadwalUtsController::class, 'generateJadwalUTS'])->name('jadwal-uts.generate');
+        Route::get('/jadwaluts/create', [JadwalUtsController::class, 'create'])->middleware('permission:jadwal-uts-create')->name('jadwal-uts.create');
+        Route::post('/jadwaluts', [JadwalUtsController::class, 'store'])->middleware('permission:jadwal-uts-create')->name('jadwal-uts.store');
+        Route::get('/jadwaluts/{id}/edit', [JadwalUtsController::class, 'edit'])->middleware('permission:jadwal-uts-edit')->name('jadwal-uts.edit');
+        Route::post('/jadwal-uts/update/{id}', [JadwalUtsController::class, 'update'])->name('jadwal-uts.update');
+        Route::delete('/jadwal-uts/delete/{id}', [JadwalUtsController::class, 'destroy'])->middleware('permission:jadwal-uts-delete')->name('jadwal-uts.destroy');
 
-        Route::get('/jadwaluas', [JadwaluasController::class, 'index'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.index');
-        Route::get('/jadwaluas/filter', [JadwaluasController::class, 'filter'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.filter');
-        Route::get('/jadwaluas/create', [JadwaluasController::class, 'create'])->middleware('permission:jadwal-uas-create')->name('jadwal-uas.create');
-        Route::post('/jadwaluas', [JadwaluasController::class, 'store'])->middleware('permission:jadwal-uas-create')->name('jadwal-uas.store');
-        Route::get('/jadwaluas/{id}/edit', [JadwaluasController::class, 'edit'])->middleware('permission:jadwal-uas-edit')->name('jadwal-uas.edit');
-        Route::post('/jadwal-uas/update/{id}', [JadwaluasController::class, 'update'])->name('jadwal-uas.update');
-        Route::post('/jadwal-uas/generate', [JadwaluasController::class, 'generateJadwalUAS'])->name('jadwal-uas.generate');
-        Route::delete('/jadwal-uas/delete/{id}', [JadwaluasController::class, 'destroy'])->middleware('permission:jadwal-uas-delete')->name('jadwal-uas.destroy');
+        Route::get('/jadwaluas', [JadwalUasController::class, 'index'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.index');
+        Route::get('/jadwaluas/filter', [JadwalUasController::class, 'filter'])->middleware('permission:jadwal-uas-list')->name('jadwal-uas.filter');
+        Route::get('/jadwaluas/create', [JadwalUasController::class, 'create'])->middleware('permission:jadwal-uas-create')->name('jadwal-uas.create');
+        Route::post('/jadwaluas', [JadwalUasController::class, 'store'])->middleware('permission:jadwal-uas-create')->name('jadwal-uas.store');
+        Route::get('/jadwaluas/{id}/edit', [JadwalUasController::class, 'edit'])->middleware('permission:jadwal-uas-edit')->name('jadwal-uas.edit');
+        Route::post('/jadwal-uas/update/{id}', [JadwalUasController::class, 'update'])->name('jadwal-uas.update');
+        Route::post('/jadwal-uas/generate', [JadwalUasController::class, 'generateJadwalUAS'])->name('jadwal-uas.generate');
+        Route::delete('/jadwal-uas/delete/{id}', [JadwalUasController::class, 'destroy'])->middleware('permission:jadwal-uas-delete')->name('jadwal-uas.destroy');
 
         Route::get('/jadwal', [JadwalController::class, 'index'])->middleware('permission:jadwal-list')->name('jadwal.index');
         Route::get('/jadwal/filter', [JadwalController::class, 'filter'])->middleware('permission:jadwal-list')->name('jadwal.filter');
@@ -289,13 +289,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/jadwal-praktik/delete/{id}', [JadwalPraktikController::class, 'destroy'])->middleware('permission:jadwal-praktik-delete')->name('jadwal-praktik.destroy');
         Route::post('/jadwal-praktik/generate', [JadwalPraktikController::class, 'generatejadwal'])->name('jadwal-praktik.generate');
 
-        Route::get('/jadwaluap', [JadwaluapController::class, 'index'])->middleware('permission:jadwal-uap-list')->name('jadwal-uap.index');
-        Route::get('/jadwaluap/filter', [JadwaluapController::class, 'filter'])->middleware('permission:jadwal-uap-list')->name('jadwal-uap.filter');
-        Route::get('/jadwaluap/create', [JadwaluapController::class, 'create'])->middleware('permission:jadwal-uap-create')->name('jadwal-uap.create');
-        Route::post('/jadwaluap', [JadwaluapController::class, 'store'])->middleware('permission:jadwal-uap-create')->name('jadwal-uap.store');
-        Route::get('/jadwaluap/{id}/edit', [JadwaluapController::class, 'edit'])->middleware('permission:jadwal-uap-edit')->name('jadwal-uap.edit');
-        Route::put('/jadwaluap/{id}', [JadwaluapController::class, 'update'])->middleware('permission:jadwal-uap-edit')->name('jadwal-uap.update');
-        Route::delete('/jadwaluap/{id}', [JadwaluapController::class, 'destroy'])->middleware('permission:jadwal-uap-delete')->name('jadwal-uap.destroy');
+        Route::get('/jadwaluap', [JadwalUapController::class, 'index'])->middleware('permission:jadwal-uap-list')->name('jadwal-uap.index');
+        Route::get('/jadwaluap/filter', [JadwalUapController::class, 'filter'])->middleware('permission:jadwal-uap-list')->name('jadwal-uap.filter');
+        Route::get('/jadwaluap/create', [JadwalUapController::class, 'create'])->middleware('permission:jadwal-uap-create')->name('jadwal-uap.create');
+        Route::post('/jadwaluap', [JadwalUapController::class, 'store'])->middleware('permission:jadwal-uap-create')->name('jadwal-uap.store');
+        Route::get('/jadwaluap/{id}/edit', [JadwalUapController::class, 'edit'])->middleware('permission:jadwal-uap-edit')->name('jadwal-uap.edit');
+        Route::put('/jadwaluap/{id}', [JadwalUapController::class, 'update'])->middleware('permission:jadwal-uap-edit')->name('jadwal-uap.update');
+        Route::delete('/jadwaluap/{id}', [JadwalUapController::class, 'destroy'])->middleware('permission:jadwal-uap-delete')->name('jadwal-uap.destroy');
 
 
         Route::middleware(['permission:assign-dosen-list'])->group(function () {
@@ -380,8 +380,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'destroy'])->name('pengajuan.destroy');
         Route::patch('/pengajuan/{id}/update-status', [PengajuanTranskripController::class, 'updateStatus'])->name('pengajuan.updateStatus');
 
-        Route::get('/permintaan', [PerminataanController::class, 'index'])->name('permintaan.index');
-        Route::get('/permintaan/{id}/edit', [PerminataanController::class, 'edit'])->name('permintaan.edit');
+        Route::get('/permintaan', [PermintaanController::class, 'index'])->name('permintaan.index');
+        Route::get('/permintaan/{id}/edit', [PermintaanController::class, 'edit'])->name('permintaan.edit');
 
         Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');

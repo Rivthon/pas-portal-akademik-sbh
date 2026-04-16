@@ -19,7 +19,7 @@ class ProfileUserController extends Controller
             $gelombang = Gelombang::all();
             $programStudi = ProgramStudi::all();
 
-            return view('students.profile.edit', compact('mahasiswa', 'gelombang', 'programStudi'));
+            return view('mahasiswa.profile.edit', compact('mahasiswa', 'gelombang', 'programStudi'));
         }
 
         public function update(Request $request)

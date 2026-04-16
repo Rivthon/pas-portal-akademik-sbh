@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Jadwaluts extends Model
+class JadwalUts extends Model
 {
     use HasFactory;
     protected $table = 'jadwal_uts'; // Pastikan nama tabel sesuai

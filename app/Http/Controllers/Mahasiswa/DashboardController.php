@@ -9,7 +9,7 @@ use App\Models\Absensi;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
-use App\Models\CalenderAkademik;
+use App\Models\CalendarAkademik;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         // **2. Cache Kalender Akademik Berdasarkan Jurusan**
         $kalenderAkademik = Cache::remember("kalender_akademik_{$mahasiswa->jurusan_id}", 3600, function () use ($mahasiswa) {
-            return CalenderAkademik::where('jurusan_id', $mahasiswa->jurusan_id)
+            return CalendarAkademik::where('jurusan_id', $mahasiswa->jurusan_id)
                 // ->orderBy('tanggal_mulai', 'desc')
                 // ->take(5)
                 ->get();
@@ -91,7 +91,7 @@ class DashboardController extends Controller
             });
         });
 
-        return view('students.dashboard', compact(
+        return view('mahasiswa.dashboard', compact(
             'tanggalSekarang',
             'settings',
             'ta',

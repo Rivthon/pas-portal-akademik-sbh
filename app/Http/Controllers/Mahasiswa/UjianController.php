@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UjianController extends Controller
 {
-    public function tampikanNilaiUts()
+    public function tampilkanNilaiUts()
     {
       $mahasiswa = Auth::guard('mahasiswa')->user();
         if (!$mahasiswa) {
@@ -29,13 +29,13 @@ class UjianController extends Controller
                 })
                 ->get();
 
-            return view('students.nilai-uts.index', compact('nilai','ta','mahasiswa'));
+            return view('mahasiswa.nilai-uts.index', compact('nilai','ta','mahasiswa'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: ' . $e->getMessage());
         }
     }
-    public function tampikanNilaiUas()
+    public function tampilkanNilaiUas()
     {
       $mahasiswa = Auth::guard('mahasiswa')->user();
         if (!$mahasiswa) {
@@ -53,13 +53,13 @@ class UjianController extends Controller
                     $query->where('smt', $mahasiswa->semester);
                 })
                 ->get();
-            return view('students.nilai-uas.index', compact('nilai','ta','mahasiswa'));
+            return view('mahasiswa.nilai-uas.index', compact('nilai','ta','mahasiswa'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: ' . $e->getMessage());
         }
     }
-    public function tampikanNilaiAkhir()
+    public function tampilkanNilaiAkhir()
     {
       $mahasiswa = Auth::guard('mahasiswa')->user();
         if (!$mahasiswa) {
@@ -78,7 +78,7 @@ class UjianController extends Controller
                 })
                 ->get();
 
-            return view('students.nilai-akhir.index', compact('nilai','ta','mahasiswa'));
+            return view('mahasiswa.nilai-akhir.index', compact('nilai','ta','mahasiswa'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: ' . $e->getMessage());

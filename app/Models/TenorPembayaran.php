@@ -11,7 +11,7 @@ class TenorPembayaran extends Model
     protected $table = 'tenor_pembayaran';
     protected $primaryKey = 'id';   // Pastikan primary key sesuai
     public $timestamps = true;
-    protected $fillable = ['semester', 'tenor', 'persentase', 'batas_waktu'];
+    protected $fillable = ['semester', 'tenor', 'persentase', 'batas_waktu', 'tahun_masuk', 'gelombang_id'];
 
     // Menampilkan persentase dalam format yang lebih rapi
     public function getPersentaseFormattedAttribute()
@@ -22,6 +22,11 @@ class TenorPembayaran extends Model
     public function tenorPembayaran()
     {
         return $this->hasMany(TenorPembayaran::class, 'id');
+    }
+
+    public function gelombang()
+    {
+        return $this->belongsTo(Gelombang::class, 'gelombang_id');
     }
 
 }

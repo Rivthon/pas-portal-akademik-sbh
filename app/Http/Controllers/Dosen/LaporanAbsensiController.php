@@ -109,7 +109,7 @@ class LaporanAbsensiController extends Controller
             });
         });
 
-        return view('pages-dosen.absensi.cetak', compact('jadwalList','activeTA','jadwalListPraktik'));
+        return view('dosen.absensi.cetak', compact('jadwalList','activeTA','jadwalListPraktik'));
     }
 
     public function generatePDF(Request $request)

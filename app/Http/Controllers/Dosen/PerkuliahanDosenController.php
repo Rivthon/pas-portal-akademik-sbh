@@ -85,7 +85,7 @@ class PerkuliahanDosenController extends Controller
                 });
             });
 
-        return view('pages-dosen.jadwal.index', compact('jadwalList','activeTA'));
+        return view('dosen.jadwal.index', compact('jadwalList','activeTA'));
     }
 
     public function search(Request $request)
@@ -149,7 +149,7 @@ class PerkuliahanDosenController extends Controller
         });
     }
 
-        return view('pages-dosen.jadwal.partial_list', compact('jadwalList'));
+        return view('dosen.jadwal.partial_list', compact('jadwalList'));
     }
     public function PraktikIndex()
     {
@@ -204,7 +204,7 @@ class PerkuliahanDosenController extends Controller
             });
         });
 
-        return view('pages-dosen.jadwal-praktik.index', compact('jadwalList', 'activeTA'));
+        return view('dosen.jadwal-praktik.index', compact('jadwalList', 'activeTA'));
     }
 
     public function searchPraktik(Request $request)
@@ -269,7 +269,7 @@ class PerkuliahanDosenController extends Controller
             });
         }
 
-        return view('pages-dosen.jadwal-praktik.partial_list', compact('jadwalList'));
+        return view('dosen.jadwal-praktik.partial_list', compact('jadwalList'));
     }
 
 
@@ -324,7 +324,7 @@ class PerkuliahanDosenController extends Controller
             });
         });
 
-        return view('pages-dosen.absensi.index', compact('absensiList', 'activeTA'));
+        return view('dosen.absensi.index', compact('absensiList', 'activeTA'));
     }
 
     public function searchAbsen(Request $request)
@@ -387,7 +387,7 @@ class PerkuliahanDosenController extends Controller
             });
         }
 
-        return view('pages-dosen.absensi.partial_list', compact('absensiList'));
+        return view('dosen.absensi.partial_list', compact('absensiList'));
     }
 
 
@@ -510,7 +510,7 @@ class PerkuliahanDosenController extends Controller
         $mahasiswaTambahan = Mahasiswa::where('jurusan_id', $pertemuan->jadwal->kurikulum->jurusan_id)
         ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
         ->get();
-        return view('pages-dosen.absensi.absen', compact('pertemuan', 'absensi','mahasiswaTambahan'));
+        return view('dosen.absensi.absen', compact('pertemuan', 'absensi','mahasiswaTambahan'));
     }
     public function store(Request $request)
     {
@@ -669,7 +669,7 @@ class PerkuliahanDosenController extends Controller
         $mahasiswaTambahan = Mahasiswa::where('jurusan_id', $pertemuan->jadwal->kurikulum->jurusan_id)
         ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
         ->get();
-        return view('pages-dosen.absensi.absensi-praktik', compact('pertemuan', 'absensi','mahasiswaTambahan'));
+        return view('dosen.absensi.absensi-praktik', compact('pertemuan', 'absensi','mahasiswaTambahan'));
     }
     public function storePraktik(Request $request)
     {

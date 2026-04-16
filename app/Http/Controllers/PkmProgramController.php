@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pkm_program;
+use App\Models\PkmProgram;
 use App\Http\Requests\StorePkm_programRequest;
 use App\Http\Requests\UpdatePkm_programRequest;
 
@@ -35,7 +35,7 @@ class PkmProgramController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Pkm_program $pkm_program)
+    public function show(PkmProgram $pkm_program)
     {
         //
     }
@@ -43,7 +43,7 @@ class PkmProgramController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Pkm_program $pkm_program)
+    public function edit(PkmProgram $pkm_program)
     {
         //
     }
@@ -51,7 +51,7 @@ class PkmProgramController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatePkm_programRequest $request, Pkm_program $pkm_program)
+    public function update(UpdatePkm_programRequest $request, PkmProgram $pkm_program)
     {
         //
     }
@@ -59,7 +59,7 @@ class PkmProgramController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Pkm_program $pkm_program)
+    public function destroy(PkmProgram $pkm_program)
     {
         //
     }

@@ -12,7 +12,7 @@ class ProfileDosenController extends Controller
 {
     public function index()
     {
-        return view('pages-dosen.profile.edit', ['user' => Auth::user()]);
+        return view('dosen.profile.edit', ['user' => Auth::user()]);
     }
 
     public function update(Request $request)

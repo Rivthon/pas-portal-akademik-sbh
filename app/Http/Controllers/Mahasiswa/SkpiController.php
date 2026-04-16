@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Mahasiswa;
 
 use App\Models\Ppsm;
 use App\Models\Setting;
-use App\Models\Pkm_program;
+use App\Models\PkmProgram;
 use App\Models\Sertifikasi;
-use App\Models\P2mw_program;
+use App\Models\P2mwProgram;
 use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
 use App\Models\KegiatanTambahan;
@@ -29,7 +29,7 @@ class SkpiController extends Controller
          $ta = Cache::remember('tahun_akademik_aktif', 3600, function () {
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
-        return view('students.skpi.index', compact('settings', 'mahasiswa', 'semester', 'prodi','ta'));
+        return view('mahasiswa.skpi.index', compact('settings', 'mahasiswa', 'semester', 'prodi','ta'));
     }
 
     public function sertifikasi(Request $r)
@@ -50,7 +50,7 @@ class SkpiController extends Controller
 
         $sertifikasi = $query->latest()->paginate(10);
 
-        return view('students.skpi.sertifikasi.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','sertifikasi'));
+        return view('mahasiswa.skpi.sertifikasi.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','sertifikasi'));
     }
     public function store_sertifikasi(Request $request)
     {
@@ -87,7 +87,7 @@ class SkpiController extends Controller
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
         $sertifikasi = Sertifikasi::findOrFail($id);
-        return view('students.skpi.sertifikasi.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','sertifikasi'));
+        return view('mahasiswa.skpi.sertifikasi.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','sertifikasi'));
     }
     public function update_sertifikasi(Request $request, $id)
     {
@@ -141,7 +141,7 @@ class SkpiController extends Controller
 
         $bahasa = $query->latest()->paginate(10);
 
-        return view('students.skpi.bahasa.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','bahasa'));
+        return view('mahasiswa.skpi.bahasa.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','bahasa'));
     }
     public function store_bahasa(Request $request)
     {
@@ -177,7 +177,7 @@ class SkpiController extends Controller
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
         $bahasa = PenguasaanBahasa::findOrFail($id);
-        return view('students.skpi.bahasa.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','bahasa'));
+        return view('mahasiswa.skpi.bahasa.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','bahasa'));
     }
     public function update_bahasa(Request $request, $id)
     {
@@ -220,13 +220,13 @@ class SkpiController extends Controller
          $ta = Cache::remember('tahun_akademik_aktif', 3600, function () {
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
-        $query = P2mw_program::where('mahasiswa_id', Auth::guard('mahasiswa')->user()->mahasiswa_id);
+        $query = P2mwProgram::where('mahasiswa_id', Auth::guard('mahasiswa')->user()->mahasiswa_id);
 
         if ($r->filled('status')) {
             $query->where('status_validasi', $r->status);
         }
         $wirausaha = $query->latest()->paginate(10);
-        return view('students.skpi.wirausaha.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','wirausaha'));
+        return view('mahasiswa.skpi.wirausaha.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','wirausaha'));
     }
     public function store_wirausaha(Request $request)
     {
@@ -247,7 +247,7 @@ class SkpiController extends Controller
         $data['mahasiswa_id'] = $mahasiswa->mahasiswa_id;      // atau $request->user()->id
         $data['status_validasi'] = 'Menunggu';        // default
         $data['bobot']           = 0;                 // belum diisi validator
-        P2mw_program::create($data);
+        P2mwProgram::create($data);
         Alert::success('Wirausaha berhasil ditambahkan')
             ->autoclose(3000);
         return redirect()->route('mahasiswa.skpi.wirausaha');
@@ -261,8 +261,8 @@ class SkpiController extends Controller
         $ta = Cache::remember('tahun_akademik_aktif', 3600, function () {
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
-        $wirausaha = P2mw_program::findOrFail($id);
-        return view('students.skpi.wirausaha.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','wirausaha'));
+        $wirausaha = P2mwProgram::findOrFail($id);
+        return view('mahasiswa.skpi.wirausaha.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','wirausaha'));
     }
     public function update_wirausaha(Request $request, $id)
     {
@@ -283,14 +283,14 @@ class SkpiController extends Controller
         $data['mahasiswa_id'] = $mahasiswa->mahasiswa_id;      // atau $request->user()->id
         $data['status_validasi'] = 'Menunggu';        // default
         $data['bobot']           = 0;                 // belum diisi validator
-        P2mw_program::where('id', $id)->update($data);
+        P2mwProgram::where('id', $id)->update($data);
         Alert::success('Wirausaha berhasil diubah')
             ->autoclose(3000);
         return redirect()->route('mahasiswa.skpi.wirausaha');
     }
     public function destroy_wirausaha($id)
     {
-        $wirausaha = P2mw_program::findOrFail($id);
+        $wirausaha = P2mwProgram::findOrFail($id);
         $wirausaha->delete();
         Alert::success('Wirausaha berhasil dihapus')
             ->autoclose(3000);
@@ -306,13 +306,13 @@ class SkpiController extends Controller
          $ta = Cache::remember('tahun_akademik_aktif', 3600, function () {
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
-        $query = Pkm_program::where('mahasiswa_id', Auth::guard('mahasiswa')->user()->mahasiswa_id);
+        $query = PkmProgram::where('mahasiswa_id', Auth::guard('mahasiswa')->user()->mahasiswa_id);
 
         if ($r->filled('status')) {
             $query->where('status_validasi', $r->status);
         }
         $pkm = $query->latest()->paginate(10);
-        return view('students.skpi.pkm.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
+        return view('mahasiswa.skpi.pkm.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
     }
     public function store_pkm(Request $request)
     {
@@ -333,7 +333,7 @@ class SkpiController extends Controller
         $data['mahasiswa_id'] = $mahasiswa->mahasiswa_id;      // atau $request->user()->id
         $data['status_validasi'] = 'Menunggu';        // default
         $data['bobot']           = 0;                 // belum diisi validator
-        Pkm_program::create($data);
+        PkmProgram::create($data);
         Alert::success('PKM berhasil ditambahkan')
             ->autoclose(3000);
         return redirect()->route('mahasiswa.skpi.pkm');
@@ -347,8 +347,8 @@ class SkpiController extends Controller
         $ta = Cache::remember('tahun_akademik_aktif', 3600, function () {
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
-        $pkm = Pkm_program::findOrFail($id);
-        return view('students.skpi.pkm.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
+        $pkm = PkmProgram::findOrFail($id);
+        return view('mahasiswa.skpi.pkm.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
     }
     public function update_pkm(Request $request, $id)
     {
@@ -369,14 +369,14 @@ class SkpiController extends Controller
         $data['mahasiswa_id'] = $mahasiswa->mahasiswa_id;      // atau $request->user()->id
         $data['status_validasi'] = 'Menunggu';        // default
         $data['bobot']           = 0;                 // belum diisi validator
-        Pkm_program::where('id', $id)->update($data);
+        PkmProgram::where('id', $id)->update($data);
         Alert::success('Pkm berhasil diubah')
             ->autoclose(3000);
         return redirect()->route('mahasiswa.skpi.pkm');
     }
     public function destroy_pkm($id)
     {
-        $pkm = P2mw_program::findOrFail($id);
+        $pkm = P2mwProgram::findOrFail($id);
         $pkm->delete();
         Alert::success('PKM berhasil dihapus')
             ->autoclose(3000);
@@ -398,7 +398,7 @@ class SkpiController extends Controller
             $query->where('status_validasi', $r->status);
         }
         $ppsm = $query->latest()->paginate(10);
-        return view('students.skpi.ppsm.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','ppsm'));
+        return view('mahasiswa.skpi.ppsm.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','ppsm'));
     }
     public function store_ppsm(Request $request)
     {
@@ -432,7 +432,7 @@ class SkpiController extends Controller
             return TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         });
         $pkm = Ppsm::findOrFail($id);
-        return view('students.skpi.wirausaha.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
+        return view('mahasiswa.skpi.wirausaha.edit', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','pkm'));
     }
     public function update_ppsm(Request $request, $id)
     {
@@ -485,7 +485,7 @@ class SkpiController extends Controller
             $query->where('status_validasi', $r->status);
         }
         $tambahan = $query->latest()->paginate(10);
-        return view('students.skpi.kegiatan-tambahan.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','tambahan'));
+        return view('mahasiswa.skpi.kegiatan-tambahan.index', compact ('settings', 'mahasiswa', 'semester', 'prodi','ta','tambahan'));
     }
     public function store_tambahan(Request $request)
     {
@@ -582,8 +582,8 @@ class SkpiController extends Controller
         $sertifikasi = Sertifikasi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
         $ppsm = Ppsm::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
         $bahasa = PenguasaanBahasa::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
-        $p2mw = P2mw_program::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
-        $pkm = Pkm_program::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $p2mw = P2mwProgram::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
+        $pkm = PkmProgram::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->where('status_validasi', 'Disetujui')->get();
 
         // Kegiatan Tambahan
         $tambahan = KegiatanTambahan::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->get();

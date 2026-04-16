@@ -21,7 +21,7 @@ class ModulAkademikController extends Controller
             // Ambil semua program studi
             $programStudi = ProgramStudi::all();
             $tahunAjaran = TahunAkademik::all();
-            return view('pages-dosen.nilai.input-nilai', [
+            return view('dosen.nilai.input-nilai', [
                 'programStudi' => $programStudi,
                 'tahunAjaran' => $tahunAjaran
             ]);
@@ -238,7 +238,7 @@ class ModulAkademikController extends Controller
 
                 // Kirim data ke view
                 // Anda perlu membuat file view di: resources/views/dosen/mahasiswa/index.blade.php
-                return view('pages-dosen.nilai.lihat-nilai', [
+                return view('dosen.nilai.lihat-nilai', [
                     'mahasiswaList' => $mahasiswaList
                 ]);
             }
@@ -288,7 +288,7 @@ class ModulAkademikController extends Controller
                 $ipk = ($totalSks > 0) ? round($totalBobot / $totalSks, 2) : 0;
 
                 // Kirim semua data ke view
-                return view('pages-dosen.nilai.transkrip', compact(
+                return view('dosen.nilai.transkrip', compact(
                     'mahasiswa',
                     'transkrip',
                     'totalSks',
@@ -298,11 +298,11 @@ class ModulAkademikController extends Controller
 
      public function indexRps()
     {
-        return view('pages-dosen.materi.index');
+        return view('dosen.materi.index');
     }
 
     public function tambahRps()
     {
-        return view('pages-dosen.materi.create');
+        return view('dosen.materi.create');
     }
 }

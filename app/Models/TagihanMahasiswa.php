@@ -35,4 +35,9 @@ class TagihanMahasiswa extends Model
     {
         return $this->belongsTo(TenorPembayaran::class, 'tenor_pembayaran_id');
     }
+    
+    public function transaksi()
+    {
+        return $this->hasMany(TransaksiPembayaran::class, 'tagihan_mahasiswa_id', 'id')->orderBy('tanggal_bayar', 'desc');
+    }
 }

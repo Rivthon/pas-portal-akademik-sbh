@@ -72,7 +72,7 @@ class AkademikController extends Controller
             })
             ->get();
 
-        return view('students.krs.index', compact('krs'));
+        return view('mahasiswa.krs.index', compact('krs'));
     }
 
 
@@ -157,7 +157,7 @@ class AkademikController extends Controller
                 ->get();
 
             // Redirect ke view baru dengan data KRS
-            return view('students.krs.status-krs', compact('krs'));
+            return view('mahasiswa.krs.status-krs', compact('krs'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: ' . $e->getMessage());
@@ -414,7 +414,7 @@ class AkademikController extends Controller
             [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
             $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
 
-            return view('students.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
+            return view('mahasiswa.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: ' . $e->getMessage());
         }

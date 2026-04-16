@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
-use App\Models\CalenderAkademik;
+use App\Models\CalendarAkademik;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
 
@@ -17,7 +17,7 @@ class DashboardDosenController extends Controller
             $dosen = auth('dosen')->user();
             $settings = Setting::first();
             $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
-            $kalenderAkademik = CalenderAkademik::where('jurusan_id', $dosen->jurusan_id)->get();
+            $kalenderAkademik = CalendarAkademik::where('jurusan_id', $dosen->jurusan_id)->get();
             $tanggalSekarang = Carbon::now()->translatedFormat('l, d F Y');
 
             // Ambil berita terbaru dari WordPress (maksimal 10 berita)
@@ -42,7 +42,7 @@ class DashboardDosenController extends Controller
             //     ];
             // });
 
-            return view('pages-dosen.dashboard', compact(
+            return view('dosen.dashboard', compact(
                 'tanggalSekarang',
                 'settings',
                 'ta',
