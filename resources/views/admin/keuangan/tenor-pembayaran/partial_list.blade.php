@@ -15,7 +15,7 @@
         <tbody>
             @forelse ($tenor as $item)
             <tr>
-                <td class="text-center text-muted">{{ $loop->iteration + ($tenor->currentPage() - 1) * $tenor->perPage() }}</td>
+                <td class="text-center text-muted">{{ $loop->iteration + (($tenor instanceof \Illuminate\Pagination\LengthAwarePaginator) ? ($tenor->currentPage() - 1) * $tenor->perPage() : 0) }}</td>
                 <td class="text-center"><span class="badge bg-label-info">Smt {{ $item->semester }}</span></td>
                 <td class="text-center fw-bold text-primary">{{ $item->tahun_masuk ?? '-' }}</td>
                 <td class="text-center">
@@ -57,7 +57,7 @@
     </table>
 </div>
 
-@if ($tenor->hasPages())
+@if ($tenor instanceof \Illuminate\Pagination\LengthAwarePaginator && $tenor->hasPages())
 <div class="d-flex justify-content-end mt-3 pagination-links">
     {{ $tenor->links('pagination::bootstrap-4') }}
 </div>

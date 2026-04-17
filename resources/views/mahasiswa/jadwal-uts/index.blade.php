@@ -105,44 +105,62 @@
             </div>
         </div>
 
-        <div class="card bg-light">
-            <div class="card-body">
-                <div class="table-responsive text-nowrap">
-                    <table class="table table-hover">
-                        <thead class="table-primary">
-                            <tr>
-                                <th>No</th>
-                                <th>Nama Mata Kuliah</th>
-                                <th>SKS</th>
-                                <th>Tanggal</th>
-                                <th>Jam Mulai - Jam Selesai</th>
-                                <th>Ruangan</th>
-                                <th>Jenis Kelas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($jadwalUts as $key => $item)
-                            <tr>
-                                <td>{{ $key + 1 }}</td>
-                                <td>{{ $item->mataKuliah->nama }}</td>
-                                <td>{{ $item->mataKuliah->sks }}</td>
-                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->translatedFormat('l, d F Y') }}</td>
-                                <td>{{ date('H:i', strtotime($item->jam_mulai)) }} - {{ date('H:i',
-                                    strtotime($item->jam_selesai)) }}</td>
-                                <td>{{ $item->ruangan->nama ?? 'Tidak ada data ruangan' }}</td>
-                                <Td>{{ $item->jenis_kelas }}</Td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="7" class="text-center">Tidak ada jadwal tersedia.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+        @php
+            $jadwalByDate = collect($jadwalUts)->groupBy('tanggal')->map(function($items, $date) {
+                return [
+                    'tanggal_str' => \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y'),
+                    'tanggal_sort' => $date,
+                    'items' => $items
+                ];
+            })->sortBy('tanggal_sort');
+        @endphp
 
+        @if($jadwalByDate->isEmpty())
+            <div class="alert alert-warning d-flex align-items-center shadow-sm" role="alert">
+                <i class="bx bx-info-circle fs-4 me-3"></i>
+                <div>
+                    <strong>Belum ada jadwal!</strong><br>
+                    Tidak ada jadwal UTS yang tersedia untuk semester ini.
                 </div>
             </div>
-        </div>
+        @else
+            <!-- Timeline based grouped by date -->
+            @foreach($jadwalByDate as $group)
+                <div class="mb-5">
+                    <h5 class="fw-bold mb-3 d-flex align-items-center text-secondary">
+                        <i class='bx bx-calendar-star me-2 text-primary fs-4'></i> {{ $group['tanggal_str'] }}
+                    </h5>
+                    <div class="row">
+                        @foreach($group['items'] as $item)
+                            <div class="col-lg-6 mb-3">
+                                <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #696cff !important;">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="fw-bold text-dark mb-0">{{ $item->mataKuliah->nama }}</h6>
+                                            <span class="badge bg-primary text-white rounded-pill px-2 py-1"><i
+                                                    class='bx bx-layer me-1'></i> {{ $item->mataKuliah->sks }} SKS</span>
+                                        </div>
+
+                                        <p class="text-muted small mb-3">
+                                            <span class="me-3 fw-medium"><i class='bx bx-time-five me-1'></i>
+                                                {{ date('H:i', strtotime($item->jam_mulai)) }} - {{ date('H:i', strtotime($item->jam_selesai)) }}</span>
+                                            <span class="fw-medium"><i class='bx bx-door-open me-1'></i>
+                                                {{ $item->ruangan->nama ?? 'Tidak ada data ruangan' }}</span>
+                                        </p>
+
+                                        <hr class="my-2 border-light">
+
+                                        <div class="mt-2 text-muted small d-flex align-items-center">
+                                            <span class="badge bg-label-secondary px-2"><i class='bx bx-buildings me-1'></i> Kelas {{ ucfirst($item->jenis_kelas) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        @endif
         @endif
     </div>
 

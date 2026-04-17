@@ -61,6 +61,37 @@ class DosenKurikulumController extends Controller
         return response()->json($kurikulums);
     }
 
+    public function getKurikulumByFilter(Request $request)
+    {
+        $taId = $request->query('tahunAjaran');
+        $prodiId = $request->query('programStudi');
+        $semester = $request->query('semester');
+
+        $kurikulums = Kurikulum::with(['mataKuliah'])
+            ->where('ta_id', $taId)
+            ->whereHas('mataKuliah', function ($q) use ($prodiId, $semester) {
+                if ($prodiId) {
+                    $q->where('jurusan_id', $prodiId);
+                }
+                if ($semester) {
+                    $q->where('smt', $semester);
+                }
+            })
+            ->select('kurikulum_id', 'matakuliah_id', 'ta_id')
+            ->get()
+            ->map(function ($k) {
+                return [
+                    'kurikulum_id' => $k->kurikulum_id,
+                    'matakuliah_id' => $k->matakuliah_id,
+                    'nama' => $k->mataKuliah->nama ?? '-',
+                    'smt' => $k->mataKuliah->smt ?? '-',
+                    'semester' => $k->mataKuliah->semester ?? '-',
+                ];
+            });
+
+        return response()->json($kurikulums);
+    }
+
     public function filter(Request $request)
     {
         $programStudi = $request->input('programStudi');
@@ -94,20 +125,25 @@ class DosenKurikulumController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'dosen_id' => 'required',
             'kurikulum_id' => 'required',
+            'dosen_id' => 'required|array',
+            'dosen_id.*' => 'required',
             'jenis_dosen' => 'required',
             'jenis_kelas' => 'required',
         ]);
 
-        DosenMataKuliah::create([
-            'dosen_id' => $request->dosen_id,
-            'kurikulum_id' => $request->kurikulum_id,
-            'jenis_dosen' => $request->jenis_dosen,
-            'jenis_kelas' => $request->jenis_kelas,
-        ]);
+        $inserted = 0;
+        foreach ($request->dosen_id as $dosen_id) {
+            DosenMataKuliah::create([
+                'dosen_id' => $dosen_id,
+                'kurikulum_id' => $request->kurikulum_id,
+                'jenis_dosen' => $request->jenis_dosen,
+                'jenis_kelas' => $request->jenis_kelas,
+            ]);
+            $inserted++;
+        }
 
-        return response()->json(['message' => 'Data berhasil ditambahkan!']);
+        return response()->json(['message' => "$inserted Dosen berhasil ditugaskan ke mata kuliah ini!"]);
     }
 
     public function assign(Request $request)

@@ -67,7 +67,9 @@ class DashboardController extends Controller
             $ipk = $totalSks ? $totalBobot / $totalSks : 0;
 
 
-        // **4. Cache Berita dari WordPress**
+        // **4. Cache Berita dari WordPress (Dihidden sementara untuk penggantian API)**
+        $berita = collect([]);
+        /*
         $berita = Cache::remember('berita_wp', 1800, function () {
             $response = Http::get('https://sbh.ac.id/wp-json/wp/v2/posts', [
                 'per_page' => 10,
@@ -90,6 +92,7 @@ class DashboardController extends Controller
                 ];
             });
         });
+        */
 
         return view('mahasiswa.dashboard', compact(
             'tanggalSekarang',
