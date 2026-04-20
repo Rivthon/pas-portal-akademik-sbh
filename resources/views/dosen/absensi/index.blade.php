@@ -1,48 +1,118 @@
 @extends('layouts.dosen')
-@section('title', 'Buat Absensi')
+@section('title', 'Buat Absensi Mahasiswa')
 @section('content')
 <div class="row">
     <div class="col-xxl-12 mt-auto mb-auto order-0">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
+        {{-- Hero Profile Card --}}
+        <div class="card shadow-sm mb-4 border-0" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+            <div class="card-body position-relative overflow-hidden">
                 <div class="row g-0 align-items-center">
                     <!-- Content Section -->
-                    <div class="col-md-7">
-                        <h5 class="card-title text-primary mb-3 fw-bold">Buat Pertemuan Absensi </h5>
-                        <p class="mb-4 text-muted" style="line-height: 1.6;">
-                            Silakan isi form di bawah ini untuk membuat pertemuan absensi. Pertemuan absensi ini akan
-                            digunakan untuk mengabsen mahasiswa pada mata kuliah yang Anda pilih.
+                    <div class="col-md-7 text-white p-3 z-2">
+                        <h4 class="card-title mb-3 fw-bold text-white"><i class="bx bx-check-shield me-2"></i>Buat Pertemuan Absensi</h4>
+                        <p class="mb-0 text-white-50" style="line-height: 1.6;">
+                            Silakan temukan mata kuliah yang Anda ampu, kemudian tekan untuk mulai <br> 
+                            mendaftarkan topik, sub topik, dan jadwal pertemuan baru sebelum melakukan presensi.
                         </p>
-
                     </div>
 
                     <!-- Image Section -->
-                    <div class="col-md-5 text-center">
+                    <div class="col-md-5 text-center d-none d-md-block z-2">
                         <img src="{{ asset('assets/img/illustrations/kartu-study.png') }}" class="img-fluid"
-                            alt="Illustration for morning schedule" style="max-height: 200px;">
+                            alt="Illustration for attendance" style="max-height: 150px; opacity:0.9;">
                     </div>
                 </div>
-
-                <!-- Selection Section -->
             </div>
         </div>
-        <div class="card shadow-sm mb-4 mt-4">
-            <div class="container mt-4">
 
-                <!-- 🔍 Input Pencarian -->
-                <div class="mb-4">
-                    <input type="text" id="searchAbsensi" class="form-control"
-                        placeholder="Cari berdasarkan nama mata kuliah...">
+        {{-- Filter Card --}}
+        <div class="card shadow-sm mb-4 border-0">
+            <div class="card-header bg-white pt-4 pb-3 border-bottom">
+                <div class="row align-items-center gx-3">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <div class="input-group input-group-merge shadow-sm rounded-pill border">
+                            <span class="input-group-text bg-white border-0 rounded-pill-start"><i class="bx bx-search"></i></span>
+                            <input type="text" id="filterNamaJadwal" class="form-control border-0 rounded-pill-end ps-0" placeholder="Cari Mata Kuliah..." aria-label="Search...">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <select id="filterJenisKelas" class="form-select shadow-sm rounded-pill cursor-pointer border">
+                            <option value="semua">-- Tampilkan Semua Jenis Kelas --</option>
+                            <option value="reguler">Kelas Reguler (Pagi/Siang)</option>
+                            <option value="karyawan">Kelas Karyawan (Malam/Eksekutif)</option>
+                        </select>
+                    </div>
                 </div>
-
+            </div>
+            
+            <div class="card-body bg-light mt-0 pt-4">
+                <div id="noDataResult" class="alert alert-warning text-center d-none">
+                    <i class="bx bx-info-circle fs-3 mb-2 d-block"></i>
+                    Pencarian tidak menemukan mata kuliah yang sesuai.
+                </div>
                 <div id="absensiContainer">
                     @include('dosen.absensi.partial_list')
-                    <!-- Menampilkan jadwal dengan partial view -->
                 </div>
             </div>
         </div>
-
-
     </div>
+</div>
 
-    @endsection
+@push('script')
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchInput = document.getElementById('filterNamaJadwal');
+        const classFilter = document.getElementById('filterJenisKelas');
+        const dayContainers = document.querySelectorAll('.jadwal-hari-container');
+        const noDataLabel = document.getElementById('noDataResult');
+
+        function filterJadwal() {
+            const query = searchInput.value.toLowerCase().trim();
+            const selectedClass = classFilter.value.toLowerCase();
+            let totalVisibleCards = 0;
+
+            dayContainers.forEach(container => {
+                const cardsInDay = container.querySelectorAll('.jadwal-card-item');
+                let visibleInDay = 0;
+
+                cardsInDay.forEach(card => {
+                    const mkName = (card.getAttribute('data-nama') || "").toLowerCase();
+                    const dsnName = (card.getAttribute('data-dosen') || "").toLowerCase();
+                    const jenisKelas = (card.getAttribute('data-jenis') || "").toLowerCase();
+                    
+                    const matchText = mkName.includes(query) || dsnName.includes(query);
+                    const matchClass = selectedClass === 'semua' || 
+                                       jenisKelas === selectedClass || 
+                                       (selectedClass === 'reguler' && jenisKelas !== 'karyawan');
+
+                    if (matchText && matchClass) {
+                        card.style.display = 'block';
+                        visibleInDay++;
+                        totalVisibleCards++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                if (visibleInDay > 0) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+
+            if (totalVisibleCards === 0) {
+                if(noDataLabel) noDataLabel.classList.remove('d-none');
+            } else {
+                if(noDataLabel) noDataLabel.classList.add('d-none');
+            }
+        }
+
+        if (searchInput && classFilter) {
+            searchInput.addEventListener('input', filterJadwal);
+            classFilter.addEventListener('change', filterJadwal);
+        }
+    });
+</script>
+@endpush
+@endsection

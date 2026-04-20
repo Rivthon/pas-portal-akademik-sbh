@@ -9,6 +9,10 @@ use App\Models\TahunAkademik;
 use App\Models\CalendarAkademik;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Http;
+use App\Models\DosenMatakuliah;
+use App\Models\Mahasiswa;
+use App\Models\Penilaian;
+use Illuminate\Support\Facades\DB;
 
 class DashboardDosenController extends Controller
 {
@@ -19,36 +23,55 @@ class DashboardDosenController extends Controller
             $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
             $kalenderAkademik = CalendarAkademik::where('jurusan_id', $dosen->jurusan_id)->get();
             $tanggalSekarang = Carbon::now()->translatedFormat('l, d F Y');
-
-            // Ambil berita terbaru dari WordPress (maksimal 10 berita)
-            // $response = Http::get('https://sbh.ac.id/wp-json/wp/v2/posts', [
-            //     'per_page' => 20,
-            //     'orderby' => 'date',
-            //     'order' => 'desc'
-            // ]);
-
-            // $berita = collect($response->json())->map(function ($post) {
-            //     $imageUrl = asset('assets/img/no-image.jpg'); // Default gambar jika tidak ada
-            //     if (isset($post['_links']['wp:featuredmedia'][0]['href'])) {
-            //         $mediaResponse = Http::get($post['_links']['wp:featuredmedia'][0]['href']);
-            //         $media = $mediaResponse->json();
-            //         $imageUrl = $media['source_url'] ?? $imageUrl;
-            //     }
-            //     return [
-            //         'title' => $post['title']['rendered'],
-            //         'date' => Carbon::parse($post['date'])->translatedFormat('d F Y'),
-            //         'link' => $post['link'],
-            //         'image' => $imageUrl,
-            //     ];
-            // });
+            
+            // Hitung statistik dosen
+            $totalMatakuliah = DosenMatakuliah::where('dosen_id', $dosen->dosen_id)
+                                ->distinct('kurikulum_id')->count();
+            
+            $totalMahasiswaBimbingan = Mahasiswa::where('dosen_id', $dosen->dosen_id)
+                                        ->where('status_mhs', 'aktif')->count();
+                                        
+            $rataRataEdomRaw = Penilaian::where('dosen_id', $dosen->dosen_id)->avg(\DB::raw('CAST(nilai AS UNSIGNED)'));
+            $rataRataEdom = $rataRataEdomRaw ? round($rataRataEdomRaw, 2) : 0;
 
             return view('dosen.dashboard', compact(
                 'tanggalSekarang',
                 'settings',
                 'ta',
                 'kalenderAkademik',
-                // 'berita'
+                'totalMatakuliah',
+                'totalMahasiswaBimbingan',
+                'rataRataEdom'
             ));
+        }
+
+        public function hasilEdom()
+        {
+            $dosen = auth('dosen')->user();
+            
+            // EDOM summary
+            $hasilEdom = DB::table('penilaian')
+                ->join('kurikulum', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->where('penilaian.dosen_id', $dosen->dosen_id)
+                ->select(
+                    'kurikulum.kurikulum_id',
+                    'matakuliah.matakuliah_id',
+                    'matakuliah.nama',
+                    'matakuliah.smt',
+                    DB::raw('AVG(CAST(penilaian.nilai AS UNSIGNED)) as rata_rata_nilai'),
+                    DB::raw('COUNT(DISTINCT penilaian.mahasiswa_id) as jumlah_pemberi_nilai')
+                )
+                ->groupBy('kurikulum.kurikulum_id', 'matakuliah.matakuliah_id', 'matakuliah.nama', 'matakuliah.smt')
+                ->get();
+                
+            $rataRataKeseluruhan = DB::table('penilaian')
+                ->where('dosen_id', $dosen->dosen_id)
+                ->avg(DB::raw('CAST(nilai AS UNSIGNED)'));
+                
+            $rataRataKeseluruhan = $rataRataKeseluruhan ? round($rataRataKeseluruhan, 2) : 0;
+
+            return view('dosen.edom.hasil', compact('hasilEdom', 'rataRataKeseluruhan'));
         }
 
     }

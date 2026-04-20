@@ -508,9 +508,12 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/mata-kuliah/{programStudiId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMataKuliahDosen']);
             Route::get('/input-nilai-dosen/{mataKuliahId}/{tahunAjaranId}', [ModulAkademikController::class, 'getMahasiswaDosen']);
             Route::post('/nilai-mahasiswa/save', [ModulAkademikController::class, 'saveNilaiDosen'])->name('nilai.save');
+            Route::post('/bobot-nilai/save', [ModulAkademikController::class, 'saveBobotNilai'])->name('bobot-nilai.save');
             Route::get('/mahasiswa-bimbingan', [ModulAkademikController::class, 'lihatMahasiswaDosen'])->name('nilai-dosen.lihat');
             Route::get('/mahasiswa-bimbingan/{mahasiswa}/transkrip', [ModulAkademikController::class, 'transkripMahasiswa'])->name('mahasiswa.transkrip');
             // ===== Modul Akademik =====
+            Route::get('/edom/hasil', [\App\Http\Controllers\Dosen\DashboardDosenController::class, 'hasilEdom'])->name('edom.hasil');
+            
             // Materi Kuliah
             Route::get('/materi', [ModulAkademikController::class, 'indexRps'])->name('materi.index');
             Route::get('/materi/create', [ModulAkademikController::class, 'tambahRps'])->name('materi.create');

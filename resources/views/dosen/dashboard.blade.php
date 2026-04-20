@@ -51,6 +51,80 @@
                 </div>
             </div>
         </div>
+
+        <!-- Ringkasan Statistik -->
+        <div class="row mb-4">
+            <!-- Total Kelas -->
+            <div class="col-lg-4 col-md-12 col-6 mb-4">
+                <div class="card shadow-sm h-100 border-0" style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
+                    <div class="card-body">
+                        <div class="card-title d-flex align-items-start justify-content-between mb-3">
+                            <div class="avatar flex-shrink-0">
+                                <span class="avatar-initial rounded bg-white text-primary"><i class="bx bx-book-open fs-4"></i></span>
+                            </div>
+                        </div>
+                        <span class="fw-semibold d-block mb-1 text-white">Total Kelas Diajar</span>
+                        <h3 class="card-title mb-2 text-white">{{ $totalMatakuliah }}</h3>
+                        <small class="text-white"><i class="bx bx-up-arrow-alt"></i> Mata Kuliah</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Mahasiswa Bimbingan -->
+            <div class="col-lg-4 col-md-12 col-6 mb-4">
+                <div class="card shadow-sm h-100 border-0" style="background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);">
+                    <div class="card-body">
+                        <div class="card-title d-flex align-items-start justify-content-between mb-3">
+                            <div class="avatar flex-shrink-0">
+                                <span class="avatar-initial rounded bg-white text-success"><i class="bx bx-group fs-4"></i></span>
+                            </div>
+                        </div>
+                        <span class="fw-semibold d-block mb-1 text-white">Mahasiswa Bimbingan</span>
+                        <h3 class="card-title text-white mb-2">{{ $totalMahasiswaBimbingan }}</h3>
+                        <small class="text-white">Mahasiswa Aktif</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rata-rata EDOM -->
+            <div class="col-lg-4 col-md-12 col-6 mb-4">
+                <div class="card shadow-sm h-100 border-0" style="background: linear-gradient(135deg, #fdcbf1 0%, #fdcbf1 1%, #e6dee9 100%);">
+                    <div class="card-body">
+                        <div class="card-title d-flex align-items-start justify-content-between mb-3">
+                            <div class="avatar flex-shrink-0">
+                                <span class="avatar-initial rounded bg-white text-warning"><i class="bx bx-star fs-4"></i></span>
+                            </div>
+                        </div>
+                        <span class="fw-semibold d-block mb-1 text-dark">Rata-rata Nilai EDOM</span>
+                        <h3 class="card-title text-dark mb-2">{{ $rataRataEdom }}</h3>
+                        <small class="text-dark">Dari Skala Maksimal 100</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Aksi Cepat -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{{ route('dosen.nilai-dosen.input') }}" class="btn btn-primary rounded-pill shadow-sm px-4 py-2 d-flex align-items-center">
+                        <i class="bx bx-edit-alt me-2"></i> Input Nilai Mahasiswa
+                    </a>
+                    <a href="{{ route('dosen.jadwal.index') }}" class="btn btn-info rounded-pill shadow-sm px-4 py-2 d-flex align-items-center">
+                        <i class="bx bx-calendar me-2"></i> Lihat Jadwal Mengajar
+                    </a>
+                    <a href="{{ route('dosen.edom.hasil') }}" class="btn border-warning text-warning bg-white rounded-pill shadow-sm px-4 py-2 d-flex align-items-center mb-1 hover-warning">
+                        <i class="bx bx-star me-2"></i> Hasil Evaluasi (EDOM)
+                    </a>
+                </div>
+            </div>
+            <style>
+                .hover-warning:hover {
+                    background-color: #ffab00 !important;
+                    color: white !important;
+                }
+            </style>
+        </div>
         <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <h5 class="card-title text-primary fw-bold mb-3">📰 Berita Terbaru</h5>

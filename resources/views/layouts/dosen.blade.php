@@ -161,20 +161,6 @@
     {{-- @include('components.notification') --}}
     @stack('script')
     <script>
-        $(document).ready(function () {
-            $('#searchJadwal').on('keyup', function () {
-                let query = $(this).val();
-
-                $.ajax({
-                    url: "{{ route('dosen.jadwal.search') }}",
-                    type: "GET",
-                    data: { search: query },
-                    success: function (data) {
-                        $('#jadwalContainer').html(data);
-                    }
-                });
-            });
-        });
          $(document).ready(function () {
             $('#searchPraktik').on('keyup', function () {
                 let query = $(this).val();
@@ -647,22 +633,135 @@
                 }
             });
 
-            // Handle perubahan Mata Kuliah -> Fetch Mahasiswa
+            // Handle perubahan Mata Kuliah -> Fetch Mahasiswa (Filter Klasik)
             $("#mata-kuliah").on("change", async function () {
                 const mataKuliahId = $(this).val();
                 const tahunAjaranId = $("#tahun-ajaran").val();
+                const mkNama = $(this).find("option:selected").text().replace(/ Semester-\d+/g, '');
 
-                // Reset
-                tableBody.innerHTML = "";
+                if(!mataKuliahId || !tahunAjaranId) return;
+
+                // Hilangkan styling card yg mgkn sebelumnya diselect
+                $(".mk-card").removeClass("selected-card");
+                $("#label-mk-terpilih").text(mkNama);
+
+                await loadInputNilai(mataKuliahId, tahunAjaranId);
+            });
+
+            // Handle Klik Kartu Mata Kuliah di Dashboard (Fitur Baru)
+            $(".mk-card").on("click", async function() {
+                const mataKuliahId = $(this).data("matakuliah-id");
+                const tahunAjaranId = $(this).data("ta-id");
+                const mkNama = $(this).data("mk-nama");
+                
+                // Clear active dropdown selections (arsip collapse)
+                $("#mata-kuliah").val("").trigger("change.select2");
+                
+                $(".mk-card").removeClass("selected-card");
+                $(this).addClass("selected-card");
+
+                $("#label-mk-terpilih").text(mkNama);
+
+                await loadInputNilai(mataKuliahId, tahunAjaranId);
+            });
+
+            // Tutup form
+            $("#btnTutupPanel").on("click", function() {
+                $("#panel-penilaian").slideUp();
+                $(".mk-card").removeClass("selected-card");
+                $("#mata-kuliah").val("").trigger("change.select2");
+            });
+
+            const updateTableHeader = (bobot) => {
+                $('.table-light th').eq(3).html(`UTS <br><small class="text-muted badge bg-label-secondary mx-auto mt-1">${bobot.uts}%</small>`);
+                $('.table-light th').eq(4).html(`UAS <br><small class="text-muted badge bg-label-secondary mx-auto mt-1">${bobot.uas}%</small>`);
+                $('.table-light th').eq(5).html(`TUGAS <br><small class="text-muted badge bg-label-secondary mx-auto mt-1">${bobot.tugas}%</small>`);
+                $('.table-light th').eq(6).html(`ABSEN <br><small class="text-muted badge bg-label-secondary mx-auto mt-1">${bobot.absensi}%</small>`);
+                $('.table-light th').eq(7).html(`PRAKTIK <br><small class="text-muted badge bg-label-secondary mx-auto mt-1">${bobot.praktik}%</small>`);
+            };
+
+            const renderBobotPanel = (bobot, konfigurasi) => {
+                const source = konfigurasi.bobot_source === 'custom' ?
+                    '<span class="badge bg-label-success"><i class="bx bx-check-circle me-1"></i>Custom Dosen</span>' :
+                    '<span class="badge bg-label-warning"><i class="bx bx-info-circle me-1"></i>Default Prodi</span>';
+
+                const totalPersen = parseFloat(bobot.uts) + parseFloat(bobot.uas) + parseFloat(bobot.tugas) + parseFloat(bobot.absensi) + parseFloat(bobot.praktik);
+
+                const html = `
+                    <div id="bobot-panel" class="card mb-3 border shadow-none" style="border-color: rgba(105,108,255,.15) !important;">
+                        <div class="card-header d-flex align-items-center justify-content-between py-2" style="background: rgba(105,108,255,.04);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bx bx-calculator text-primary"></i>
+                                <span class="fw-bold" style="font-size: .85rem;">Bobot Penilaian</span>
+                                ${source}
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted" style="font-size: .75rem;">Total: <strong class="${totalPersen === 100 ? 'text-success' : 'text-danger'}">${totalPersen}%</strong></span>
+                                <button type="button" id="btn-edit-bobot" class="btn btn-sm btn-outline-primary" style="font-size: .72rem;">
+                                    <i class="bx bx-edit-alt me-1"></i>Ubah Bobot
+                                </button>
+                            </div>
+                        </div>
+                        <div id="bobot-display" class="card-body py-2">
+                            <div class="d-flex flex-wrap gap-3">
+                                <span class="badge bg-label-primary">UTS: ${bobot.uts}%</span>
+                                <span class="badge bg-label-primary">UAS: ${bobot.uas}%</span>
+                                <span class="badge bg-label-primary">Tugas: ${bobot.tugas}%</span>
+                                <span class="badge bg-label-primary">Absen: ${bobot.absensi}%</span>
+                                <span class="badge bg-label-primary">Praktik: ${bobot.praktik}%</span>
+                            </div>
+                        </div>
+                        <div id="bobot-edit" class="card-body py-3" style="display: none;">
+                            <div class="row g-2 align-items-end">
+                                <div class="col">
+                                    <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UTS (%)</label>
+                                    <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uts" value="${bobot.uts}" min="0" max="100">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UAS (%)</label>
+                                    <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uas" value="${bobot.uas}" min="0" max="100">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Tugas (%)</label>
+                                    <input type="number" class="form-control form-control-sm bobot-input" id="bobot-tugas" value="${bobot.tugas}" min="0" max="100">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Absen (%)</label>
+                                    <input type="number" class="form-control form-control-sm bobot-input" id="bobot-absen" value="${bobot.absensi}" min="0" max="100">
+                                </div>
+                                <div class="col">
+                                    <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Praktik (%)</label>
+                                    <input type="number" class="form-control form-control-sm bobot-input" id="bobot-praktik" value="${bobot.praktik}" min="0" max="100">
+                                </div>
+                                <div class="col-auto">
+                                    <button type="button" id="btn-save-bobot" class="btn btn-sm btn-primary">
+                                        <i class="bx bx-save me-1"></i>Simpan
+                                    </button>
+                                    <button type="button" id="btn-cancel-bobot" class="btn btn-sm btn-outline-secondary">Batal</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#bobot-panel').remove();
+                $('#bobot-panel-container').html(html);
+            };
+
+            // Fungsi inti render data mhs
+            async function loadInputNilai(mataKuliahId, tahunAjaranId) {
+                const tableBody = document.querySelector("#table-mahasiswa tbody");
+                const saveButton = document.getElementById("save-nilai");
+                const panel = document.getElementById("panel-penilaian");
+
+                // Reset state
+                $(panel).slideDown();
+                setTimeout(() => window.scrollTo({ top: panel.offsetTop - 70, behavior: 'smooth' }), 300);
+
+                tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><span class="spinner-border spinner-border-sm text-primary me-2"></span>Menarik data mahasiswa...</td></tr>`;
                 saveButton.style.display = "none";
+                $('#bobot-panel-container').empty();
                 konfigurasiNilai = { bobot: {}, mutu: [] }; // Reset konfigurasi
-
-                if (!mataKuliahId || !tahunAjaranId) {
-                    showTableMessage("Silakan pilih mata kuliah terlebih dahulu.");
-                    return;
-                }
-
-                showTableMessage("Sedang memuat data mahasiswa...");
 
                 const requestUrl = `/dosen/dosen/input-nilai-dosen/${mataKuliahId}/${tahunAjaranId}`;
                 try {
@@ -676,36 +775,40 @@
                     }
 
                     if (data.mahasiswa && data.konfigurasi) {
-                        // ✅ SIMPAN KONFIGURASI DARI SERVER KE VARIABEL GLOBAL
                         konfigurasiNilai = data.konfigurasi;
-                        console.log("Konfigurasi diterima dari server:", konfigurasiNilai);
+
+                        renderBobotPanel(konfigurasiNilai.bobot, konfigurasiNilai);
+                        updateTableHeader(konfigurasiNilai.bobot);
 
                         const daftarMahasiswa = data.mahasiswa;
 
                         if (daftarMahasiswa.length > 0) {
-                            // Tampilkan mahasiswa ke tabel
                             tableBody.innerHTML = daftarMahasiswa.map((mhs, index) => `
                                 <tr>
                                     <td class="text-center">${index + 1}</td>
-                                    <td>${mhs.nama} (${mhs.mahasiswa_id})</td>
+                                    <td><span class="fw-bold text-dark">${mhs.nama}</span><br><small class="text-muted">${mhs.nim}</small></td>
                                     <td>
                                         <input type="hidden" name="krs_id[${mhs.mahasiswa_id}]" value="${mhs.krs_id ?? ''}">
-                                        <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.uts ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100">
+                                        <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]" class="form-control form-control-sm nilai-input text-center" value="${mhs.uts ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100">
                                     </td>
-                                    <td><input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.uas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                    <td><input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.tugas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                    <td><input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.absensi ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                    <td><input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]" class="form-control nilai-input" value="${mhs.praktik ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
-                                    <td><input type="text" name="akhir[${mhs.mahasiswa_id}]" class="form-control" id="akhir-${mhs.mahasiswa_id}" readonly></td>
-                                    <td><span class="form-control-plaintext" id="khs-${mhs.mahasiswa_id}"></span></td>
+                                    <td><input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]" class="form-control form-control-sm nilai-input text-center" value="${mhs.uas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
+                                    <td><input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]" class="form-control form-control-sm nilai-input text-center" value="${mhs.tugas ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
+                                    <td><input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]" class="form-control form-control-sm nilai-input text-center" value="${mhs.absen ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
+                                    <td><input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]" class="form-control form-control-sm nilai-input text-center" value="${mhs.praktik ?? ''}" data-id="${mhs.mahasiswa_id}" min="0" max="100"></td>
+                                    <td class="text-center align-middle">
+                                        <input type="text" name="akhir[${mhs.mahasiswa_id}]" class="form-control form-control-sm text-center fw-bold bg-transparent border-0 akhir-input" id="akhir-${mhs.mahasiswa_id}" readonly>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        <span class="badge bg-label-primary px-3 fs-6" id="khs-${mhs.mahasiswa_id}">-</span>
+                                    </td>
                                 </tr>
                             `).join("");
 
-                            // Jalankan kalkulasi awal untuk setiap mahasiswa
+                            // Kalkulasi awal
                             daftarMahasiswa.forEach((mhs) => hitungNilaiAkhirDanKhs(mhs.mahasiswa_id));
                             saveButton.style.display = "block";
                         } else {
-                            showTableMessage("Tidak ada mahasiswa yang terdaftar.");
+                            showTableMessage("Tidak ada mahasiswa yang terdaftar pada mata kuliah ini.");
                         }
                     } else {
                         throw new Error("Format data dari server tidak sesuai.");
@@ -713,6 +816,82 @@
                 } catch (error) {
                     console.error("Gagal memuat data:", error);
                     showTableMessage(`Gagal memuat data. Error: ${error.message}`);
+                }
+            }
+
+            // Event listener ganti bobot panel toggle
+            $(document).on("click", "#btn-edit-bobot", function() {
+                $('#bobot-display').hide();
+                $('#bobot-edit').slideDown();
+            });
+            $(document).on("click", "#btn-cancel-bobot", function() {
+                $('#bobot-edit').slideUp();
+                setTimeout(() => $('#bobot-display').show(), 300);
+            });
+
+            // Simpan bobot ke server via AJAX
+            $(document).on("click", "#btn-save-bobot", async function() {
+                const btn = $(this);
+                btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Menyimpan...');
+
+                const newBobot = {
+                    program_studi_id: konfigurasiNilai.program_studi_id,
+                    matakuliah_id: konfigurasiNilai.matakuliah_id,
+                    persen_uts: parseFloat($('#bobot-uts').val()) || 0,
+                    persen_uas: parseFloat($('#bobot-uas').val()) || 0,
+                    persen_tugas: parseFloat($('#bobot-tugas').val()) || 0,
+                    persen_absen: parseFloat($('#bobot-absen').val()) || 0,
+                    persen_praktik: parseFloat($('#bobot-praktik').val()) || 0,
+                };
+
+                try {
+                    const response = await fetch("{{ route('dosen.bobot-nilai.save') }}", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                            Accept: "application/json",
+                        },
+                        body: JSON.stringify(newBobot)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // Update global bobot variable
+                        konfigurasiNilai.bobot = {
+                            uts: newBobot.persen_uts,
+                            uas: newBobot.persen_uas,
+                            tugas: newBobot.persen_tugas,
+                            absensi: newBobot.persen_absen,
+                            praktik: newBobot.persen_praktik,
+                        };
+                        konfigurasiNilai.bobot_source = 'custom';
+
+                        // Rerender the panel with new values
+                        renderBobotPanel(konfigurasiNilai.bobot, konfigurasiNilai);
+                        updateTableHeader(konfigurasiNilai.bobot);
+
+                        // Recalculate ALL values in the table dynamically based on new bobot!
+                        $(".nilai-input").first().trigger("input"); // This triggers one row
+                        // Actually let's just loop over all inputs
+                        $(".akhir-input").each(function() {
+                            hitungNilaiAkhirDanKhs($(this).attr("id").split("-")[1]);
+                        });
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ title: 'Berhasil!', text: 'Bobot nilai berhasil diperbarui!', icon: 'success', timer: 2000, showConfirmButton: false });
+                        } else {
+                            alert('Bobot nilai berhasil diperbarui!');
+                        }
+                    } else {
+                        alert(data.message || 'Gagal menyimpan bobot');
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("Terjadi kesalahan sistem saat menyimpan bobot nilai.");
+                } finally {
+                    btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Simpan');
                 }
             });
 
@@ -745,9 +924,11 @@
                     const data = await response.json();
 
                     if (response.ok && data.success) {
-                        alert(data.message || "Data berhasil disimpan!");
-                        // Refresh data di tabel dengan memicu event change pada select2
-                        $("#mata-kuliah").trigger("change.select2");
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ title: 'Berhasil!', text: data.message || "Data berhasil disimpan!", icon: 'success', timer: 2000, showConfirmButton: false });
+                        } else {
+                            alert(data.message || "Data berhasil disimpan!");
+                        }
                     } else {
                         alert(data.message || "Gagal menyimpan data.");
                     }
@@ -756,7 +937,7 @@
                     alert("Terjadi kesalahan saat menyimpan data. Silakan coba lagi.");
                 } finally {
                     saveButton.disabled = false;
-                    saveButton.textContent = "Simpan Nilai";
+                    saveButton.textContent = "Simpan Semua Nilai";
                 }
             });
         });

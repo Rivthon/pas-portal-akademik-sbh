@@ -17,47 +17,98 @@ use App\Http\Controllers\Controller;
 class ModulAkademikController extends Controller
 {
     public function index()
-        {
-            // Ambil semua program studi
-            $programStudi = ProgramStudi::all();
-            $tahunAjaran = TahunAkademik::all();
-            return view('dosen.nilai.input-nilai', [
-                'programStudi' => $programStudi,
-                'tahunAjaran' => $tahunAjaran
-            ]);
+    {
+        $dosen = auth('dosen')->user();
+        if (!$dosen) {
+            return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
         }
+
+        // Ambil semua program studi & tahun ajaran (Tujuannya untuk Select Arsip masa lalu)
+        $programStudi = ProgramStudi::all();
+        $tahunAjaran = TahunAkademik::orderBy('ta_id', 'desc')->get();
+
+        // Ambil TA Aktif Untuk Dashboard Card Default
+        $activeTA = TahunAkademik::where('status_ta', 1)->first();
+        $mataKuliahAktif = collect(); // Kosong by default jika tidak ada yg aktif
+
+        if ($activeTA) {
+            // Ambil ID Kurikulum berdasarkan jadwal terisi dan absah Dosen ybs di TA saat ini
+            $kurikulumTeori = DB::table('jadwal')
+                ->join('kurikulum', 'jadwal.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('dosen_mata_kuliah', 'kurikulum.kurikulum_id', '=', 'dosen_mata_kuliah.kurikulum_id')
+                ->where('jadwal.ta_id', $activeTA->ta_id)
+                ->where('dosen_mata_kuliah.dosen_id', $dosen->dosen_id)
+                ->pluck('kurikulum.kurikulum_id')->toArray();
+
+            $kurikulumPraktik = DB::table('jadwal_praktik')
+                ->join('kurikulum', 'jadwal_praktik.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('dosen_mata_kuliah', 'kurikulum.kurikulum_id', '=', 'dosen_mata_kuliah.kurikulum_id')
+                ->where('jadwal_praktik.ta_id', $activeTA->ta_id)
+                ->where('dosen_mata_kuliah.dosen_id', $dosen->dosen_id)
+                ->pluck('kurikulum.kurikulum_id')->toArray();
+
+            $allKurikulum = array_unique(array_merge($kurikulumTeori, $kurikulumPraktik));
+
+            if (!empty($allKurikulum)) {
+                $mataKuliahAktif = DB::table('kurikulum')
+                    ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                    ->whereIn('kurikulum.kurikulum_id', $allKurikulum)
+                    ->select('matakuliah.matakuliah_id', 'matakuliah.nama', 'matakuliah.smt', 'matakuliah.semester')
+                    ->distinct()
+                    ->orderBy('matakuliah.smt', 'asc')
+                    ->get();
+            }
+        }
+
+        return view('dosen.nilai.input-nilai', [
+            'programStudi' => $programStudi,
+            'tahunAjaran' => $tahunAjaran,
+            'activeTA' => $activeTA,
+            'mataKuliahAktif' => $mataKuliahAktif
+        ]);
+    }
 
         public function getMataKuliahDosen($programStudiId, $tahunAjaranId)
         {
             // Ambil ID dosen yang sedang login
             $dosen = auth('dosen')->user();
             if (!$dosen) {
-            return response()->json(['message' => 'Dosen tidak terautentikasi.'], 401);
+                return response()->json(['message' => 'Dosen tidak terautentikasi.'], 401);
             }
 
-            // Ambil semua kurikulum_id yang diajar oleh dosen tersebut
-            $kurikulumDosen = DB::table('dosen_mata_kuliah')
-            ->where('dosen_id', $dosen->dosen_id)
-            ->pluck('kurikulum_id');
+            // Ambil Id kurikulum dari Jadwal Teori sesuai TA, Prodi dan dosen
+            $kurikulumTeori = DB::table('jadwal')
+                ->join('kurikulum', 'jadwal.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('dosen_mata_kuliah', 'kurikulum.kurikulum_id', '=', 'dosen_mata_kuliah.kurikulum_id')
+                ->where('jadwal.ta_id', $tahunAjaranId)
+                ->where('kurikulum.jurusan_id', $programStudiId)
+                ->where('dosen_mata_kuliah.dosen_id', $dosen->dosen_id)
+                ->pluck('kurikulum.kurikulum_id')->toArray();
 
-            if ($kurikulumDosen->isEmpty()) {
-            return response()->json(['message' => 'Tidak ada mata kuliah yang diajar dosen ini.'], 404);
+            // Ambil Id kurikulum dari Jadwal Praktik sesuai TA, Prodi dan dosen
+            $kurikulumPraktik = DB::table('jadwal_praktik')
+                ->join('kurikulum', 'jadwal_praktik.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                ->join('dosen_mata_kuliah', 'kurikulum.kurikulum_id', '=', 'dosen_mata_kuliah.kurikulum_id')
+                ->where('jadwal_praktik.ta_id', $tahunAjaranId)
+                ->where('kurikulum.jurusan_id', $programStudiId)
+                ->where('dosen_mata_kuliah.dosen_id', $dosen->dosen_id)
+                ->pluck('kurikulum.kurikulum_id')->toArray();
+
+            // Gabungkan menjadi satu unique array
+            $allKurikulum = array_unique(array_merge($kurikulumTeori, $kurikulumPraktik));
+
+            if (empty($allKurikulum)) {
+                return response()->json(['message' => 'Tidak ada jadwal mengajar pada program studi dan rentang waktu (Tahun Ajaran) ini.'], 404);
             }
 
-            // Ambil data mata kuliah berdasarkan program studi, tahun ajaran, dan kurikulum yang diajar dosen
-            $mataKuliah = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-            ->where('krs.ta_id', $tahunAjaranId)
-            ->where('kurikulum.jurusan_id', $programStudiId)
-            ->whereIn('krs.kurikulum_id', $kurikulumDosen)
-            ->select('matakuliah.matakuliah_id', 'matakuliah.nama', 'matakuliah.smt', 'matakuliah.semester')
-            ->distinct()
-            ->orderBy('matakuliah.smt', 'asc')
-            ->get();
-
-            if ($mataKuliah->isEmpty()) {
-            return response()->json(['message' => 'Tidak ada mata kuliah ditemukan untuk dosen ini pada program studi dan tahun ajaran tersebut.'], 404);
-            }
+            // Ambil data mata kuliah yang sudah pasti masuk jadwal & diajar dosen tsb
+            $mataKuliah = DB::table('kurikulum')
+                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                ->whereIn('kurikulum.kurikulum_id', $allKurikulum)
+                ->select('matakuliah.matakuliah_id', 'matakuliah.nama', 'matakuliah.smt', 'matakuliah.semester')
+                ->distinct()
+                ->orderBy('matakuliah.smt', 'asc')
+                ->get();
 
             return response()->json($mataKuliah);
         }
@@ -97,13 +148,23 @@ class ModulAkademikController extends Controller
                     return response()->json(['message' => 'Konfigurasi program studi tidak ditemukan.'], 404);
                 }
 
-                // Siapkan array bobot, gunakan default value jika di DB null
+                $bobotCustom = null;
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('bobot_nilai')) {
+                        $bobotCustom = \App\Models\BobotNilai::where('program_studi_id', $programStudi->jurusan_id)
+                            ->where('matakuliah_id', $matakuliahId)
+                            ->first();
+                    }
+                } catch (\Exception $e) { }
+
+                $bobotSource = $bobotCustom ? 'custom' : 'default';
+
                 $bobot = [
-                    'uts'     => $programStudi->persen_uts ?? 25,
-                    'uas'     => $programStudi->persen_uas ?? 35,
-                    'tugas'   => $programStudi->persen_tugas ?? 20,
-                    'absensi' => $programStudi->persen_absen ?? 10, // pastikan nama kolom 'persen_absen'
-                    'praktik' => $programStudi->persen_praktik ?? 10,
+                    'uts'     => ($bobotCustom ? $bobotCustom->persen_uts : null) ?? $programStudi->persen_uts ?? 25,
+                    'uas'     => ($bobotCustom ? $bobotCustom->persen_uas : null) ?? $programStudi->persen_uas ?? 35,
+                    'tugas'   => ($bobotCustom ? $bobotCustom->persen_tugas : null) ?? $programStudi->persen_tugas ?? 20,
+                    'absensi' => ($bobotCustom ? $bobotCustom->persen_absen : null) ?? $programStudi->persen_absen ?? 10,
+                    'praktik' => ($bobotCustom ? $bobotCustom->persen_praktik : null) ?? $programStudi->persen_praktik ?? 10,
                 ];
 
                 // Siapkan array standar nilai mutu
@@ -124,10 +185,58 @@ class ModulAkademikController extends Controller
                 return response()->json([
                     'mahasiswa'   => $mahasiswa,
                     'konfigurasi' => [
-                        'bobot' => $bobot,
-                        'mutu'  => $mutu,
+                        'bobot'       => $bobot,
+                        'bobot_source' => $bobotSource,
+                        'program_studi_id' => $programStudi->jurusan_id,
+                        'matakuliah_id' => $matakuliahId,
+                        'mutu'        => $mutu,
                     ]
                 ]);
+            }
+
+            public function saveBobotNilai(Request $request)
+            {
+                $request->validate([
+                    'program_studi_id' => 'required',
+                    'matakuliah_id' => 'required',
+                    'persen_tugas' => 'required|numeric|min:0|max:100',
+                    'persen_uts' => 'required|numeric|min:0|max:100',
+                    'persen_uas' => 'required|numeric|min:0|max:100',
+                    'persen_absen' => 'required|numeric|min:0|max:100',
+                    'persen_praktik' => 'nullable|numeric|min:0|max:100',
+                ]);
+
+                try {
+                    if (\Illuminate\Support\Facades\Schema::hasTable('bobot_nilai')) {
+                        \App\Models\BobotNilai::updateOrCreate(
+                            [
+                                'program_studi_id' => $request->program_studi_id,
+                                'matakuliah_id' => $request->matakuliah_id
+                            ],
+                            [
+                                'persen_tugas' => $request->persen_tugas,
+                                'persen_uts' => $request->persen_uts,
+                                'persen_uas' => $request->persen_uas,
+                                'persen_absen' => $request->persen_absen,
+                                'persen_praktik' => $request->persen_praktik ?? 0,
+                            ]
+                        );
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Bobot nilai berhasil disimpan.',
+                        ]);
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Tabel bobot_nilai belum ada di database.',
+                        ], 500);
+                    }
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
+                    ], 500);
+                }
             }
             public function saveNilaiDosen(Request $request)
             {
@@ -179,7 +288,6 @@ class ModulAkademikController extends Controller
 
                         // Ambil nilai input
                         $nilaiUTS = $uts[$mahasiswaId] ?? 0;
-                        $nilaiUAP = $uap[$mahasiswaId] ?? 0;
                         $nilaiUAS = $uas[$mahasiswaId] ?? 0;
                         $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
                         $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
@@ -227,19 +335,29 @@ class ModulAkademikController extends Controller
             {
                 // Dapatkan ID dosen yang sedang login
                 $dosenId = auth('dosen')->user();
+                
+                $search = $request->input('search');
 
                 // Query untuk mengambil daftar mahasiswa unik yang pernah diajar oleh dosen ini
                 // melalui tabel junction dosen_mata_kuliah, kurikulum, dan krs.
-                $mahasiswaList = Mahasiswa::with(['programStudi', 'dosen'])
+                // KOREKSI: Ini mengambil mahasiswa yang Dosen ID nya adalah Dosen yang login (Mahasiswa Bimbingan PA).
+                $query = Mahasiswa::with(['programStudi'])
                     ->where('dosen_id', $dosenId->dosen_id)
-                    ->where('status_mhs', 'aktif')
-                    ->orderBy('nama', 'asc')
-                    ->paginate(6);
+                    ->where('status_mhs', 'aktif');
+                    
+                if (!empty($search)) {
+                    $query->where(function($q) use ($search) {
+                        $q->where('nama', 'like', "%{$search}%")
+                          ->orWhere('nim', 'like', "%{$search}%");
+                    });
+                }
+
+                $mahasiswaList = $query->orderBy('nama', 'asc')->paginate(10)->withQueryString();
 
                 // Kirim data ke view
-                // Anda perlu membuat file view di: resources/views/dosen/mahasiswa/index.blade.php
                 return view('dosen.nilai.lihat-nilai', [
-                    'mahasiswaList' => $mahasiswaList
+                    'mahasiswaList' => $mahasiswaList,
+                    'search' => $search
                 ]);
             }
 

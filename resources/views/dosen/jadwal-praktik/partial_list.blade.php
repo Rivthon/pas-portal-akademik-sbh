@@ -1,5 +1,5 @@
 @foreach ($jadwalList as $hari => $jadwalHari)
-<div class="mb-4">
+<div class="mb-4 jadwal-hari-container">
     <h5 class="fw-bold text-dark">
         <i class="bi bi-calendar-event"></i> {{ ucfirst($hari) }}
     </h5>
@@ -14,7 +14,7 @@
         $kodeMatakuliah = $jadwal['kode_matakuliah'] ?? '-';
         @endphp
         @if (!empty($dosenTersaring))
-        <div class="col-md-4">
+        <div class="col-md-4 jadwal-card-item" data-nama="{{ $namaMatakuliah }}" data-dosen="{{ implode(', ', array_column($jadwal['dosen'], 'nama')) }}" data-jenis="{{ $jadwal['jenis_kelas'] }}">
             <div class="card shadow-sm mb-3 bg-light text-dark" style="cursor: pointer;"
                 onclick="openAbsensiPraktikModal('{{ $jadwalId }}', '{{ $namaMatakuliah }}', '{{ $kodeMatakuliah }}')">
                 <div class="card-body">
@@ -59,73 +59,67 @@
 <!-- 🔹 MODAL FORM UNTUK BUAT PERTEMUAN -->
 <div class="modal fade" id="pertemuanPrModal" tabindex="-1" aria-labelledby="pertemuanPrModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <!-- Perbesar modal menjadi 8 kolom -->
-        <div class="modal-content shadow-sm border-0">
-            <div class="modal-header">
-                <h5 class="modal-title" id="pertemuanPrModalLabel">
-                    <i class="fas fa-calendar-plus"></i> Buat Pertemuan Baru Praktik
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light pb-3 border-bottom">
+                <h5 class="modal-title fw-bold text-dark" id="pertemuanPrModalLabel">
+                    <i class="bx bx-calendar-plus text-primary fs-4 align-middle me-1"></i> Buat Pertemuan Baru Praktik
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <form id="pertemuanprakForm">
                     @csrf
                     <input type="hidden" id="jadwal_praktik_id" name="jadwal_praktik_id">
-                    <div class="mb-3">
-                        <label for="nama_matakuliah" class="form-label">Mata Kuliah</label>
-                        <input type="text" class="form-control bg-light" id="nama_matakuliah" name="nama_matakuliah"
-                            readonly>
+                    
+                    <div class="mb-4">
+                        <label for="nama_matakuliah" class="form-label fw-semibold text-muted mb-1">Mata Kuliah Praktik</label>
+                        <input type="text" class="form-control bg-light border-0 fw-bold text-primary" id="nama_matakuliah" name="nama_matakuliah" readonly>
                     </div>
-                    <div class=" mb-3">
-                        <label for="tanggal_pertemuan" class="form-label">Tanggal Pertemuan</label>
-                        <input type="date" class="form-control" id="tanggal_pertemuan" name="tanggal_pertemuan"
-                            required>
+                    
+                    <div class="mb-4">
+                        <label for="tanggal_pertemuan" class="form-label fw-semibold">Tanggal Pertemuan</label>
+                        <input type="date" class="form-control" id="tanggal_pertemuan" name="tanggal_pertemuan" required>
                     </div>
-                    <div class="row">
+                    
+                    <div class="row mb-2">
                         <div class="col-md-6 mb-3">
-                            <label for="jam_mulai" class="form-label">Jam Mulai</label>
+                            <label for="jam_mulai" class="form-label fw-semibold">Jam Mulai</label>
                             <input type="time" class="form-control" id="jam_mulai" name="jam_mulai" required>
+                            <p id="format-jam-mulai" class="text-muted small mt-1 mb-0"></p>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="jam_selesai" class="form-label">Jam Selesai</label>
+                            <label for="jam_selesai" class="form-label fw-semibold">Jam Selesai</label>
                             <input type="time" class="form-control" id="jam_selesai" name="jam_selesai" required>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12 d-flex align-items-end">
-                            <p id="format-jam" class="text-muted small"></p>
-                        </div>
-                        <div class="col-md-12 d-flex align-items-end">
-                            <p id="format-jam" class="text-muted small"></p>
+                            <p id="format-jam-selesai" class="text-muted small mt-1 mb-0"></p>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="topik" class="form-label">Topik Pertemuan</label>
-                        <textarea class="form-control" id="topik" name="topik" rows="3" required></textarea>
+                    <div class="mb-4">
+                        <label for="topik" class="form-label fw-semibold">Topik Pertemuan</label>
+                        <textarea class="form-control" id="topik" name="topik" rows="2" placeholder="Tuliskan bahasan eksperimen/praktikum utama..." required></textarea>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="sub_topik" class="form-label">Sub Topik</label>
-                        <textarea class="form-control" id="sub_topik" name="sub_topik" rows="2" required></textarea>
+                    <div class="mb-4">
+                        <label for="sub_topik" class="form-label fw-semibold">Sub Topik</label>
+                        <textarea class="form-control" id="sub_topik" name="sub_topik" rows="2" placeholder="Rincian sub topik materi praktik..." required></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bx bxs-save"></i> Simpan
-                    </button>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary rounded-pill py-2 fw-bold shadow-sm" style="letter-spacing: 0.5px;">
+                            <i class="bx bxs-save me-2"></i> Simpan Pertemuan
+                        </button>
+                    </div>
                 </form>
 
                 <!-- 🔹 List Pertemuan -->
-                <hr>
-                <div class="card mt-3 shadow-sm border-0">
-                    <div class="card-body">
-                        <h6 class="mb-3"><i class="fas fa-list"></i> Daftar Pertemuan</h6>
-                        <ul id="absensiList" class="list-group">
-                            <li class="list-group-item text-muted">Memuat data...</li>
-                        </ul>
-                    </div>
+                <div class="mt-5">
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bx bx-list-ul text-primary fs-5 align-middle me-1"></i> Daftar Riwayat Pertemuan
+                    </h6>
+                    <ul id="absensiList" class="list-group list-group-flush border rounded-3 bg-light">
+                        <li class="list-group-item bg-transparent text-center text-muted py-4">Memuat data histori pertemuan praktik...</li>
+                    </ul>
                 </div>
             </div>
         </div>
