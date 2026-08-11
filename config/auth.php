@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Dosen;
+use App\Models\Mahasiswa;
+use App\Models\User;
+
 return [
 
     /*
@@ -45,10 +49,10 @@ return [
             'provider' => 'mahasiswa',
         ],
         'dosen' => [
-        'driver' => 'session',
-        'provider' => 'dosen',
+            'driver' => 'session',
+            'provider' => 'dosen',
+        ],
     ],
-],
 
     /*
     |--------------------------------------------------------------------------
@@ -70,19 +74,18 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\User::class,
+            'model' => User::class,
         ],
         'mahasiswa' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Mahasiswa::class,
+            'model' => Mahasiswa::class,
         ],
         'dosen' => [
-        'driver' => 'eloquent',
-        'model' => App\Models\Dosen::class,
+            'driver' => 'eloquent',
+            'model' => Dosen::class,
         ],
 
     ],
-
 
     /*
     |--------------------------------------------------------------------------

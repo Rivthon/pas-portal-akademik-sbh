@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Saran extends Model
 {
     use HasFactory;
 
     protected $table = 'saran'; // Nama tabel
+
     protected $primaryKey = 'id'; // Primary key
+
     public $incrementing = true; // Primary key auto-increment
+
     protected $keyType = 'int'; // Tipe data primary key
 
     protected $fillable = [
@@ -21,7 +24,7 @@ class Saran extends Model
     ];
 
     // Relasi ke model Evaluasi
-   public function mahasiswa()
+    public function mahasiswa()
     {
         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
     }

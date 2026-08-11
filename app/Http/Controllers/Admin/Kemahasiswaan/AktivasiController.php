@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Admin\Kemahasiswaan;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class AktivasiController extends Controller
 {
@@ -27,10 +25,10 @@ class AktivasiController extends Controller
         // Filter pencarian
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('nama', 'like', '%' . $search . '%')
-                    ->orWhere('nim', 'like', '%' . $search . '%')
+                $q->where('nama', 'like', '%'.$search.'%')
+                    ->orWhere('nim', 'like', '%'.$search.'%')
                     ->orWhereHas('programStudi', function ($pq) use ($search) {
-                        $pq->where('nama', 'like', '%' . $search . '%');
+                        $pq->where('nama', 'like', '%'.$search.'%');
                     });
             });
         }
@@ -59,10 +57,10 @@ class AktivasiController extends Controller
         // Statistik ringkasan (dari mahasiswa aktif secara keseluruhan)
         $totalAktif = Mahasiswa::where('status_mhs', 'aktif')->count();
         $stats = [
-            'total'     => $totalAktif,
-            'krs'       => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_krs', 1)->count() / $totalAktif * 100, 1) : 0,
-            'uts'       => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_uts', 1)->count() / $totalAktif * 100, 1) : 0,
-            'uas'       => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_uas', 1)->count() / $totalAktif * 100, 1) : 0,
+            'total' => $totalAktif,
+            'krs' => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_krs', 1)->count() / $totalAktif * 100, 1) : 0,
+            'uts' => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_uts', 1)->count() / $totalAktif * 100, 1) : 0,
+            'uas' => $totalAktif > 0 ? round(Mahasiswa::where('status_mhs', 'aktif')->where('status_uas', 1)->count() / $totalAktif * 100, 1) : 0,
             'krs_count' => Mahasiswa::where('status_mhs', 'aktif')->where('status_krs', 1)->count(),
             'uts_count' => Mahasiswa::where('status_mhs', 'aktif')->where('status_uts', 1)->count(),
             'uas_count' => Mahasiswa::where('status_mhs', 'aktif')->where('status_uas', 1)->count(),
@@ -83,28 +81,30 @@ class AktivasiController extends Controller
         return view('admin.kemahasiswaan.aktivasi-mhs.index', compact('mahasiswa', 'pageIndex', 'search', 'programStudiList', 'stats'));
     }
 
-
     public function updateStatus(Request $request)
     {
         try {
             \Log::info('Request Data:', $request->all());
 
             $mahasiswa = Mahasiswa::findOrFail($request->mahasiswa_id);
-            $field = 'status_' . $request->type;
+            $field = 'status_'.$request->type;
 
-            if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs', 'status_uap'])) {
+            if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs', 'status_uap', 'status_akhir'])) {
                 $mahasiswa->$field = $request->status;
                 $mahasiswa->save();
 
+                activity_log('update_aktivasi', 'Admin mengubah '.$request->type.' mahasiswa: '.$mahasiswa->nama.' menjadi '.$request->status);
+
                 return response()->json([
                     'success' => true,
-                    'message' => ucfirst($request->type) . " berhasil diperbarui.",
+                    'message' => ucfirst($request->type).' berhasil diperbarui.',
                 ]);
             }
 
             return response()->json(['success' => false, 'message' => 'Field tidak valid.']);
         } catch (\Exception $e) {
-            \Log::error('Error: ' . $e->getMessage());
+            \Log::error('Error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.']);
         }
     }
@@ -119,14 +119,18 @@ class AktivasiController extends Controller
                 'status_nilai_uts' => 0,
                 'status_nilai_uas' => 0,
                 'status_uap' => 0,
+                'status_akhir' => 0,
             ]);
+
+            activity_log('reset_semua_status', 'Admin mereset semua status aktivasi mahasiswa');
 
             return response()->json([
                 'success' => true,
                 'message' => 'Semua status berhasil direset.',
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error: ' . $e->getMessage());
+            \Log::error('Error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mereset status.',
@@ -142,11 +146,11 @@ class AktivasiController extends Controller
         try {
             $type = $request->input('type');
             $status = $request->input('status', 1);
-            $field = 'status_' . $type;
+            $field = 'status_'.$type;
 
-            $validFields = ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_uap'];
+            $validFields = ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_uap', 'status_akhir'];
 
-            if (!in_array($field, $validFields)) {
+            if (! in_array($field, $validFields)) {
                 return response()->json(['success' => false, 'message' => 'Field tidak valid.']);
             }
 
@@ -165,12 +169,15 @@ class AktivasiController extends Controller
 
             $affected = $query->update([$field => $status]);
 
+            activity_log('bulk_update_aktivasi', 'Admin bulk update '.$type.' untuk '.$affected.' mahasiswa');
+
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($type) . " berhasil diperbarui untuk {$affected} mahasiswa.",
+                'message' => ucfirst($type)." berhasil diperbarui untuk {$affected} mahasiswa.",
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error bulk update: ' . $e->getMessage());
+            \Log::error('Error bulk update: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat bulk update.',

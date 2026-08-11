@@ -7,13 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class Penilaian extends Model
 {
-  use HasFactory;
+    use HasFactory;
 
     protected $table = 'penilaian';
-    protected $primaryKey = 'id'; // Sesuaikan jika primary key berbeda
-    public $incrementing = true;
-    protected $keyType = 'int';
 
+    protected $primaryKey = 'id'; // Sesuaikan jika primary key berbeda
+
+    public $incrementing = true;
+
+    protected $keyType = 'int';
 
     protected $fillable = [
         'mahasiswa_id',
@@ -46,6 +48,4 @@ class Penilaian extends Model
     {
         return $this->belongsTo(Dosen::class, 'dosen_id');
     }
-
-
 }

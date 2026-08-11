@@ -3,21 +3,18 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Jadwal;
 use App\Models\Pertemuan;
 use Illuminate\Http\Request;
 
-
 class PertemuanController extends Controller
 {
-
     public function index($jadwalId)
     {
         // Ambil data jadwal dengan pertemuan
         $jadwal = Jadwal::with('pertemuan')->find($jadwalId);
 
-        if (!$jadwal) {
+        if (! $jadwal) {
             return redirect()->route('admin.jadwal.index')->withErrors('Jadwal tidak ditemukan.');
         }
 
@@ -26,7 +23,6 @@ class PertemuanController extends Controller
             'pertemuan' => $jadwal->pertemuan ?? [],
         ]);
     }
-
 
     /**
      * Simpan data pertemuan baru.
@@ -53,6 +49,7 @@ class PertemuanController extends Controller
         return redirect()->route('admin.pertemuan.index', ['jadwalId' => $request->jadwal_id])
             ->with('success', 'Pertemuan berhasil dibuat!');
     }
+
     public function toggleStatus($pertemuan_id)
     {
         // Find the pertemuan record by ID
@@ -70,11 +67,10 @@ class PertemuanController extends Controller
             ->with('success', 'Status pertemuan berhasil diperbarui.');
     }
 
-
-
     public function edit($jadwal_id, $id)
     {
         $pertemuan = Pertemuan::findOrFail($id);
+
         return view('admin.akademik.pertemuan.edit', compact('jadwal_id', 'pertemuan'));
     }
 

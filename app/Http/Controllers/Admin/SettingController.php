@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
-use Illuminate\Http\Request;
 use App\Models\Setting;
+use Illuminate\Http\Request;
 
 class SettingController extends Controller
 {
@@ -14,7 +13,9 @@ class SettingController extends Controller
      */
     public function edit()
     {
+        activity_log('lihat_setting', 'Admin mengakses halaman pengaturan');
         $setting = Setting::first(); // Ambil data pengaturan pertama
+
         return view('admin.settings.edit', compact('setting'));
     }
 
@@ -47,6 +48,8 @@ class SettingController extends Controller
         }
 
         $setting->update($data);
+
+        activity_log('update_setting', 'Admin memperbarui pengaturan aplikasi');
 
         return redirect()->back()->with('success', 'Pengaturan berhasil diperbarui!');
     }

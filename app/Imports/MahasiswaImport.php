@@ -25,21 +25,21 @@ class MahasiswaImport implements ToModel, WithHeadingRow
             'nisn' => $row['nisn'],
             'alamat' => $row['alamat'],
             'asal_sekolah' => $row['asal_sekolah'],
-            'jurusan_sekolah' => $row['jurusan_sekolah'], //baru
-            'tahun_lulus' => $row['tahun_lulus'], //baru
+            'jurusan_sekolah' => $row['jurusan_sekolah'], // baru
+            'tahun_lulus' => $row['tahun_lulus'], // baru
             'no_telp' => $row['no_telp'],
             'nama_ayah' => $row['nama_ayah'],
             'no_telp_ortu' => $row['no_telp_ortu'],
             'nama_ibu' => $row['nama_ibu'],
-            'no_telp_ibu' => $row['no_telp_ibu'], //baru
+            'no_telp_ibu' => $row['no_telp_ibu'], // baru
             'semester' => 1,
             'status_mhs' => 'aktif',
             'pekerjaan_ayah' => $row['pekerjaan_ayah'],
             'pekerjaan_ibu' => $row['pekerjaan_ibu'],
             'alamat_ortu' => $row['alamat_ortu'],
-            'pendapatan_ortu' => $row['pendapatan_ortu'], //new
+            'pendapatan_ortu' => $row['pendapatan_ortu'], // new
             'status_kip' => $row['status_kip'],
-            'gelombang_id' => $row['gelombang_id'], //baru
+            'gelombang_id' => $row['gelombang_id'], // baru
             'tahun_masuk' => $row['tahun_masuk'],
             'kelas' => $row['kelas'],
         ]);

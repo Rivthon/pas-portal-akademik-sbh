@@ -2,7 +2,7 @@
 <html lang="id">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Laporan Nilai Mahasiswa</title>
     <style>
         body {
@@ -109,7 +109,7 @@
 
     <div class="header">
         @if(!isset($isExcel) || !$isExcel)
-            <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Kop STIKES">
+            <img src="{{ public_path('assets/img/header/header_kop_utama.jpg') }}" alt="Header Kop STIKES" />
         @else
             <div style="font-size: 16pt; font-weight: bold;">SEKOLAH TINGGI ILMU KESEHATAN BOGOR HUSADA</div>
             <div>Jl. Sholeh Iskandar No.4, Sindangbarang, Kota Bogor, Jawa Barat</div>
@@ -146,11 +146,11 @@
                 <th rowspan="2" width="8%">Huruf Mutu</th>
             </tr>
             <tr>
-                <th width="8%">UTS<br>({{ $konfigurasi['bobot']['uts'] }}%)</th>
-                <th width="8%">UAS<br>({{ $konfigurasi['bobot']['uas'] }}%)</th>
-                <th width="8%">Tugas<br>({{ $konfigurasi['bobot']['tugas'] }}%)</th>
-                <th width="8%">Absen<br>({{ $konfigurasi['bobot']['absensi'] }}%)</th>
-                <th width="8%">Praktik<br>({{ $konfigurasi['bobot']['praktik'] }}%)</th>
+                <th width="8%">UTS<br/>({{ $konfigurasi['bobot']['uts'] }}%)</th>
+                <th width="8%">UAS<br/>({{ $konfigurasi['bobot']['uas'] }}%)</th>
+                <th width="8%">Tugas<br/>({{ $konfigurasi['bobot']['tugas'] }}%)</th>
+                <th width="8%">Absen<br/>({{ $konfigurasi['bobot']['absensi'] }}%)</th>
+                <th width="8%">Praktik<br/>({{ $konfigurasi['bobot']['praktik'] }}%)</th>
             </tr>
         </thead>
         <tbody>

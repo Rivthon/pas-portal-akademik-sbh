@@ -49,6 +49,7 @@
                 <tr>
                     <th class="text-center" width="150ox">#</th>
                     <th class="text-left">Name</th>
+                    <th class="text-center">Permission</th>
                     <th width="280px">Action</th>
                 </tr>
             </thead>
@@ -57,6 +58,7 @@
                 <tr>
                     <td class="text-center">{{ ++$i }}</td>
                     <td class="text-left">{{ $role->name }}</td>
+                    <td class="text-center"><span class="badge bg-label-primary">{{ $role->permissions_count }} akses</span></td>
                     <td>
                         @can('role-edit')
                         <a class="btn btn-primary btn-sm" href="{{ route('admin.roles.edit', $role->id) }}">

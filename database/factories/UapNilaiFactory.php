@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\UapNilai;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\UapNilai>
+ * @extends Factory<UapNilai>
  */
 class UapNilaiFactory extends Factory
 {

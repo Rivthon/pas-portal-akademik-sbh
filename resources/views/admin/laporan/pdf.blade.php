@@ -107,40 +107,7 @@
         {{-- <p><strong>Dosen:</strong> {{ $jadwal->dosen->name ?? 'Tidak Diketahui' }}</p> --}}
     </div>
 
-    <table
-        style="width: 100%; font-family: 'Times New Roman', Times, serif; font-size: 14px; border-collapse: collapse;"
-        border="1">
-        <thead>
-            <tr>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">No</th>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">Nama Mahasiswa</th>
-                <th colspan="{{ $totalPertemuan }}" style="text-align: center;">Pertemuan</th>
-                <th rowspan="2" style="text-align: center; vertical-align: middle;">Total</th>
-            </tr>
-            <tr>
-                @for ($i = 1; $i <= $totalPertemuan; $i++) <th style="text-align: center;">P{{ $i }}</th>
-                    @endfor
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($mahasiswa as $mhs)
-            <tr>
-                <td style="text-align: left; padding: 5px;">{{ $mhs->nama }}</td>
-                @foreach ($rekapAbsensi as $pertemuan)
-                <td style="text-align: center;">{{ $pertemuan['absensi'][$mhs->mahasiswa_id] ?? '-' }}</td>
-                @endforeach
-                <td style="text-align: center;">
-                    {{-- Hitung total kehadiran mahasiswa --}}
-                    {{
-                    collect($rekapAbsensi)
-                    ->filter(fn($pertemuan) => ($pertemuan['absensi'][$mhs->mahasiswa_id] ?? null) === 'H')
-                    ->count()
-                    }}
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    @include('dosen.absensi.partials.rekap-table')
     <div class="qr-code">
         @if(isset($qrFilePath))
         <img src="{{ $qrFilePath }}" alt="QR Code" style="width: 100px; height: 100px;">

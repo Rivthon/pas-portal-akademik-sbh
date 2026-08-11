@@ -2,7 +2,7 @@
 @section('title', 'Isi Absensi Praktik')
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
-    
+
     {{-- Info Pertemuan Infographic Card --}}
     <div class="row mb-4">
         <div class="col-12">
@@ -14,7 +14,7 @@
                         </div>
                         <h4 class="card-title text-white mb-0 fw-bold">Informasi Absensi Praktikum</h4>
                     </div>
-                    
+
                     <div class="row mt-4">
                         <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
                             <p class="text-white-50 mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Mata Kuliah</p>
@@ -87,12 +87,12 @@
                 </button>
             </div>
         </div>
-        
+
         <div class="card-body p-0">
             <form id="praktikForm" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="pertemuan_praktik_id" value="{{ $pertemuan->pertemuan_praktik_id }}">
-                
+
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">

@@ -205,7 +205,7 @@
             // 🔹 Load Daftar Pertemuan
             function loadListPertemuan(jadwal_id) {
                 $.ajax({
-                    url: `/dosen/dosen/pertemuan/list/${jadwal_id}`,
+                    url: `/dosen/pertemuan/list/${jadwal_id}`,
                     type: "GET",
                     success: function (data) {
                         let pertemuanHTML = "";
@@ -222,7 +222,8 @@
                                     <li class="list-group-item">
                                         <strong>${item.tanggal_pertemuan}</strong> - ${item.topik} <br>
                                         ⏰ <span class="text-muted">${item.jam_mulai} - ${item.jam_selesai} (${durasiMenit} menit)</span>
-                                        <a href="/dosen/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary float-end">
+                                        <span class="badge bg-label-${(item.metode_pbm || 'offline').toLowerCase() === 'online' ? 'primary' : 'secondary'} ms-1">${(item.metode_pbm || 'offline').charAt(0).toUpperCase() + (item.metode_pbm || 'offline').slice(1)}</span>
+                                        <a href="/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary float-end">
                                             Lihat Absensi
                                         </a>
                                     </li>
@@ -240,7 +241,7 @@
 
             // 🔹 Submit Form Tambah Pertemuan
            $(document).ready(function () {
-            $('#pertemuanForm').submit(function (e) {
+            $(document).on('submit', '#pertemuanForm', function (e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -248,18 +249,20 @@
                     type: "POST",
                     data: $(this).serialize(),
                     success: function (response) {
-                        alert("Pertemuan berhasil disimpan!");
+                        if (response.redirect_url) {
+                            window.location.assign(response.redirect_url);
+                            return;
+                        }
 
                         // Sembunyikan modal
-                        $('#pertemuanModal').modal('hide');
-                        $('#pertemuanForm')[0].reset();
+                        bootstrap.Modal.getInstance(document.getElementById('pertemuanModal')).hide();
 
                         // 🔹 Perbarui daftar pertemuan dalam modal
                         loadListPertemuan(response.jadwal_id);
                     },
                     error: function (xhr) {
                         let errorMessage = xhr.responseJSON?.message || "Terjadi kesalahan. Silakan coba lagi Pertemuan Teori.";
-                        alert(`Error: ${errorMessage}`);
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: errorMessage });
                     }
                 });
             });
@@ -323,7 +326,6 @@
                 });
             },
            error: function (xhr) {
-                console.log(xhr.responseText); // Tampilkan di console browser
                 Swal.fire({
                     icon: 'error',
                     title: 'Gagal!',
@@ -370,7 +372,6 @@
                 });
             },
            error: function (xhr) {
-                console.log(xhr.responseText); // Tampilkan di console browser
                 Swal.fire({
                     icon: 'error',
                     title: 'Gagal!',
@@ -464,7 +465,7 @@
 
         function loadListAbsensiPraktik(jadwal_praktik_id) {
             $.ajax({
-               url: `/dosen/dosen/pertemuan-praktik/list/${jadwal_praktik_id}`,
+               url: `/dosen/pertemuan-praktik/list/${jadwal_praktik_id}`,
                 type: "GET",
                 success: function (data) {
                     let absensiHTML = data.length === 0
@@ -473,7 +474,8 @@
                             <li class="list-group-item">
                                 <strong>${item.tanggal_pertemuan}</strong> - ${item.topik} <br>
                                 ⏰ <span class="text-muted">${item.jam_mulai} - ${item.jam_selesai} (${calculateDuration(item.jam_mulai, item.jam_selesai)} menit)</span>
-                                <a href="/dosen/dosen/absensi-praktik/buat/${item.pertemuan_praktik_id}" class="btn btn-sm btn-primary float-end">
+                                <span class="badge bg-label-${(item.metode_pbm || 'offline').toLowerCase() === 'online' ? 'primary' : 'secondary'} ms-1">${(item.metode_pbm || 'offline').charAt(0).toUpperCase() + (item.metode_pbm || 'offline').slice(1)}</span>
+                                <a href="/dosen/absensi-praktik/buat/${item.pertemuan_praktik_id}" class="btn btn-sm btn-primary float-end">
                                     Lihat Absensi
                                 </a>
                             </li>`).join('');
@@ -612,14 +614,14 @@
                 if (!programStudiId || !tahunAjaranId) return;
 
                 try {
-                    const response = await fetch(`/dosen/dosen/mata-kuliah/${programStudiId}/${tahunAjaranId}`);
+                    const response = await fetch(`/dosen/mata-kuliah/${programStudiId}/${tahunAjaranId}`);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     const data = await response.json();
 
                     if (Array.isArray(data) && data.length > 0) {
                         const options = data.map(mk =>
-                            `<option value="${mk.matakuliah_id}">
-                                ${mk.nama} (${mk.matakuliah_id}) Semester-${mk.smt}
+                            `<option value="${mk.jadwal_id}">
+                                ${mk.nama} (${mk.matakuliah_id}) - ${mk.program_studi} - ${mk.jenis_kelas.toUpperCase()} - Semester ${mk.smt}
                             </option>`
                         ).join("");
                         mataKuliahSelect.html('<option value=""></option>' + options);
@@ -635,34 +637,32 @@
 
             // Handle perubahan Mata Kuliah -> Fetch Mahasiswa (Filter Klasik)
             $("#mata-kuliah").on("change", async function () {
-                const mataKuliahId = $(this).val();
-                const tahunAjaranId = $("#tahun-ajaran").val();
-                const mkNama = $(this).find("option:selected").text().replace(/ Semester-\d+/g, '');
+                const jadwalId = $(this).val();
+                const mkNama = $(this).find("option:selected").text();
 
-                if(!mataKuliahId || !tahunAjaranId) return;
+                if(!jadwalId) return;
 
                 // Hilangkan styling card yg mgkn sebelumnya diselect
                 $(".mk-card").removeClass("selected-card");
                 $("#label-mk-terpilih").text(mkNama);
 
-                await loadInputNilai(mataKuliahId, tahunAjaranId);
+                await loadInputNilai(jadwalId);
             });
 
             // Handle Klik Kartu Mata Kuliah di Dashboard (Fitur Baru)
             $(".mk-card").on("click", async function() {
-                const mataKuliahId = $(this).data("matakuliah-id");
-                const tahunAjaranId = $(this).data("ta-id");
+                const jadwalId = $(this).data("jadwal-id");
                 const mkNama = $(this).data("mk-nama");
-                
+
                 // Clear active dropdown selections (arsip collapse)
                 $("#mata-kuliah").val("").trigger("change.select2");
-                
+
                 $(".mk-card").removeClass("selected-card");
                 $(this).addClass("selected-card");
 
                 $("#label-mk-terpilih").text(mkNama);
 
-                await loadInputNilai(mataKuliahId, tahunAjaranId);
+                await loadInputNilai(jadwalId);
             });
 
             // Tutup form
@@ -749,7 +749,7 @@
             };
 
             // Fungsi inti render data mhs
-            async function loadInputNilai(mataKuliahId, tahunAjaranId) {
+            async function loadInputNilai(jadwalId) {
                 const tableBody = document.querySelector("#table-mahasiswa tbody");
                 const saveButton = document.getElementById("save-nilai");
                 const panel = document.getElementById("panel-penilaian");
@@ -763,7 +763,7 @@
                 $('#bobot-panel-container').empty();
                 konfigurasiNilai = { bobot: {}, mutu: [] }; // Reset konfigurasi
 
-                const requestUrl = `/dosen/dosen/input-nilai-dosen/${mataKuliahId}/${tahunAjaranId}`;
+                const requestUrl = `/dosen/input-nilai-dosen/jadwal/${jadwalId}`;
                 try {
                     const response = await fetch(requestUrl);
                     if (!response.ok) throw new Error(`HTTP error! Status: ${response.status} ${response.statusText}`);
@@ -776,6 +776,7 @@
 
                     if (data.mahasiswa && data.konfigurasi) {
                         konfigurasiNilai = data.konfigurasi;
+                        document.getElementById('nilai-jadwal-id').value = konfigurasiNilai.jadwal_id;
 
                         renderBobotPanel(konfigurasiNilai.bobot, konfigurasiNilai);
                         updateTableHeader(konfigurasiNilai.bobot);

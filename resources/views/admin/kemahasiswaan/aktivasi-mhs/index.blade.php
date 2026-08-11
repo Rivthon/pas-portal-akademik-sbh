@@ -374,22 +374,27 @@
         {{-- Bulk Actions Bar --}}
         <div class="bulk-bar">
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <div class="dropdown">
-                    <button class="btn-outline-aktivasi dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bx bx-bolt me-1"></i> Aktifkan Semua
+                @can('aktivasi-bulk-update')
+                    <div class="dropdown">
+                        <button class="btn-outline-aktivasi dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bx bx-bolt me-1"></i> Aktifkan Semua
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="krs">Aktifkan Semua KRS</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="uts">Aktifkan Semua Jadwal UTS</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="uas">Aktifkan Semua Jadwal UAS</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uts">Aktifkan Semua Nilai UTS</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uas">Aktifkan Semua Nilai UAS</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="uap">Aktifkan Semua UAP</a></li>
+                            <li><a class="dropdown-item bulk-activate" href="#" data-type="akhir">Aktifkan Semua KHS</a></li>
+                        </ul>
+                    </div>
+                @endcan
+                @can('aktivasi-reset')
+                    <button id="reset-all-status" class="btn-danger-soft">
+                        <i class="bx bx-refresh me-1"></i> Reset Semua Status
                     </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="krs">Aktifkan Semua KRS</a></li>
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="uts">Aktifkan Semua Jadwal UTS</a></li>
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="uas">Aktifkan Semua Jadwal UAS</a></li>
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uts">Aktifkan Semua Nilai UTS</a></li>
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uas">Aktifkan Semua Nilai UAS</a></li>
-                        <li><a class="dropdown-item bulk-activate" href="#" data-type="uap">Aktifkan Semua UAP</a></li>
-                    </ul>
-                </div>
-                <button id="reset-all-status" class="btn-danger-soft">
-                    <i class="bx bx-refresh me-1"></i> Reset Semua Status
-                </button>
+                @endcan
             </div>
         </div>
     </div>
@@ -536,7 +541,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ===== RESET ALL STATUS (SweetAlert) =====
-    document.getElementById('reset-all-status').addEventListener('click', function() {
+    document.getElementById('reset-all-status')?.addEventListener('click', function() {
         Swal.fire({
             title: 'Reset Semua Status?',
             text: 'Semua status aktivasi mahasiswa akan dikembalikan ke nonaktif. Tindakan ini tidak bisa dibatalkan.',

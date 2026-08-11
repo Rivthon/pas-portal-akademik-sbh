@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\ppsm;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ppsm>
+ * @extends Factory<ppsm>
  */
 class PpsmFactory extends Factory
 {

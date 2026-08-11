@@ -22,7 +22,7 @@ return new class extends Migration
 
             // Foreign key reference to the programs table
             $table->foreignId('program_studi_id')
-            ->constrained('program_studi', 'program_studi_id') // Use the constrained method for better readability
+                ->constrained('program_studi', 'program_studi_id') // Use the constrained method for better readability
                 ->onDelete('cascade');
 
             // Student identification

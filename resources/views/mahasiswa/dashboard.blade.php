@@ -31,7 +31,7 @@
                                 <li class="d-flex align-items-center mb-2">
                                     <i class="fa-solid fa-file-pdf text-danger me-2"></i>
                                     <a class="badge bg-info text-decoration-none"
-                                        href="{{ asset('storage/' . $kalender->path) }}" target="_blank">
+                                        href="{{ route('mahasiswa.calendar-akademik.file', $kalender) }}" target="_blank">
                                         Lihat Kalender Akademik
                                     </a>
                                 </li>
@@ -138,111 +138,54 @@
                 </div>
             </div>
         </div>
-        {{-- <div class="card mt-4 mb-4">
-            <div class="card-body">
-                <h5 class="card-title"></h5>Informasi Penting</h5>
-                <div class="row mt-4">
-                    <!-- Status KRS -->
-                    <div class="col-md-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Status KRS</h5>
-                                @if(auth('mahasiswa')->user()->status_krs == 0)
-                                <p class="text-danger fw-bold">Belum Verifikasi</p>
-                                <p class="text-muted">Silakan lakukan pembayaran ke BAUK.</p>
-                                @else
-                                <p class="text-success fw-bold">Terverifikasi</p>
-                                <p class="text-muted">KRS Anda sudah aktif.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Status KHS -->
-                    <div class="col-md-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Status KHS</h5>
-                                @if(auth('mahasiswa')->user()->status_khs == 0)
-                                <p class="text-danger fw-bold">Belum Verifikasi</p>
-                                <p class="text-muted">Silakan lakukan pembayaran ke BAUK.</p>
-                                @else
-                                <p class="text-success fw-bold">Terverifikasi</p>
-                                <p class="text-muted">KHS Anda sudah aktif.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Status Nilai UTS -->
-                    <div class="col-md-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Status Nilai UTS</h5>
-                                @if(auth('mahasiswa')->user()->status_nilai_uts == 0)
-                                <p class="text-danger fw-bold">Belum Verifikasi</p>
-                                <p class="text-muted">Silakan lakukan pembayaran ke BAUK.</p>
-                                @else
-                                <p class="text-success fw-bold">Terverifikasi</p>
-                                <p class="text-muted">Nilai UTS Anda sudah tersedia.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Status Nilai UAS -->
-                    <div class="col-md-3">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="card-title">Status Nilai UAS</h5>
-                                @if(auth('mahasiswa')->user()->status_nilai_uas == 0)
-                                <p class="text-danger fw-bold">Belum Verifikasi</p>
-                                <p class="text-muted">Silakan lakukan pembayaran ke BAUK.</p>
-                                @else
-                                <p class="text-success fw-bold">Terverifikasi</p>
-                                <p class="text-muted">Nilai UAS Anda sudah tersedia.</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+        <div class="card border-0 shadow-sm mb-4 lms-announcement-card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center px-4 pt-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="announcement-icon bg-label-primary"><i class="bx bx-bell"></i></span>
+                    <div><h5 class="fw-bold mb-0">Announcement LMS</h5><small class="text-muted">Materi, tugas, dan quiz terbaru</small></div>
                 </div>
-
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-label-primary">{{ $lmsAnnouncements->count() }}</span>
+                    <a href="{{ route('mahasiswa.lms.index') }}" class="btn btn-sm btn-label-primary">Buka LMS</a>
+                    <button class="btn btn-sm btn-icon btn-label-secondary announcement-toggle" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#mahasiswaLmsAnnouncements"
+                        aria-expanded="false" aria-controls="mahasiswaLmsAnnouncements" title="Buka atau tutup announcement">
+                        <i class="bx bx-chevron-down fs-4"></i>
+                    </button>
+                </div>
             </div>
-        </div> --}}
-        <div class="card shadow-sm mb-4 mt-4">
-            <div class="card-body">
-                <h5 class="card-title text-primary fw-bold mb-3">📰 Berita Terbaru</h5>
-
-                <!-- Spinner Loading -->
-                <div id="loading" class="text-center my-3">
-                    <span class="spinner-border text-primary"></span>
-                    <p class="text-muted">Memuat berita...</p>
+            <div class="collapse" id="mahasiswaLmsAnnouncements">
+                <div class="card-body px-4 pb-4">
+                    @forelse($lmsAnnouncements as $announcement)
+                    <a href="{{ $announcement['url'] }}" class="lms-announcement-item d-flex align-items-start gap-3 text-decoration-none p-3 rounded-3">
+                        <span class="announcement-icon bg-label-{{ $announcement['color'] }}"><i class="bx {{ $announcement['icon'] }}"></i></span>
+                        <span class="flex-grow-1 overflow-hidden">
+                            <span class="d-flex flex-wrap gap-2 mb-1"><strong class="text-body">{{ $announcement['title'] }}</strong>
+                                @if($announcement['event_at']?->isAfter(now()->subDays(7)))<span class="badge bg-label-danger">Baru</span>@endif
+                            </span>
+                            <span class="d-block text-muted small text-truncate">{{ $announcement['course'] }} &bull; {{ $announcement['detail'] }}</span>
+                        </span>
+                        <small class="text-muted text-nowrap">{{ $announcement['event_at']?->diffForHumans() }}</small>
+                    </a>
+                    @empty
+                        <div class="text-center py-5"><i class="bx bx-bell-off fs-1 text-muted"></i><h6 class="mt-2 mb-1">Belum ada announcement</h6><small class="text-muted">Materi, tugas, atau quiz baru akan muncul di sini.</small></div>
+                    @endforelse
                 </div>
-
-                <!-- Carousel Berita -->
-                <div id="newsCarouselContainer" style="display: none;">
-                    <div id="newsCarousel" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner" id="newsContent"></div>
-
-                        <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel"
-                            data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"
-                                aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel"
-                            data-bs-slide="next">
-                            <span class="carousel-control-next-icon bg-dark rounded-circle p-3"
-                                aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                    </div>
-                </div>
-
-                <p id="noNewsMessage" class="text-muted text-center" style="display: none;">Tidak ada berita terbaru.
-                </p>
             </div>
         </div>
+
+        <style>
+            .lms-announcement-card { border-radius: 1rem; }
+            .lms-announcement-item { border: 1px solid transparent; transition: .2s ease; }
+            .lms-announcement-item + .lms-announcement-item { margin-top: .35rem; }
+            .lms-announcement-item:hover { background: rgba(105,108,255,.06); border-color: rgba(105,108,255,.14); transform: translateX(3px); }
+            .announcement-icon { width: 42px; height: 42px; border-radius: .75rem; display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; font-size: 1.3rem; }
+            .announcement-toggle .bx-chevron-down { transition: transform .2s ease; }
+            .announcement-toggle[aria-expanded="true"] .bx-chevron-down { transform: rotate(180deg); }
+            @media (max-width: 575.98px) { .lms-announcement-item > small { display: none; } }
+        </style>
+
 
         <!-- AJAX Script untuk Memuat Berita -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Database\Factories\PkmProgramFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PkmProgram extends Model
 {
-    /** @use HasFactory<\Database\Factories\PkmProgramFactory> */
+    /** @use HasFactory<PkmProgramFactory> */
     use HasFactory;
+
     protected $table = 'pkm';
 
     protected $fillable = [
@@ -24,7 +26,6 @@ class PkmProgram extends Model
         'catatan_validator',
         'bobot',
     ];
-
 
     /* ──────── Relasi ──────── */
     public function mahasiswa()

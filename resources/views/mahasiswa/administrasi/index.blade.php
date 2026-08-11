@@ -97,7 +97,7 @@
                                     <td>
                                         <div class="fw-bold text-primary">{{ $item->tenorPembayaran->tenor ?? 'Undefinded' }}</div>
                                         <small class="text-muted">{{ $item->tahunAjaran->nama ?? '' }}</small>
-                                        
+
                                         @if($item->transaksi->count() > 0)
                                             <div class="mt-2">
                                                 <a class="text-info" data-bs-toggle="collapse" href="#trx-{{ $item->id }}" role="button" aria-expanded="false">
@@ -108,9 +108,9 @@
                                                         <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
                                                             @foreach($item->transaksi as $trx)
                                                                 <li class="mb-1 border-bottom pb-1">
-                                                                    <i class='bx bx-check-circle text-success'></i> 
-                                                                    <strong>{{ \Carbon\Carbon::parse($trx->tanggal_bayar)->format('d/m/y') }}</strong>: 
-                                                                    Rp {{ number_format($trx->nominal_bayar, 0, ',', '.') }} 
+                                                                    <i class='bx bx-check-circle text-success'></i>
+                                                                    <strong>{{ \Carbon\Carbon::parse($trx->tanggal_bayar)->format('d/m/y') }}</strong>:
+                                                                    Rp {{ number_format($trx->nominal_bayar, 0, ',', '.') }}
                                                                     <span class="text-muted">({{ $trx->keterangan ?? 'Pembayaran' }})</span>
                                                                 </li>
                                                             @endforeach

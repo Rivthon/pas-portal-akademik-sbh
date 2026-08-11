@@ -3,32 +3,31 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Ruangan;
 use App\Models\Kurikulum;
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
+use App\Models\Ruangan;
 use App\Models\TahunAkademik;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class KurikulumController extends Controller
 {
-    function __construct()
+    public function __construct()
     {
         $this->middleware('permission:kurikulum-list|kurikulum-create|kurikulum-edit|kurikulum-delete', ['only' => ['index', 'show']]);
         $this->middleware('permission:kurikulum-create', ['only' => ['create', 'store']]);
         $this->middleware('permission:kurikulum-edit', ['only' => ['edit', 'update']]);
         $this->middleware('permission:kurikulum-delete', ['only' => ['destroy']]);
     }
+
     public function index()
     {
         try {
             // Ambil tahun ajaran yang statusnya aktif
             $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
 
-            if (!$tahunAjaran) {
+            if (! $tahunAjaran) {
                 return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
             }
 
@@ -52,14 +51,14 @@ class KurikulumController extends Controller
             $programStudi = $request->query('programStudi');
             $semester = $request->query('semester');
 
-            if (!$programStudi || !$semester) {
+            if (! $programStudi || ! $semester) {
                 return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
             }
 
             // Ambil tahun ajaran yang statusnya aktif
             $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
 
-            if (!$tahunAjaran) {
+            if (! $tahunAjaran) {
                 return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
             }
 
@@ -85,7 +84,6 @@ class KurikulumController extends Controller
             return response()->json(['message' => 'Terjadi kesalahan pada server.', 'error' => $e->getMessage()], 500);
         }
     }
-
 
     // public function index(Request $request)
     // {
@@ -134,8 +132,6 @@ class KurikulumController extends Controller
     //     ->with('i', (request()->input('page', 1) - 1) * 10);
     // }
 
-
-
     public function create(Request $request)
     {
         $programStudi = ProgramStudi::all();
@@ -144,14 +140,13 @@ class KurikulumController extends Controller
         // Ambil Tahun Akademik dengan status_ta = 1
         $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
 
-        if (!$tahunAjaranAktif) {
+        if (! $tahunAjaranAktif) {
             return redirect()->route('admin.kurikulum.index')->with('error', 'Tahun Ajaran aktif tidak ditemukan.');
         }
-        $kurikulum = new Kurikulum(); // Untuk form create
+        $kurikulum = new Kurikulum; // Untuk form create
+
         return view('admin.akademik.kurikulum.form', compact('kurikulum', 'programStudi', 'mataKuliah', 'ruangan', 'tahunAjaranAktif'));
     }
-
-
 
     public function edit(Request $request, $id)
     {
@@ -163,7 +158,7 @@ class KurikulumController extends Controller
         // Ambil Tahun Akademik dengan status_ta = 1
         $tahunAjaranAktif = TahunAkademik::where('status_ta', 1)->first();
 
-        if (!$tahunAjaranAktif) {
+        if (! $tahunAjaranAktif) {
             return redirect()->route('admin.kurikulum.index')
                 ->with('error', 'Tahun Ajaran aktif tidak ditemukan.');
         }
@@ -180,8 +175,6 @@ class KurikulumController extends Controller
             'tahunAjaranAktif'
         ));
     }
-
-
 
     /**
      * Simpan multiple mata kuliah sekaligus via AJAX
@@ -203,8 +196,9 @@ class KurikulumController extends Controller
         foreach ($matakuliahIds as $mkId) {
             try {
                 $matakuliah = Matakuliah::find($mkId);
-                if (!$matakuliah) {
+                if (! $matakuliah) {
                     $errors[] = "Matakuliah {$mkId} tidak ditemukan.";
+
                     continue;
                 }
 
@@ -216,6 +210,7 @@ class KurikulumController extends Controller
 
                 if ($exists) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -227,7 +222,7 @@ class KurikulumController extends Controller
 
                 $created++;
             } catch (\Exception $e) {
-                $errors[] = "Gagal menyimpan {$mkId}: " . $e->getMessage();
+                $errors[] = "Gagal menyimpan {$mkId}: ".$e->getMessage();
             }
         }
 
@@ -236,7 +231,11 @@ class KurikulumController extends Controller
             $message .= " {$skipped} dilewati (sudah ada).";
         }
         if (count($errors) > 0) {
-            $message .= " " . count($errors) . " gagal.";
+            $message .= ' '.count($errors).' gagal.';
+        }
+
+        if ($created > 0) {
+            activity_log('tambah_kurikulum_batch', 'Admin menambah '.$created.' matakuliah ke kurikulum (TA: '.$taId.')');
         }
 
         return response()->json([
@@ -259,7 +258,7 @@ class KurikulumController extends Controller
         try {
             // Ambil jurusan_id berdasarkan matakuliah_id yang dipilih
             $matakuliah = Matakuliah::find($request->matakuliah_id);
-            if (!$matakuliah) {
+            if (! $matakuliah) {
                 return back()->withErrors(['error' => 'Matakuliah tidak ditemukan.'])->withInput();
             }
 
@@ -271,6 +270,8 @@ class KurikulumController extends Controller
 
             // Simpan data kurikulum ke database
             Kurikulum::create($validated);
+
+            activity_log('tambah_kurikulum', 'Admin menambah kurikulum matakuliah: '.$matakuliah->nama);
 
             // Berikan toast alert sukses di tengah layar
             Alert::toast('Kurikulum berhasil ditambahkan.', 'success')
@@ -286,9 +287,6 @@ class KurikulumController extends Controller
             return back()->withErrors(['error' => 'Gagal menyimpan kurikulum. Silakan coba lagi.'])->withInput();
         }
     }
-
-
-
 
     public function update(Request $request, $id)
     {
@@ -307,7 +305,7 @@ class KurikulumController extends Controller
 
             // Ambil jurusan_id berdasarkan matakuliah_id yang dipilih
             $matakuliah = Matakuliah::find($request->matakuliah_id);
-            if (!$matakuliah) {
+            if (! $matakuliah) {
                 return back()->withErrors(['error' => 'Matakuliah tidak ditemukan.'])->withInput();
             }
 
@@ -319,6 +317,8 @@ class KurikulumController extends Controller
 
             // Update data kurikulum di database
             $kurikulum->update($validated);
+
+            activity_log('update_kurikulum', 'Admin memperbarui kurikulum ID: '.$id);
 
             // Berikan toast alert sukses di tengah layar
             Alert::toast('Kurikulum berhasil diperbarui.', 'success')
@@ -339,13 +339,14 @@ class KurikulumController extends Controller
 
     public function destroy(Kurikulum $kurikulum)
     {
+        activity_log('hapus_kurikulum', 'Admin menghapus kurikulum ID: '.$kurikulum->kurikulum_id);
         $kurikulum->delete();
 
         // Deteksi jika request datang dari AJAX/Fetch
         if (request()->wantsJson() || request()->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Data kurikulum berhasil dihapus.'
+                'message' => 'Data kurikulum berhasil dihapus.',
             ]);
         }
 

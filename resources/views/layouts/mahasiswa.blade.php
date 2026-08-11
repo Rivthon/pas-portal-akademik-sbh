@@ -74,6 +74,53 @@
     <!--! Template customizer & Theme config files MUST be included after core stylesheets and helpers.js in the <head> section -->
     <!--? Config:  Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file.  -->
     <script src="{{ asset('dashboard_assets/assets/js/config.js') }}"></script>
+    <style>
+        .impersonation-banner {
+            margin: 0 1.5rem 1rem;
+            border: 1px solid rgba(255, 171, 0, .28);
+            border-radius: .75rem;
+            background: linear-gradient(135deg, #fff8e5 0%, #fff 72%);
+            box-shadow: 0 .25rem 1rem rgba(67, 89, 113, .08);
+        }
+
+        .impersonation-banner__icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(255, 171, 0, .16);
+            color: #b76e00;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 42px;
+        }
+
+        .impersonation-banner__title {
+            color: #7a4b00;
+            font-size: .95rem;
+        }
+
+        .impersonation-banner__text {
+            color: #6f5b31;
+            font-size: .82rem;
+            line-height: 1.45;
+        }
+
+        .impersonation-banner__action {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 767.98px) {
+            .impersonation-banner {
+                margin: 0 .75rem 1rem;
+                border-radius: .65rem;
+            }
+
+            .impersonation-banner__action {
+                width: 100%;
+            }
+        }
+    </style>
     @stack('head')
 </head>
 
@@ -95,6 +142,41 @@
                 <!-- Navbar -->
                 @include('components.navbar-mhs')
                 <!-- / Navbar -->
+                @if(session('impersonating_mahasiswa') && Auth::guard('web')->check())
+                @php
+                    $impersonatedMahasiswa = Auth::guard('mahasiswa')->user();
+                    $impersonatorAdmin = Auth::guard('web')->user();
+                @endphp
+                <div class="impersonation-banner px-3 px-md-4 py-3">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+                        <div class="d-flex align-items-start gap-3 flex-grow-1">
+                            <span class="impersonation-banner__icon">
+                                <i class="bx bx-user-check fs-4"></i>
+                            </span>
+                            <div>
+                                <div class="impersonation-banner__title fw-bold mb-1">
+                                    Mode Login Sebagai Mahasiswa
+                                </div>
+                                <div class="impersonation-banner__text">
+                                    Anda sedang melihat portal sebagai
+                                    <span class="fw-semibold">{{ $impersonatedMahasiswa?->nama ?? 'mahasiswa' }}</span>
+                                    @if($impersonatedMahasiswa?->nim)
+                                        ({{ $impersonatedMahasiswa->nim }})
+                                    @endif
+                                    melalui akun admin
+                                    <span class="fw-semibold">{{ $impersonatorAdmin?->name ?? 'Admin' }}</span>.
+                                </div>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('admin.mahasiswa.impersonate.stop') }}" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-warning fw-semibold shadow-sm impersonation-banner__action">
+                                <i class="bx bx-arrow-back me-1"></i> Kembali ke Admin
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                @endif
                 <div id="toast-overlay"></div>
 
                 <!-- Content wrapper -->
@@ -203,7 +285,7 @@
                                 icon: 'success',
                                 title: 'Berhasil!',
                                 text: response.message,
-                            });
+                            }).then(() => window.location.reload());
                         } else {
                             Swal.fire({
                                 icon: 'error',
@@ -213,10 +295,13 @@
                         }
                     },
                     error: function (xhr) {
+                        const message = xhr.responseJSON?.message
+                            || Object.values(xhr.responseJSON?.errors || {}).flat()[0]
+                            || 'Tidak dapat menyimpan KRS. Silakan coba lagi.';
                         Swal.fire({
                             icon: 'error',
                             title: 'Terjadi Kesalahan!',
-                            text: 'Tidak dapat menyimpan KRS. Silakan coba lagi.',
+                            text: message,
                         });
                         console.error(xhr.responseJSON);
                     }
@@ -256,12 +341,14 @@
                             icon: 'success',
                             title: 'Sukses!',
                             text: res.message,
+                        }).then(() => {
+                            window.location.href = res.redirect_url || "{{ route('mahasiswa.permintaan.index') }}";
                         });
                     } else {
                         Swal.fire({
                             icon: 'warning',
                             title: 'Permintaan Terkirim',
-                            text: res.message || 'WA gagal dikirim.',
+                            text: res.message || 'Permintaan telah dikirim ke Helpdesk Admin.',
                         });
                     }
 

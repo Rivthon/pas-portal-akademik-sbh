@@ -33,7 +33,7 @@
             <div class="card-body">
                 <form action="{{ route('admin.assign.dosen') }}" method="POST" id="form-assign">
                     @csrf
-                    
+
                     <!-- Global Filter (Cascading Setup) -->
                     <h5 class="fw-bold d-flex align-items-center text-primary mb-3"><i class="bx bx-filter-alt me-2"></i> Filter Utama (Global Filters)</h5>
                     <div class="row mb-4 p-3 bg-light rounded border mx-0">
@@ -133,7 +133,7 @@
                 <i class="bx bx-refresh"></i> Muat Ulang Tabel
             </button>
         </div>
-        
+
         <div id="loading" class="text-center mt-3" style="display: none;">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -226,7 +226,7 @@
             `;
             $('#alert-container').html(html);
             $('html, body').animate({ scrollTop: $("#alert-container").offset().top - 100 }, 300);
-            
+
             setTimeout(() => {
                 $('#alert-container .alert').slideUp(300, function() { $(this).remove(); });
             }, 5000);
@@ -239,13 +239,13 @@
             let formElement = $(this);
             let submitBtn = $('#btn-submit');
             let originalText = submitBtn.html();
-            
+
             submitBtn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin"></i> Sedang Menyimpan...');
 
             // Enable disabled selects momentarily for serialization
             let disabledSelects = formElement.find('select:disabled');
             disabledSelects.prop('disabled', false);
-            
+
             let formData = new FormData(this);
 
             disabledSelects.prop('disabled', true);
@@ -258,20 +258,20 @@
                 contentType: false,
                 success: function(response) {
                     showNotification('success', response.message);
-                    
+
                     // Reset fields except filters
                     $('#dosen_id').val([]).trigger('change');
                     $('#jenis_dosen').val('').trigger('change');
                     $('#jenis_kelas').val('').trigger('change');
-                    
+
                     submitBtn.prop('disabled', false).html(originalText);
-                    
+
                     // Reload table if filters are completed
                     $('#search-btn').trigger('click');
                 },
                 error: function(xhr) {
                     submitBtn.prop('disabled', false).html(originalText);
-                    
+
                     if (xhr.status === 422) {
                         let errors = xhr.responseJSON.errors;
                         let errorMessages = '';
@@ -292,7 +292,7 @@
             let ta = $('#filter_ta_id').val();
             let ps = $('#filter_prodi_id').val();
             let smt = $('#filter_smt').val();
-            
+
             if (ta && ps && smt) {
                 loadTableData(ta, ps, smt);
             } else {
@@ -311,7 +311,7 @@
             tbody.empty();
             loading.show();
 
-            fetch(`{{ route('admin.admin.assign.filter') }}?tahunAjaran=${encodeURIComponent(tahunAjaran)}&programStudi=${encodeURIComponent(programStudi)}&semester=${encodeURIComponent(semester)}`)
+            fetch(`{{ route('admin.assign.filter') }}?tahunAjaran=${encodeURIComponent(tahunAjaran)}&programStudi=${encodeURIComponent(programStudi)}&semester=${encodeURIComponent(semester)}`)
                 .then(response => response.json())
                 .then(data => {
                     loading.hide();
@@ -326,7 +326,7 @@
                     data.forEach(dosenAssign => {
                         let kurikulumId = dosenAssign.kurikulum.kurikulum_id;
                         let mk = dosenAssign.kurikulum.mata_kuliah || dosenAssign.kurikulum.matakuliah;
-                        
+
                         if (!groupedData.has(kurikulumId)) {
                             groupedData.set(kurikulumId, {
                                 matakuliah_nama: mk ? mk.nama : '-',
@@ -389,17 +389,17 @@
             dosenArray.forEach(d => {
                 let dosenNama = (d.dosen && d.dosen.nama) ? d.dosen.nama : 'Dosen Tidak Ditemukan';
                 let isTeori = d.jenis_dosen === 'teori';
-                
+
                 let badge = document.createElement("span");
                 badge.className = `badge bg-label-${isTeori ? 'primary' : 'success'} d-flex align-items-center mb-1`;
                 badge.style.fontSize = "0.75rem";
                 badge.id = `dosen-${d.id}`;
-                
+
                 let iconClass = isTeori ? 'bx-book-open' : 'bx-test-tube';
 
                 badge.innerHTML = `
                     <i class='bx ${iconClass} me-1'></i>
-                    ${dosenNama} 
+                    ${dosenNama}
                     <button type="button" class="btn-close ms-2 btn-remove-dosen" style="font-size: 0.55rem;" aria-label="Close" title="Hapus Dosen" data-id="${d.id}"></button>
                 `;
                 divCont.appendChild(badge);

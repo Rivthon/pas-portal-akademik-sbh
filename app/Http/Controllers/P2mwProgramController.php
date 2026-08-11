@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\P2mwProgram;
 use App\Http\Requests\StoreP2mw_programRequest;
 use App\Http\Requests\UpdateP2mw_programRequest;
+use App\Models\P2mwProgram;
 
 class P2mwProgramController extends Controller
 {

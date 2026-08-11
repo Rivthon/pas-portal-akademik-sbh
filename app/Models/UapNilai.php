@@ -2,15 +2,13 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use App\Models\ProgramStudi;
-use App\Models\TahunAkademik;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\UapNilaiFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class UapNilai extends Model
 {
-    /** @use HasFactory<\Database\Factories\UapNilaiFactory> */
+    /** @use HasFactory<UapNilaiFactory> */
     use HasFactory;
 
     protected $table = 'uap_nilai';

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sertifikasi;
 use App\Http\Requests\StoreSertifikasiRequest;
 use App\Http\Requests\UpdateSertifikasiRequest;
+use App\Models\Sertifikasi;
 
 class SertifikasiController extends Controller
 {

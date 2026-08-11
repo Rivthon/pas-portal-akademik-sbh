@@ -90,11 +90,22 @@
                         <i class="bx bx-reset"></i>
                     </button>
                 </form>
+
+                @can('mahasiswa-impersonate')
+                <form action="{{ route('admin.mahasiswa.impersonate', $m->mahasiswa_id) }}" method="POST"
+                    style="display:inline;" onsubmit="return confirm('Login sebagai mahasiswa {{ $m->nama }}?')">
+                    @csrf
+                    <button type="submit" class="btn btn-info btn-sm" data-bs-toggle="tooltip"
+                        data-bs-original-title="Login sebagai Mahasiswa">
+                        <i class="bx bx-log-in-circle"></i>
+                    </button>
+                </form>
+                @endcan
             </td>
         </tr>
         @empty
         <tr>
-            <td colspan="7" class="text-center text-muted">Data tidak ditemukan</td>
+            <td colspan="8" class="text-center text-muted">Data tidak ditemukan</td>
         </tr>
         @endforelse
     </tbody>

@@ -2,14 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use App\Models\DosenMatakuliah;
-use App\Models\Penilaian;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class Dosen extends Authenticatable
 {
@@ -18,7 +13,9 @@ class Dosen extends Authenticatable
     protected $table = 'dosen';
 
     protected $primaryKey = 'dosen_id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -55,28 +52,56 @@ class Dosen extends Authenticatable
         ];
     }
 
+    public function tugas()
+    {
+        return $this->hasMany(
+            LmsTugas::class,
+            'dosen_id',
+            'dosen_id'
+        );
+    }
+
     // Relasi ke Program Studi
     public function programStudi()
     {
         return $this->belongsTo(ProgramStudi::class, 'jurusan_id');
     }
 
-     public function getProfileImageURL()
+    public function getProfileImageURL()
     {
-        return $this->avatar ? asset('storage/' . $this->avatar) : null;
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
     }
-   public function mahasiswa()
-   {
-       return $this->hasMany(Mahasiswa::class, 'dosen_id');
-   }
 
-   public function dosenMatakuliah()
-   {
-       return $this->hasMany(DosenMatakuliah::class, 'dosen_id');
-   }
+    public function mahasiswa()
+    {
+        return $this->hasMany(Mahasiswa::class, 'dosen_id');
+    }
 
-   public function penilaian()
-   {
-       return $this->hasMany(Penilaian::class, 'dosen_id');
-   }
+    public function rps()
+    {
+        return $this->hasMany(
+            Rps::class,
+            'dosen_id',
+            'dosen_id'
+        );
+    }
+
+    public function dosenMatakuliah()
+    {
+        return $this->hasMany(DosenMatakuliah::class, 'dosen_id');
+    }
+
+    public function penilaian()
+    {
+        return $this->hasMany(Penilaian::class, 'dosen_id');
+    }
+
+    public function materiLms()
+    {
+        return $this->hasMany(
+            LmsMateri::class,
+            'dosen_id',
+            'dosen_id'
+        );
+    }
 }

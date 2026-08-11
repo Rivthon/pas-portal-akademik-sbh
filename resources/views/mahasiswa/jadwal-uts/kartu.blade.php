@@ -202,7 +202,7 @@
                 <img src="{{ $qrFilePath }}" alt="QR Code Verifikasi" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 3px;">
                 @endif
             </td>
-            
+
             <!-- Kolom Tanda Tangan -->
             <td style="width: 50%; text-align: right; vertical-align: top; border: none;">
                 <p style="margin-bottom: 5px;">Ketua Program Studi</p>
@@ -219,7 +219,7 @@
                 @else
                 <p style="margin: 20px 0;">(Tidak ada TTD)</p>
                 @endif
-                
+
                 <p style="text-decoration: underline; font-weight: bold; margin-top: 5px;">
                     {{ auth('mahasiswa')->user()->programStudi->kaprod }}
                 </p>

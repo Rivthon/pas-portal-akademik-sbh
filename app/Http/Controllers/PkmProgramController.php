@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PkmProgram;
 use App\Http\Requests\StorePkm_programRequest;
 use App\Http\Requests\UpdatePkm_programRequest;
+use App\Models\PkmProgram;
 
 class PkmProgramController extends Controller
 {

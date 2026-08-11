@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Krs;
 use App\Http\Requests\StoreKrsRequest;
 use App\Http\Requests\UpdateKrsRequest;
+use App\Models\Krs;
 
 class KrsController extends Controller
 {

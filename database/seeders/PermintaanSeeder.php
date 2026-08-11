@@ -2,11 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Permintaan;
-use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class PermintaanSeeder extends Seeder
 {
@@ -22,10 +19,10 @@ class PermintaanSeeder extends Seeder
             DB::table('pengajuan_transkrip')->insert([
                 'mahasiswa_id' => rand(10, 30), // mahasiswa_id dari 10 s.d. 30
                 'jenis' => $jenisList[array_rand($jenisList)],
-                'keperluan' => 'Keperluan dummy ke-' . $i,
-                'bukti' => 'bukti_' . $i . '.jpg',
+                'keperluan' => 'Keperluan dummy ke-'.$i,
+                'bukti' => 'bukti_'.$i.'.jpg',
                 'status' => $statuses[array_rand($statuses)],
-                'catatan' => 'Catatan untuk permintaan ke-' . $i,
+                'catatan' => 'Catatan untuk permintaan ke-'.$i,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

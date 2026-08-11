@@ -43,7 +43,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="card-body bg-light mt-0 pt-4">
                 <div id="noDataResult" class="alert alert-warning text-center d-none">
                     <i class="bx bx-info-circle fs-3 mb-2 d-block"></i>
@@ -78,10 +78,10 @@
                     const mkName = (card.getAttribute('data-nama') || "").toLowerCase();
                     const dsnName = (card.getAttribute('data-dosen') || "").toLowerCase();
                     const jenisKelas = (card.getAttribute('data-jenis') || "").toLowerCase();
-                    
+
                     const matchText = mkName.includes(query) || dsnName.includes(query);
-                    const matchClass = selectedClass === 'semua' || 
-                                       jenisKelas === selectedClass || 
+                    const matchClass = selectedClass === 'semua' ||
+                                       jenisKelas === selectedClass ||
                                        (selectedClass === 'reguler' && jenisKelas !== 'karyawan');
 
                     if (matchText && matchClass) {

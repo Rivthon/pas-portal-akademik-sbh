@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::create('calender_akademik', function (Blueprint $table) {
+        Schema::create('calender_akademik', function (Blueprint $table) {
             $table->id();
             $table->foreignId('jurusan_id');
             $table->string('nama_file');

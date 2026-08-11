@@ -3,25 +3,19 @@
 namespace App\Http\Controllers\Admin\Keuangan;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Gelombang;
-use Illuminate\View\View;
 use App\Imports\TarifImport;
+use App\Models\Gelombang;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
-use App\Models\TahunAkademik;
-use Illuminate\Validation\Rule;
-use App\Imports\MahasiswaImport;
 use App\Models\TarifPerSemester;
-use Illuminate\Support\Facades\Hash;
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Http\RedirectResponse;
-use RealRashid\SweetAlert\Facades\Alert;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class TarifController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware('permission:tarif-list|tarif-create|tarif-edit|tarif-delete', ['only' => ['index', 'show']]);
@@ -34,7 +28,7 @@ class TarifController extends Controller
     {
         $programStudiList = ProgramStudi::all();
         $gelombangsList = Gelombang::all();
-        
+
         // Generate list 5 tahun terakhir untuk tahun masuk
         $tahunMasukList = [];
         $currentYear = date('Y') + 1;
@@ -47,9 +41,9 @@ class TarifController extends Controller
         $gelombang_id = $request->input('gelombang_id');
 
         // Jika tidak ada parameter filter yang dikirim (inisial buka halaman), tidak usah nge-load ribuan data!
-        if (!$request->has('program_studi') && !$request->has('tahun_masuk') && !$request->has('gelombang_id')) {
-            $tarif = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50, 1, ['path' => \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPath()]);
-            
+        if (! $request->has('program_studi') && ! $request->has('tahun_masuk') && ! $request->has('gelombang_id')) {
+            $tarif = new LengthAwarePaginator([], 0, 50, 1, ['path' => LengthAwarePaginator::resolveCurrentPath()]);
+
             $pageIndex = 0;
 
             if ($request->ajax()) {
@@ -57,6 +51,7 @@ class TarifController extends Controller
                     'html' => view('admin.keuangan.tarif.partial_list', compact('tarif', 'pageIndex'))->render(),
                 ]);
             }
+
             return view('admin.keuangan.tarif.index', compact('tarif', 'pageIndex', 'programStudiList', 'gelombangsList', 'tahunMasukList'));
         }
 
@@ -95,7 +90,7 @@ class TarifController extends Controller
         $programStudi = ProgramStudi::all();
         $gelombangs = Gelombang::all();
 
-        return view('admin.keuangan.tarif.form', compact('programStudi','gelombangs'));
+        return view('admin.keuangan.tarif.form', compact('programStudi', 'gelombangs'));
     }
 
     public function edit(TarifPerSemester $tarif): View
@@ -103,7 +98,7 @@ class TarifController extends Controller
         $programStudi = ProgramStudi::all();
         $gelombangs = Gelombang::all();
 
-        return view('admin.keuangan.tarif.form', compact('tarif', 'programStudi','gelombangs'));
+        return view('admin.keuangan.tarif.form', compact('tarif', 'programStudi', 'gelombangs'));
     }
 
     public function store(Request $request)
@@ -134,18 +129,20 @@ class TarifController extends Controller
             'semester',
             'tarif',
             'tahun_masuk',
-            'gelombang_id'
+            'gelombang_id',
         ]);
-
 
         TarifPerSemester::create($data);
 
+        activity_log('tambah_tarif', 'Admin menambah tarif semester '.$request->semester.' prodi '.$request->jurusan_id);
+
         Alert::toast('Tarif berhasil ditambahkan.', 'success')
-        ->position('bottom-end')
-        ->autoClose(3000);
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         return redirect()->route('admin.tarif.index');
     }
+
     public function update(Request $request, TarifPerSemester $tarif)
     {
         $rules = [
@@ -166,6 +163,13 @@ class TarifController extends Controller
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
+
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
@@ -174,24 +178,43 @@ class TarifController extends Controller
             'semester',
             'tarif',
             'tahun_masuk',
-              'gelombang_id'
+            'gelombang_id',
         ]);
 
         $tarif->update($data);
 
+        activity_log('update_tarif', 'Admin memperbarui tarif ID: '.$tarif->id);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarif berhasil diperbarui.',
+            ]);
+        }
+
         Alert::toast('Tarif berhasil diperbarui.', 'success')
-        ->position('bottom-end')
-        ->autoClose(3000);
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         return redirect()->route('admin.tarif.index');
     }
 
-    public function destroy(TarifPerSemester $tarif): RedirectResponse
+    public function destroy(TarifPerSemester $tarif)
     {
+        activity_log('hapus_tarif', 'Admin menghapus tarif ID: '.$tarif->id);
         $tarif->delete();
-        Alert::toast('Tarif berhasil delete.', 'info')
-        ->position('bottom-end')
-        ->autoClose(3000);
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tarif berhasil dihapus.',
+            ]);
+        }
+
+        Alert::toast('Tarif berhasil dihapus.', 'info')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
         return redirect()->route('admin.tarif.index');
     }
 
@@ -203,13 +226,72 @@ class TarifController extends Controller
 
         $import = new TarifImport;
         Excel::import($import, $request->file('file'));
+
+        // Handle validation failures
+        if ($import->failures()->isNotEmpty()) {
+            $errorList = [];
+            foreach ($import->failures() as $failure) {
+                $row = $failure->row(); // row that went wrong
+                $attribute = $failure->attribute(); // either heading key or column index
+                $errors = $failure->errors(); // Actual error messages from Laravel validator
+
+                foreach ($errors as $error) {
+                    $errorList[] = "Baris ke-$row: $error";
+                }
+            }
+
+            // Simpan error list ke session
+            return redirect()->back()->with('import_errors', $errorList);
+        }
+
         $rowCount = $import->getRowCount();
+
+        activity_log('import_tarif', 'Admin mengimport data tarif ('.$rowCount.' baris)');
 
         Alert::toast("Data tarif berhasil diimport. Jumlah data: $rowCount", 'success')
             ->position('bottom-end')
             ->autoClose(3000);
 
         return redirect()->back();
+    }
+
+    public function storeBulk(Request $request)
+    {
+        $request->validate([
+            'tarif' => 'required|array|min:1',
+            'tarif.*.jurusan_id' => 'required|exists:program_studi,jurusan_id',
+            'tarif.*.semester' => 'required|numeric|min:1',
+            'tarif.*.tahun_masuk' => 'required|numeric|digits:4',
+            'tarif.*.gelombang_id' => 'required|exists:gelombang,id',
+            'tarif.*.tarif' => 'required|numeric|min:0',
+        ], [
+            'tarif.required' => 'Minimal harus menambahkan satu baris tarif.',
+            'tarif.*.jurusan_id.required' => 'Program studi wajib dipilih.',
+            'tarif.*.semester.required' => 'Semester wajib diisi.',
+            'tarif.*.tahun_masuk.required' => 'Tahun masuk wajib diisi.',
+            'tarif.*.gelombang_id.required' => 'Gelombang wajib dipilih.',
+            'tarif.*.tarif.required' => 'Nominal tarif wajib diisi.',
+        ]);
+
+        $count = 0;
+        foreach ($request->tarif as $row) {
+            TarifPerSemester::create([
+                'jurusan_id' => $row['jurusan_id'],
+                'semester' => $row['semester'],
+                'tahun_masuk' => $row['tahun_masuk'],
+                'gelombang_id' => $row['gelombang_id'],
+                'tarif' => $row['tarif'],
+            ]);
+            $count++;
+        }
+
+        activity_log('tambah_tarif_bulk', "Admin menambah $count tarif secara bulk");
+
+        Alert::toast("$count Tarif berhasil ditambahkan.", 'success')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
+        return redirect()->route('admin.tarif.index');
     }
 
     public function downloadTemplate()
@@ -225,5 +307,4 @@ class TarifController extends Controller
 
         return redirect()->back()->with('error', 'File template tidak ditemukan.');
     }
-
 }

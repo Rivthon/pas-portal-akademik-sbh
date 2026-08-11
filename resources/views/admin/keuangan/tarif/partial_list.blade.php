@@ -30,18 +30,14 @@
                     </td>
                     <td class="text-end text-success fw-bold">Rp {{ number_format($item->tarif, 0, ',', '.') }}</td>
                     <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-icon btn-outline-warning" 
-                            onclick="editTarif({{ $item->id }}, '{{ $item->semester }}', '{{ $item->jurusan_id }}', '{{ $item->tahun_masuk }}', '{{ $item->gelombang_id }}', '{{ $item->tarif }}')" title="Edit Tarif">
+                        <button type="button" class="btn btn-sm btn-icon btn-outline-warning"
+                            onclick="editTarifAjax({{ $item->id }}, '{{ $item->semester }}', '{{ $item->jurusan_id }}', '{{ $item->tahun_masuk }}', '{{ $item->gelombang_id }}', '{{ $item->tarif }}')" title="Edit Tarif">
                             <i class="bx bxs-edit"></i>
                         </button>
-                        <form action="{{ route('admin.tarif.destroy', $item->id) }}" method="POST" style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Hapus Tarif"
-                                onclick="return confirm('Yakin ingin menghapus tarif SMT {{ $item->semester }} ini?')">
-                                <i class="bx bxs-trash"></i>
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-icon btn-outline-danger" title="Hapus Tarif"
+                            onclick="deleteTarifAjax({{ $item->id }}, 'SMT {{ $item->semester }} - {{ $item->programStudi->singkat ?? $item->programStudi->nama ?? '-' }}')">
+                            <i class="bx bxs-trash"></i>
+                        </button>
                     </td>
                 </tr>
                 @empty

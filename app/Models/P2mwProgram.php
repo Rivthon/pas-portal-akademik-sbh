@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\P2mwProgramFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class P2mwProgram extends Model
 {
-    /** @use HasFactory<\Database\Factories\P2mwProgramFactory> */
+    /** @use HasFactory<P2mwProgramFactory> */
     use HasFactory;
+
     protected $table = 'p2mw';
 
     protected $fillable = [
@@ -25,9 +26,10 @@ class P2mwProgram extends Model
         'catatan_validator',
         'bobot',
     ];
+
     /* ──────── Relasi ──────── */
     public function mahasiswa()
-     {
-         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
-     }
+    {
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+    }
 }

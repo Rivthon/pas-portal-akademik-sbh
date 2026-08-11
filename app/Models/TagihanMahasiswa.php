@@ -1,16 +1,20 @@
 <?php
+
 namespace App\Models;
 
-use App\Models\TenorPembayaran;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class TagihanMahasiswa extends Model
 {
     use HasFactory;
+
     protected $table = 'tagihan_mahasiswa'; // Pastikan nama tabel sesuai
+
     protected $primaryKey = 'id';   // Pastikan primary key sesuai
+
     public $timestamps = true;
+
     protected $fillable = [
         'mahasiswa_id',
         'semester',
@@ -23,7 +27,7 @@ class TagihanMahasiswa extends Model
 
     public function mahasiswa()
     {
-        return $this->belongsTo(Mahasiswa::class,'mahasiswa_id');
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
     }
 
     public function tahunAjaran()
@@ -35,7 +39,7 @@ class TagihanMahasiswa extends Model
     {
         return $this->belongsTo(TenorPembayaran::class, 'tenor_pembayaran_id');
     }
-    
+
     public function transaksi()
     {
         return $this->hasMany(TransaksiPembayaran::class, 'tagihan_mahasiswa_id', 'id')->orderBy('tanggal_bayar', 'desc');

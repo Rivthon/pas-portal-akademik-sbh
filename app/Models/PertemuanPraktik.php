@@ -10,8 +10,11 @@ class PertemuanPraktik extends Model
     use HasFactory;
 
     protected $table = 'pertemuan_praktik';
+
     protected $primaryKey = 'pertemuan_praktik_id'; // Sesuaikan jika primary key berbeda
+
     public $incrementing = true;
+
     protected $keyType = 'int';
 
     /**
@@ -25,18 +28,32 @@ class PertemuanPraktik extends Model
         'sub_topik',
         'jam_mulai',
         'jam_selesai',
+        'metode_pbm',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return ['tanggal_pertemuan' => 'date'];
+    }
+
     public function jadwal()
     {
-        return $this->belongsTo(JadwalPraktik::class, 'jadwal_praktik_id');
+        return $this->belongsTo(JadwalPraktik::class, 'jadwal_praktik_id', 'id');
     }
+
     public function isOpen()
     {
         return $this->status === 1;
     }
+
     public function absensi()
     {
         return $this->hasMany(AbsensiPraktik::class, 'pertemuan_praktik_id', 'pertemuan_praktik_id');
+    }
+
+    public function dosen()
+    {
+        return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');
     }
 }

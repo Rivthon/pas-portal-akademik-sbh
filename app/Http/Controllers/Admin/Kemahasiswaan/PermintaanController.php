@@ -3,24 +3,35 @@
 namespace App\Http\Controllers\Admin\Kemahasiswaan;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Permintaan;
 use Illuminate\Http\Request;
-use App\Http\Requests\StorePermintaanRequest;
-use App\Http\Requests\UpdatePermintaanRequest;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class PermintaanController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:permintaan-list', ['only' => ['index']]);
+        $this->middleware('permission:permintaan-show', ['only' => ['show']]);
+        $this->middleware('permission:permintaan-edit', ['only' => ['edit']]);
+        $this->middleware('permission:permintaan-status', ['only' => ['updateStatus']]);
+    }
+
     /**
      * Display a listing of the resource.
      */
-   public function index(Request $request)
+    public function index(Request $request)
     {
-        $query = Permintaan::with('mahasiswa');
+        $query = Permintaan::with(['mahasiswa', 'dosen']);
 
-        if ($request->has('search')) {
-            $query->whereHas('mahasiswa', function ($q) use ($request) {
-                $q->where('nama', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('mahasiswa', function ($mahasiswaQuery) use ($search) {
+                    $mahasiswaQuery->where('nama', 'like', '%'.$search.'%');
+                })->orWhereHas('dosen', function ($dosenQuery) use ($search) {
+                    $dosenQuery->where('nama', 'like', '%'.$search.'%');
+                })->orWhere('judul', 'like', '%'.$search.'%');
             });
         }
 
@@ -33,17 +44,18 @@ class PermintaanController extends Controller
         return view('admin.kemahasiswaan.permintaan.index', compact('permintaan'));
     }
 
-
     public function show($id)
     {
-        $permintaan = Permintaan::with('mahasiswa')->findOrFail($id);
+        $permintaan = Permintaan::with(['mahasiswa', 'dosen'])->findOrFail($id);
+
         return view('admin.kemahasiswaan.permintaan.show', compact('permintaan'));
     }
 
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:pending,diproses,selesai,ditolak'
+            'status' => 'required|in:menunggu,disetujui,ditolak,revisi,selesai',
+            'komentar_admin' => 'nullable|string|max:2000',
         ]);
 
         $permintaan = Permintaan::findOrFail($id);
@@ -51,7 +63,10 @@ class PermintaanController extends Controller
         $permintaan->komentar_admin = $request->komentar_admin;
         $permintaan->save();
 
-        Allert::success('Status permintaan berhasil diperbarui.');
+        activity_log('update_status_permintaan', 'Admin mengubah status permintaan ID: '.$id.' menjadi '.$request->status);
+
+        Alert::success('Status permintaan berhasil diperbarui.');
+
         return redirect()->route('admin.helpdesk.index');
     }
 }

@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Mahasiswa;
 
+use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\Setting;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class JadwalKuliahController extends Controller
 {
@@ -36,7 +35,8 @@ class JadwalKuliahController extends Controller
             ->where('absensi.mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->groupBy('jadwal.jadwal_id', 'matakuliah.name', 'matakuliah.total_pertemuan')
             ->get();
+        activity_log('lihat_jadwal', 'Mahasiswa melihat jadwal kuliah');
 
-        return view('mhs.jadwal.index', compact('jadwalKuliah', 'statistikKehadiran', 'settings'));
+        return view('mahasiswa.jadwal.index', compact('jadwalKuliah', 'statistikKehadiran', 'settings'));
     }
 }

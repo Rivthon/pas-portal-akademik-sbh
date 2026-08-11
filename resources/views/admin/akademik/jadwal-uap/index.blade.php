@@ -13,7 +13,7 @@
                     <br>
                     <span class="badge bg-label-primary mt-2 fs-6">Tahun Ajaran {{ $tahunAjaran->nama }} ({{ $tahunAjaran->semester }})</span>
                 </p>
-                
+
                 @can('jadwal-uap-create')
                 <div class="mt-3">
                     <a href="{{ route('admin.jadwal-uap.create') }}" class="btn btn-primary">
@@ -42,7 +42,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
-        
+
         @if(session('error'))
             <div class="alert alert-danger alert-dismissible" role="alert">
                 {{ session('error') }}
@@ -82,7 +82,7 @@
                                 <i class="bx bx-edit"></i>
                             </a>
                             @endcan
-                            
+
                             @can('jadwal-uap-delete')
                             <form action="{{ route('admin.jadwal-uap.destroy', $jadwal->id) }}" method="POST" class="d-inline form-delete">
                                 @csrf

@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Evaluasi;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Evaluasi>
+ * @extends Factory<Evaluasi>
  */
 class EvaluasiFactory extends Factory
 {

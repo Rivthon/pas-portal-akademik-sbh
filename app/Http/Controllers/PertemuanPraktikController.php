@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PertemuanPraktik;
 use App\Http\Requests\StorePertemuanPraktikRequest;
 use App\Http\Requests\UpdatePertemuanPraktikRequest;
+use App\Models\PertemuanPraktik;
 
 class PertemuanPraktikController extends Controller
 {

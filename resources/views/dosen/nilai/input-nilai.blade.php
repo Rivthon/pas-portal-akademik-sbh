@@ -31,13 +31,23 @@
 @else
 <div class="row mb-4">
     @foreach($mataKuliahAktif as $mk)
+    @php
+        $mataKuliah = $mk->kurikulum?->mataKuliah;
+        $programStudiAktif = $mk->kurikulum?->programStudi;
+    @endphp
     <div class="col-lg-4 col-md-6 mb-3">
-        <div class="card shadow-sm h-100 border-0 hover-scale mk-card" style="cursor:pointer; transition: all 0.2s ease-in-out;" data-matakuliah-id="{{ $mk->matakuliah_id }}" data-ta-id="{{ $activeTA->ta_id }}" data-mk-nama="{{ $mk->nama }}">
+        <div class="card shadow-sm h-100 border-0 hover-scale mk-card" style="cursor:pointer; transition: all 0.2s ease-in-out;"
+            data-jadwal-id="{{ $mk->id }}"
+            data-mk-nama="{{ $mataKuliah?->nama }} - {{ $programStudiAktif?->nama }} ({{ strtoupper($mk->jenis_kelas) }})">
             <div class="card-body d-flex flex-column">
-                <h6 class="fw-bold text-primary mb-2 border-start border-primary border-3 ps-2">{{ $mk->nama }}</h6>
+                <h6 class="fw-bold text-primary mb-2 border-start border-primary border-3 ps-2">{{ $mataKuliah?->nama }}</h6>
+                <small class="text-muted mb-2"><i class="bx bx-buildings me-1"></i>{{ $programStudiAktif?->nama ?? '-' }}</small>
                 <div class="mb-3 mt-1">
-                    <span class="badge bg-label-primary rounded-pill">{{ $mk->matakuliah_id }}</span>
-                    <span class="badge bg-label-info rounded-pill ms-1">SMT {{ $mk->smt }}</span>
+                    <span class="badge bg-label-primary rounded-pill">{{ $mataKuliah?->matakuliah_id }}</span>
+                    <span class="badge bg-label-info rounded-pill ms-1">SMT {{ $mataKuliah?->smt ?? $mataKuliah?->semester }}</span>
+                    <span class="badge bg-label-{{ strtolower((string) $mk->jenis_kelas) === 'karyawan' ? 'warning' : 'success' }} rounded-pill ms-1">
+                        {{ strtoupper($mk->jenis_kelas) }}
+                    </span>
                 </div>
                 <div class="mt-auto text-end">
                     <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold btn-pilih"><i class="bx bx-edit-alt me-1"></i>Input Nilai</button>
@@ -103,9 +113,10 @@
         <button id="btnTutupPanel" type="button" class="btn btn-sm btn-outline-danger shadow-sm rounded-pill px-3"><i class="bx bx-x"></i> Tutup Panel</button>
     </div>
     <div class="mb-3" id="bobot-panel-container"></div>
-    
+
     <form id="form-nilai" method="POST" action="{{ route('dosen.nilai.save') }}">
         @csrf
+        <input type="hidden" name="jadwal_id" id="nilai-jadwal-id">
         <div class="table-responsive text-nowrap">
             <table id="table-mahasiswa" class="table table-bordered table-hover align-middle">
                 <thead class="table-light">

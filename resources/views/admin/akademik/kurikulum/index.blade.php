@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    @can('jadwal-uts-create')
+    @can('kurikulum-create')
         <!-- TAMBAH MULTIPLE MATA KULIAH SECTION (DIRECT IN PAGE) -->
         <div class="card shadow-sm mb-4 border-top border-5 border-success">
             <div class="card-header bg-white pb-0">
@@ -292,7 +292,7 @@
     </script>
 
     {{-- ==================== SCRIPT MULTIPLE INPUT DIRECT ==================== --}}
-    @can('jadwal-uts-create')
+    @can('kurikulum-create')
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 let rowIndex = 1;

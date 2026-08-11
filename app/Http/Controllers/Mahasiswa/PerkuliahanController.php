@@ -3,26 +3,21 @@
 namespace App\Http\Controllers\Mahasiswa;
 
 // --- Framework & Facades ---
+use App\Http\Controllers\Controller;
+use App\Models\Jadwal;
+use App\Models\JadwalPraktik;
+use App\Models\JadwalUap;
+// --- Controllers ---
+use App\Models\JadwalUas;
+// --- Models ---
+use App\Models\JadwalUts;
+use App\Models\ProgramStudi;
+use App\Models\Setting;
+use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Support\Facades\DB;
-
-// --- Controllers ---
-use App\Http\Controllers\Controller;
-
-// --- Models ---
-use App\Models\Jadwal;
-use App\Models\JadwalPraktik;
-use App\Models\JadwalUap;
-use App\Models\JadwalUas;
-use App\Models\JadwalUts;
-use App\Models\Kurikulum;
-use App\Models\ProgramStudi;
-use App\Models\Setting;
-use App\Models\TahunAkademik;
-
 // --- Third-Party Libraries ---
 use PDF;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -57,7 +52,7 @@ class PerkuliahanController extends Controller
         $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
-        if (!$activeTA) {
+        if (! $activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
@@ -66,7 +61,7 @@ class PerkuliahanController extends Controller
             'kurikulum.mataKuliah',
             'kurikulum.dosenToMatakuliah.dosen',
             'programStudi',
-            'ruangan'
+            'ruangan',
         ])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
@@ -106,6 +101,8 @@ class PerkuliahanController extends Controller
                 ];
             });
 
+        activity_log('lihat_jadwal', 'Mahasiswa melihat jadwal teori');
+
         return view('mahasiswa.jadwal.index', compact('jadwals'));
     }
 
@@ -119,7 +116,7 @@ class PerkuliahanController extends Controller
         $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
-        if (!$activeTA) {
+        if (! $activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
@@ -128,7 +125,7 @@ class PerkuliahanController extends Controller
             'kurikulum.mataKuliah',
             'kurikulum.dosenToMatakuliah.dosen',
             'programStudi',
-            'ruangan'
+            'ruangan',
         ])
             ->where('ta_id', $activeTA->ta_id)
             ->where(function ($query) use ($kelas) {
@@ -168,9 +165,10 @@ class PerkuliahanController extends Controller
                 ];
             });
 
+        activity_log('lihat_jadwal_praktik', 'Mahasiswa melihat jadwal praktik');
+
         return view('mahasiswa.jadwal.praktik', compact('jadwals'));
     }
-
 
     public function jadwalUts(Request $request)
     {
@@ -182,7 +180,7 @@ class PerkuliahanController extends Controller
         $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
-        if (!$activeTA) {
+        if (! $activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
@@ -206,9 +204,10 @@ class PerkuliahanController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
+        activity_log('lihat_jadwal_uts', 'Mahasiswa melihat jadwal UTS');
+
         return view('mahasiswa.jadwal-uts.index', compact('jadwalUts'));
     }
-
 
     public function jadwalUas(Request $request)
     {
@@ -220,7 +219,7 @@ class PerkuliahanController extends Controller
         $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
-        if (!$activeTA) {
+        if (! $activeTA) {
             return redirect()->back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
         }
 
@@ -244,14 +243,26 @@ class PerkuliahanController extends Controller
             ->orderBy('jam_mulai')
             ->get();
 
+        activity_log('lihat_jadwal_uas', 'Mahasiswa melihat jadwal UAS');
+
         return view('mahasiswa.jadwal-uas.index', compact('jadwalUas'));
     }
 
     public function jadwalUap()
     {
+        $mahasiswa = $this->getMahasiswa();
+        $isSemester6 = ((int) $mahasiswa->semester === 6);
+
+        if (! $isSemester6) {
+            return view('mahasiswa.jadwal-uap.index', [
+                'jadwal' => collect(),
+                'accessDenied' => true,
+            ])->with('error', 'Hanya mahasiswa semester 6 yang dapat mengakses jadwal UAP.');
+        }
+
         $tahunAjaran = $this->getActiveTA();
 
-        if (!$tahunAjaran) {
+        if (! $tahunAjaran) {
             return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
         }
 
@@ -264,6 +275,8 @@ class PerkuliahanController extends Controller
 
         // Ambil semua jadwal UAP
         $jadwal = JadwalUap::where('ta_id', $tahunAjaran->ta_id)->get();
+
+        activity_log('lihat_jadwal_uap', 'Mahasiswa melihat jadwal UAP');
 
         return view('mahasiswa.jadwal-uap.index', compact('jadwal'));
     }
@@ -329,7 +342,7 @@ class PerkuliahanController extends Controller
 
         $logoBase64 = null;
         if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
+            $logoPath = public_path('storage/'.$settings->logo);
             if (file_exists($logoPath)) {
                 $logoBase64 = base64_encode(file_get_contents($logoPath));
             }
@@ -337,7 +350,7 @@ class PerkuliahanController extends Controller
 
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $ttdPath = public_path('storage/' . $mahasiswa->programStudi->ttd);
+            $ttdPath = public_path('storage/'.$mahasiswa->programStudi->ttd);
             if (file_exists($ttdPath)) {
                 $ttd = base64_encode(file_get_contents($ttdPath));
             }
@@ -355,7 +368,7 @@ class PerkuliahanController extends Controller
         $kelas = $mahasiswa->kelas;
 
         $activeTA = $this->getActiveTA();
-        if (!$activeTA) {
+        if (! $activeTA) {
             return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
         }
 
@@ -372,19 +385,20 @@ class PerkuliahanController extends Controller
         // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
         $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
         $qrTempDir = storage_path('app/temp');
-        if (!file_exists($qrTempDir)) {
+        if (! file_exists($qrTempDir)) {
             mkdir($qrTempDir, 0755, true);
         }
-        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        $qrFilePath = $qrTempDir.'/qr_'.md5($verifyUrl).'.svg';
         file_put_contents($qrFilePath, $qrCodeSvg);
         // ------------------------------
 
-        $fileName = 'Kartu_UTS_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+        $fileName = 'Kartu_UTS_'.$mahasiswa->nama.'.pdf';
+        $pdf = PDF::loadView('mahasiswa.jadwal-uts.kartu', compact('mahasiswa', 'jadwalUts', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
+        activity_log('cetak_kartu_ujian', 'Mahasiswa mencetak Kartu Ujian UTS');
 
         return $pdf->download($fileName);
     }
-
 
     public function cetakUas()
     {
@@ -395,7 +409,7 @@ class PerkuliahanController extends Controller
         $kelas = $mahasiswa->kelas;
 
         $activeTA = $this->getActiveTA();
-        if (!$activeTA) {
+        if (! $activeTA) {
             return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
         }
 
@@ -412,29 +426,34 @@ class PerkuliahanController extends Controller
         // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
         $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
         $qrTempDir = storage_path('app/temp');
-        if (!file_exists($qrTempDir)) {
+        if (! file_exists($qrTempDir)) {
             mkdir($qrTempDir, 0755, true);
         }
-        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        $qrFilePath = $qrTempDir.'/qr_'.md5($verifyUrl).'.svg';
         file_put_contents($qrFilePath, $qrCodeSvg);
         // ------------------------------
 
-        $fileName = 'Kartu_UAS_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+        $fileName = 'Kartu_UAS_'.$mahasiswa->nama.'.pdf';
+        $pdf = PDF::loadView('mahasiswa.jadwal-uas.kartu', compact('mahasiswa', 'jadwalUas', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
+        activity_log('cetak_kartu_ujian', 'Mahasiswa mencetak Kartu Ujian UAS');
 
         return $pdf->download($fileName);
     }
-
 
     public function cetakUap()
     {
         $mahasiswa = $this->getMahasiswa();
 
+        if ((int) $mahasiswa->semester !== 6) {
+            return redirect()->route('mahasiswa.dashboard')->with('error', 'Hanya mahasiswa semester 6 yang dapat mencetak kartu UAP.');
+        }
+
         $semester = $mahasiswa->semester;
         $prodi = $mahasiswa->jurusan_id;
 
         $activeTA = $this->getActiveTA();
-        if (!$activeTA) {
+        if (! $activeTA) {
             return back()->with('error', 'Tahun Akademik Aktif tidak ditemukan.');
         }
 
@@ -462,15 +481,17 @@ class PerkuliahanController extends Controller
         // --- QR CODE GENERATION (simpan ke file temp agar DOMPDF bisa render) ---
         $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($verifyUrl);
         $qrTempDir = storage_path('app/temp');
-        if (!file_exists($qrTempDir)) {
+        if (! file_exists($qrTempDir)) {
             mkdir($qrTempDir, 0755, true);
         }
-        $qrFilePath = $qrTempDir . '/qr_' . md5($verifyUrl) . '.svg';
+        $qrFilePath = $qrTempDir.'/qr_'.md5($verifyUrl).'.svg';
         file_put_contents($qrFilePath, $qrCodeSvg);
         // ------------------------------
 
-        $fileName = 'Kartu_UAP_' . $mahasiswa->nama . '.pdf';
-        $pdf = PDF::loadView('students.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+        $fileName = 'Kartu_UAP_'.$mahasiswa->nama.'.pdf';
+        $pdf = PDF::loadView('mahasiswa.jadwal-uap.kartu', compact('mahasiswa', 'jadwalUap', 'activeTA', 'logoBase64', 'ttd', 'qrFilePath'));
+
+        activity_log('cetak_kartu_ujian', 'Mahasiswa mencetak Kartu Ujian UAP');
 
         return $pdf->download($fileName);
     }

@@ -1,7 +1,7 @@
 <!-- Footer -->
 <footer class="footer text-center">
     <small>{{ $settings->footer_name ?? 'Aplikasi Absensi Footer' }}</small><br>
-    <small>{!! $settings->copyright ?? '© 2024 Aplikasi Absensi' !!}</small>
+    <small>{{ $settings->copyright ?? '© 2024 Aplikasi Absensi' }}</small>
 </footer>
 
 <!-- Core JS Files -->

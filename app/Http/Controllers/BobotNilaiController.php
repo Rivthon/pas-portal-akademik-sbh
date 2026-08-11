@@ -21,7 +21,7 @@ class BobotNilaiController extends Controller
         BobotNilai::updateOrCreate(
             [
                 'program_studi_id' => $request->program_studi_id,
-                'matakuliah_id' => $request->matakuliah_id
+                'matakuliah_id' => $request->matakuliah_id,
             ],
             $validated
         );

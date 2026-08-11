@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use RealRashid\SweetAlert\Facades\Alert;
+
 class ProfileDosenController extends Controller
 {
     public function index()
     {
+        activity_log('lihat_profil', 'Dosen mengakses halaman profil');
+
         return view('dosen.profile.edit', ['user' => Auth::user()]);
     }
 
@@ -22,7 +25,7 @@ class ProfileDosenController extends Controller
         // Validate the input
         $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
             'password' => 'nullable|string|min:8|confirmed',
             'avatar' => 'nullable|image|mimes:png,jpg,jpeg|max:512', // Max size: 512 KB
         ]);
@@ -50,6 +53,8 @@ class ProfileDosenController extends Controller
 
             $user->save();
 
+            activity_log('update_profil', 'Dosen memperbarui profil: '.$user->nama);
+
             // Flash a success message
             Alert::toast('Profile berhasil diperbaharui.', 'success')
                 ->position('bottom-end')
@@ -58,10 +63,10 @@ class ProfileDosenController extends Controller
             return redirect()->route('dosen.profile.index');
         } catch (\Exception $e) {
             // Log the error for debugging purposes
-            \Log::error('Failed to update profile: ' . $e->getMessage(), ['user_id' => $user->id]);
+            \Log::error('Failed to update profile: '.$e->getMessage(), ['user_id' => $user->id]);
 
             // Flash an error message to the user
-            Alert::toast('Terjadi kesalahan saat memperbaharui profil. Silakan coba lagi. Error: ' . $e->getMessage(), 'error')
+            Alert::toast('Terjadi kesalahan saat memperbaharui profil. Silakan coba lagi. Error: '.$e->getMessage(), 'error')
                 ->position('bottom-end')
                 ->autoClose(5000);
 

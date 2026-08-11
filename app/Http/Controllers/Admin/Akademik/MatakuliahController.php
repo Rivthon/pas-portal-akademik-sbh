@@ -3,17 +3,14 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
-
 
 class MatakuliahController extends Controller
 {
@@ -34,9 +31,9 @@ class MatakuliahController extends Controller
 
         // Apply the search filter if provided
         if ($search) {
-            $query->where('nama', 'like', '%' . $search . '%')
+            $query->where('nama', 'like', '%'.$search.'%')
                 ->orWhereHas('programStudi', function ($q) use ($search) {
-                    $q->where('nama', 'like', '%' . $search . '%');
+                    $q->where('nama', 'like', '%'.$search.'%');
                 });
         }
 
@@ -70,48 +67,49 @@ class MatakuliahController extends Controller
     }
 
     public function store(Request $request)
-{
-    $rules = [
-        'matakuliah_id' => [
-            'required',
-            'string',
-            'max:50',
-            Rule::unique('matakuliah', 'matakuliah_id'),
-        ],
-        'jurusan_id' => 'required|string',
-        'nama' => 'required|string|max:255',
-        'kategori_mk' => 'required|integer|in:0,1',
-        'sks' => 'required|integer|min:1|max:10',
-        'smt' => 'required|integer|min:1|max:8',
-    ];
+    {
+        $rules = [
+            'matakuliah_id' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('matakuliah', 'matakuliah_id'),
+            ],
+            'jurusan_id' => 'required|string',
+            'nama' => 'required|string|max:255',
+            'kategori_mk' => 'required|integer|in:0,1',
+            'sks' => 'required|integer|min:1|max:10',
+            'smt' => 'required|integer|min:1|max:8',
+        ];
 
-    $validator = Validator::make($request->all(), $rules);
+        $validator = Validator::make($request->all(), $rules);
 
-    if ($validator->fails()) {
-        return redirect()->back()->withErrors($validator)->withInput();
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $data = $request->only([
+            'matakuliah_id',
+            'jurusan_id',
+            'nama',
+            'kategori_mk',
+            'sks',
+            'smt',
+        ]);
+
+        // otomatis isi semester berdasarkan smt
+        $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
+
+        Matakuliah::create($data);
+
+        activity_log('tambah_matakuliah', 'Admin menambah matakuliah: '.$request->nama.' (Kode: '.$request->matakuliah_id.')');
+
+        Alert::toast('Matakuliah berhasil ditambahkan.', 'success')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
+        return redirect()->route('admin.matakuliah.index');
     }
-
-    $data = $request->only([
-        'matakuliah_id',
-        'jurusan_id',
-        'nama',
-        'kategori_mk',
-        'sks',
-        'smt',
-    ]);
-
-    // otomatis isi semester berdasarkan smt
-    $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
-
-    Matakuliah::create($data);
-
-    Alert::toast('Kurikulum berhasil ditambahkan.', 'success')
-        ->position('bottom-end')
-        ->autoClose(3000);
-
-    return redirect()->route('admin.matakuliah.index');
-}
-
 
     public function update(Request $request, Matakuliah $matakuliah)
     {
@@ -142,23 +140,27 @@ class MatakuliahController extends Controller
             'smt',
             'semester',
         ]);
-            $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
+        $data['semester'] = $data['smt'] % 2 == 1 ? 'Ganjil' : 'Genap';
 
         $matakuliah->update($data);
 
-        Alert::toast('Kurikulum berhasil diperbarui.', 'info')
-        ->position('bottom-end')
-        ->autoClose(3000);
+        activity_log('update_matakuliah', 'Admin memperbarui matakuliah: '.$matakuliah->nama);
+
+        Alert::toast('Matakuliah berhasil diperbarui.', 'info')
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         return redirect()->route('admin.matakuliah.index');
     }
 
     public function destroy(Matakuliah $matakuliah): RedirectResponse
     {
+        activity_log('hapus_matakuliah', 'Admin menghapus matakuliah: '.$matakuliah->nama);
         $matakuliah->delete();
-        Alert::toast('Kurikulum berhasil delete.', 'info')
-        ->position('bottom-end')
-        ->autoClose(3000);
+        Alert::toast('Matakuliah berhasil dihapus.', 'info')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
         return redirect()->route('admin.matakuliah.index');
     }
 }

@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Evaluasi;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class EvaluasiPolicy
 {

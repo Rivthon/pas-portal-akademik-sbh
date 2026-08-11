@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Permintaan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Permintaan>
+ * @extends Factory<Permintaan>
  */
 class PermintaanFactory extends Factory
 {

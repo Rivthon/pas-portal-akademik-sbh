@@ -48,13 +48,17 @@
                         <label for="file" class="form-label">File Kalender Akademik (PDF)</label>
                         <input type="file" class="form-control" name="file" accept="application/pdf">
                         <small class="text-muted">Kosongkan jika tidak ingin mengganti file.</small>
-                        @if ($kalender->path)
+                        @if ($kalender->fileExists())
                         <p class="mt-2">
-                            <a href="{{ asset('storage/' . $kalender->path) }}" target="_blank"
+                            <a href="{{ route('admin.calender.file', $kalender) }}" target="_blank"
                                 class="btn btn-sm btn-info">
                                 <i class="fa-solid fa-file-pdf"></i> Lihat File
                             </a>
                         </p>
+                        @elseif ($kalender->path)
+                        <div class="alert alert-warning mt-2 mb-0 py-2">
+                            File lama tidak ditemukan. Silakan upload ulang PDF Kalender Akademik.
+                        </div>
                         @endif
                     </div>
                     <!-- Status -->

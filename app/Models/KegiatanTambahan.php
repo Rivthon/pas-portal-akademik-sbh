@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\KegiatanTambahanFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class KegiatanTambahan extends Model
 {
-    /** @use HasFactory<\Database\Factories\KegiatanTambahanFactory> */
+    /** @use HasFactory<KegiatanTambahanFactory> */
     use HasFactory;
+
     protected $table = 'kegiatan_tambahan';
+
     protected $fillable = [
         'mahasiswa_id',
         'kategori',
@@ -26,10 +28,10 @@ class KegiatanTambahan extends Model
         'catatan_validator',
         'bobot',
     ];
+
     /* ──────── Relasi ──────── */
     public function mahasiswa()
-     {
-         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
-     }
-
+    {
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+    }
 }

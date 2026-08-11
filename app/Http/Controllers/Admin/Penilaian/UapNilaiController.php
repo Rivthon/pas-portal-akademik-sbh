@@ -2,60 +2,64 @@
 
 namespace App\Http\Controllers\Admin\Penilaian;
 
-use App\Models\UapNilai;
+use App\Http\Controllers\Controller;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
-use App\Http\Controllers\Controller;
+use App\Models\UapNilai;
 use Illuminate\Http\Request; // ✅ yang benar
-use App\Http\Requests\StoreUapNilaiRequest;
-use App\Http\Requests\UpdateUapNilaiRequest;
 
 class UapNilaiController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:list-uap', ['only' => ['index', 'getMahasiswa']]);
+        $this->middleware('permission:input-uap', ['only' => ['simpanNilai']]);
+    }
+
     public function index()
     {
         // Menampilkan form filter (tahun ajaran, semester)
         $tahunAjaran = TahunAkademik::all();
+
         return view('admin.penilaian.nilai-uap.index', compact('tahunAjaran'));
     }
 
     public function getMahasiswa(Request $request)
-{
-    $request->validate([
-        'tahun_ajaran_id' => 'required|exists:tahun_ajaran,ta_id',
-        'semester' => 'required|numeric',
-    ]);
+    {
+        $request->validate([
+            'tahun_ajaran_id' => 'required|exists:tahun_ajaran,ta_id',
+            'semester' => 'required|numeric',
+        ]);
 
-    // Ambil mahasiswa sesuai filter
-    $mahasiswaList = \App\Models\Mahasiswa::where('jurusan_id', 15401)
-        ->where('semester', $request->semester)
-        ->get();
+        // Ambil mahasiswa sesuai filter
+        $mahasiswaList = Mahasiswa::where('jurusan_id', 15401)
+            ->where('semester', $request->semester)
+            ->get();
 
-    // Ambil semua nilai uap sekaligus
-    $nilaiUap = \App\Models\UapNilai::where('tahun_ajaran_id', $request->tahun_ajaran_id)
-        ->pluck('uap_tulis', 'mahasiswa_id')->toArray();
+        // Ambil semua nilai uap sekaligus
+        $nilaiUap = UapNilai::where('tahun_ajaran_id', $request->tahun_ajaran_id)
+            ->pluck('uap_tulis', 'mahasiswa_id')->toArray();
 
-    $nilaiUapPraktik = \App\Models\UapNilai::where('tahun_ajaran_id', $request->tahun_ajaran_id)
-        ->pluck('uap_praktik', 'mahasiswa_id')->toArray();
+        $nilaiUapPraktik = UapNilai::where('tahun_ajaran_id', $request->tahun_ajaran_id)
+            ->pluck('uap_praktik', 'mahasiswa_id')->toArray();
 
-    // Gabungkan ke array
-    $data = $mahasiswaList
-        ->where('status_mhs', 'aktif')
-        ->sortBy('nim')
-        ->values()
-        ->map(function ($mhs) use ($nilaiUap, $nilaiUapPraktik) {
-            return [
-                'mahasiswa_id' => $mhs->mahasiswa_id,
-                'nim' => $mhs->nim,
-                'nama' => $mhs->nama,
-                'uap_tulis' => $nilaiUap[$mhs->mahasiswa_id] ?? null,
-                'uap_praktik' => $nilaiUapPraktik[$mhs->mahasiswa_id] ?? null,
-            ];
-        });
+        // Gabungkan ke array
+        $data = $mahasiswaList
+            ->where('status_mhs', 'aktif')
+            ->sortBy('nim')
+            ->values()
+            ->map(function ($mhs) use ($nilaiUap, $nilaiUapPraktik) {
+                return [
+                    'mahasiswa_id' => $mhs->mahasiswa_id,
+                    'nim' => $mhs->nim,
+                    'nama' => $mhs->nama,
+                    'uap_tulis' => $nilaiUap[$mhs->mahasiswa_id] ?? null,
+                    'uap_praktik' => $nilaiUapPraktik[$mhs->mahasiswa_id] ?? null,
+                ];
+            });
 
-    return response()->json(['data' => $data]);
-}
-
+        return response()->json(['data' => $data]);
+    }
 
     public function simpanNilai(Request $request)
     {
@@ -78,6 +82,8 @@ class UapNilaiController extends Controller
                 'tanggal_input' => now(),
             ]
         );
+
+        activity_log('input_nilai_uap', 'Admin menyimpan nilai UAP mahasiswa ID: '.$request->mahasiswa_id);
 
         return response()->json(['success' => true]);
     }

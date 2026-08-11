@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\UapNilai;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class UapNilaiPolicy
 {

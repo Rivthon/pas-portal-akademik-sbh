@@ -1,5 +1,5 @@
 @extends('layouts.mahasiswa')
-@section('title', 'Kartu Hasil Studi')
+@section('title', 'Evaluasi Dosen Mengajar')
 @section('content')
 <div class="container">
     <div class="item mt-4">
@@ -54,7 +54,13 @@
                         </div>
 
                         @endif
-                        @if ($allFilled)
+                        @if ($krsList->isEmpty())
+                        <div class="alert alert-warning text-center">
+                            <i class="bx bxs-error-circle"></i>
+                            <strong>Perhatian!</strong> Anda belum mengisi KRS untuk semester ini.
+                            Silakan isi KRS terlebih dahulu sebelum mengakses EDOM.
+                        </div>
+                        @elseif ($allFilled)
                         <div class="alert alert-success text-center">
                             <i class="bx bxs-check-circle"></i>
                             Terima kasih, Anda telah mengisi semua EDOM.
@@ -68,99 +74,144 @@
                             Studi (KHS).
                         </div>
                         @endif
-                        <div class="table-responsive">
-                            <table class="table table-striped table-hover">
-                                <thead class="table-primary">
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Kode Mata Kuliah</th>
-                                        <th>Nama Mata Kuliah</th>
-                                        <th>Dosen Teori</th>
-                                        <th>Dosen Praktik</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($krsList as $index => $kurikulum)
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td>{{ $kurikulum['kode_matakuliah'] }}</td>
-                                        <td>{{ $kurikulum['nama_matakuliah'] }}</td>
 
-                                        <!-- Dosen Teori -->
-                                        <td>
-                                            @php
-                                            $dosenTeori = collect($kurikulum['dosen'])->where('jenis_dosen', 'teori');
-                                            @endphp
+                        @php
+                            $totalDosen = 0;
+                            $ratedDosen = 0;
+                            foreach($krsList as $krs) {
+                                foreach($krs['dosen'] as $dosen) {
+                                    $totalDosen++;
+                                    if($dosen['is_rated']) {
+                                        $ratedDosen++;
+                                    }
+                                }
+                            }
+                            $progressPercentage = $totalDosen > 0 ? round(($ratedDosen / $totalDosen) * 100) : 0;
+                        @endphp
 
-                                            @if ($dosenTeori->isNotEmpty())
-                                            @foreach ($dosenTeori as $dosen)
-                                            <div>
-                                                <a class="badge bg-primary"
-                                                    href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}">
-                                                    {{ $dosen['nama'] }}
-                                                </a>
-
-                                                @if ($dosen['is_rated'])
-                                                <i class="bx bxs-check-circle text-success"></i>
-                                                @else
-                                                <span class="badge bg-warning">Belum Dinilai</span>
-                                                @endif
-                                            </div>
-                                            @endforeach
-                                            @else
-                                            <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-
-                                        <!-- Dosen Praktik -->
-                                        <td>
-                                            @php
-                                            $dosenPraktik = collect($kurikulum['dosen'])->where('jenis_dosen',
-                                            'praktik');
-                                            @endphp
-
-                                            @if ($dosenPraktik->isNotEmpty())
-                                            @foreach ($dosenPraktik as $dosen)
-                                            <div>
-                                                <a class="badge bg-success"
-                                                    href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}">
-                                                    {{ $dosen['nama'] }}
-                                                </a>
-
-                                                @if ($dosen['is_rated'])
-                                                <i class="bx bxs-check-circle text-success"></i>
-                                                @else
-                                                <span class="badge bg-warning">Belum Dinilai</span>
-                                                @endif
-                                            </div>
-                                            @endforeach
-                                            @else
-                                            <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">Tidak ada data mata kuliah
-                                            yang
-                                            ditemukan.</td>
-                                    </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
+                        @if(!$krsList->isEmpty() && $totalDosen > 0)
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-semibold">Progress Pengisian EDOM</span>
+                                <span class="badge bg-primary">{{ $ratedDosen }} / {{ $totalDosen }} Dosen</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated {{ $progressPercentage == 100 ? 'bg-success' : 'bg-primary' }}"
+                                     role="progressbar"
+                                     style="width: {{ $progressPercentage }}%"
+                                     aria-valuenow="{{ $progressPercentage }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"></div>
+                            </div>
                         </div>
-                    </div>
-                    @if ($allFilled)
+                        @endif
+                        <div class="row g-4 mb-4">
+                            @forelse ($krsList as $index => $kurikulum)
+                            <div class="col-12">
+                                <div class="card h-100 shadow-sm border border-primary">
+                                    <div class="card-header bg-label-primary d-flex align-items-center justify-content-between p-3">
+                                        <h6 class="mb-0 text-primary fw-bold d-flex align-items-center">
+                                            <i class="bx bx-book-open me-2 fs-5"></i>
+                                            {{ $kurikulum['kode_matakuliah'] }} — {{ $kurikulum['nama_matakuliah'] }}
+                                        </h6>
+                                        <span class="badge bg-primary rounded-pill">#{{ $index + 1 }}</span>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="row">
+                                            <!-- Dosen Teori -->
+                                            <div class="col-md-6 mb-4 mb-md-0">
+                                                <small class="text-muted text-uppercase fw-bold d-block mb-3"><i class="bx bx-chalkboard me-1"></i> Dosen Teori</small>
+                                                @php
+                                                    $dosenTeori = collect($kurikulum['dosen'])->where('jenis_dosen', 'teori');
+                                                @endphp
 
-                    @if ($mahasiswa->status_edom != 1)
+                                                @if ($dosenTeori->isNotEmpty())
+                                                    <div class="d-flex flex-column gap-3">
+                                                    @foreach ($dosenTeori as $dosen)
+                                                        @if ($dosen['is_rated'])
+                                                            <div class="p-3 border rounded border-success bg-label-success d-flex justify-content-between align-items-center">
+                                                                <div class="d-flex align-items-center text-success">
+                                                                    <i class="bx bx-user-check me-2 fs-4"></i>
+                                                                    <span class="fw-semibold">{{ $dosen['nama'] }}</span>
+                                                                </div>
+                                                                <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
+                                                            </div>
+                                                        @else
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                                <div class="d-flex align-items-center text-warning">
+                                                                    <i class="bx bx-user me-2 fs-4"></i>
+                                                                    <span class="fw-bold">{{ $dosen['nama'] }}</span>
+                                                                </div>
+                                                                <span class="badge bg-warning px-3 py-2 shadow-sm flex-shrink-0"><i class="bx bx-edit-alt me-1"></i> NILAI</span>
+                                                            </a>
+                                                        @endif
+                                                    @endforeach
+                                                    </div>
+                                                @else
+                                                    <div class="p-3 border rounded border-secondary bg-label-secondary text-muted text-center fst-italic">
+                                                        - Tidak ada dosen teori -
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <!-- Dosen Praktik -->
+                                            <div class="col-md-6">
+                                                <small class="text-muted text-uppercase fw-bold d-block mb-3"><i class="bx bx-laptop me-1"></i> Dosen Praktik</small>
+                                                @php
+                                                    $dosenPraktik = collect($kurikulum['dosen'])->where('jenis_dosen', 'praktik');
+                                                @endphp
+
+                                                @if ($dosenPraktik->isNotEmpty())
+                                                    <div class="d-flex flex-column gap-3">
+                                                    @foreach ($dosenPraktik as $dosen)
+                                                        @if ($dosen['is_rated'])
+                                                            <div class="p-3 border rounded border-success bg-label-success d-flex justify-content-between align-items-center">
+                                                                <div class="d-flex align-items-center text-success">
+                                                                    <i class="bx bx-user-check me-2 fs-4"></i>
+                                                                    <span class="fw-semibold">{{ $dosen['nama'] }}</span>
+                                                                </div>
+                                                                <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
+                                                            </div>
+                                                        @else
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                                <div class="d-flex align-items-center text-warning">
+                                                                    <i class="bx bx-user me-2 fs-4"></i>
+                                                                    <span class="fw-bold">{{ $dosen['nama'] }}</span>
+                                                                </div>
+                                                                <span class="badge bg-warning px-3 py-2 shadow-sm flex-shrink-0"><i class="bx bx-edit-alt me-1"></i> NILAI</span>
+                                                            </a>
+                                                        @endif
+                                                    @endforeach
+                                                    </div>
+                                                @else
+                                                    <div class="p-3 border rounded border-secondary bg-label-secondary text-muted text-center fst-italic">
+                                                        - Tidak ada dosen praktik -
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @empty
+                            <div class="col-12">
+                                <div class="alert alert-secondary text-center p-4">
+                                    <i class="bx bx-info-circle fs-3 mb-2"></i><br>
+                                    Tidak ada data mata kuliah yang ditemukan.
+                                </div>
+                            </div>
+                            @endforelse
+                        </div>
+
+                    @if ($allFilled && $mahasiswa->status_edom != 1 && !$krsList->isEmpty() && $totalDosen > 0)
                     <div class="d-flex justify-content-center mt-4 mb-4">
-                        <form action="{{ route('mahasiswa.edom.konfirmasi') }}" method="POST">
+                        <form action="{{ route('mahasiswa.edom.konfirmasi') }}" method="POST" id="formKonfirmasiEdom">
                             @csrf
-                            <button type="submit" class="btn btn-success">Konfirmasi Pengisian EDOM</button>
+                            <button type="button" class="btn btn-success btn-lg" onclick="konfirmasiEdomSubmit()">
+                                <i class="bx bx-check-double me-2"></i>Konfirmasi Pengisian EDOM
+                            </button>
                         </form>
                     </div>
-                    @endif
-
                     @endif
                 </div>
             </div>
@@ -173,8 +224,34 @@
     document.addEventListener('DOMContentLoaded', function () {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
+            new bootstrap.Tooltip(tooltipTriggerEl);
         });
+    });
+
+    function konfirmasiEdomSubmit() {
+        Swal.fire({
+            title: 'Konfirmasi EDOM?',
+            text: "Setelah dikonfirmasi, Anda akan dapat melihat Kartu Hasil Studi (KHS). Anda yakin semua data sudah benar?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Konfirmasi!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading
+                Swal.fire({
+                    title: 'Memproses...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+                document.getElementById('formKonfirmasiEdom').submit();
+            }
         });
+    }
 </script>
 @endpush

@@ -3,7 +3,7 @@
         <thead class="table-primary">
             <tr>
                 <th>No</th>
-                <th>Nama Mahasiswa</th>
+                <th>Pemohon</th>
                 <th>Jenis Permintaan</th>
                 <th>Judul</th>
                 <th>Status</th>
@@ -14,7 +14,12 @@
             @forelse($permintaan as $index => $item)
             <tr>
                 <td>{{ $permintaan->firstItem() + $index }}</td>
-                <td>{{ $item->mahasiswa->nama ?? '-' }}</td>
+                <td>
+                    <div class="fw-semibold">{{ $item->pemohon->nama ?? '-' }}</div>
+                    <span class="badge bg-label-{{ $item->dosen_id ? 'primary' : 'info' }}">
+                        {{ $item->jenis_pemohon }}
+                    </span>
+                </td>
                 <td>{{ ucfirst($item->jenis_permintaan) }}</td>
                 <td>{{ $item->judul }}</td>
                 <td>

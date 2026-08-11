@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class JadwalUas extends Model
 {
     use HasFactory;
+
     protected $table = 'jadwal_uas'; // Pastikan nama tabel sesuai
+
     protected $primaryKey = 'id';   // Pastikan primary key sesuai
+
     public $timestamps = true;      //
+
     protected $fillable = [
-      'ta_id',
+        'ta_id',
         'jurusan_id',
         'matakuliah_id',
         'jam_mulai',
@@ -21,6 +25,7 @@ class JadwalUas extends Model
         'ruangan_id',
         'jenis_kelas',
     ];
+
     public function programStudi()
     {
         return $this->belongsTo(ProgramStudi::class, 'jurusan_id');
@@ -31,9 +36,8 @@ class JadwalUas extends Model
         return $this->belongsTo(Matakuliah::class, 'matakuliah_id');
     }
 
-        public function ruangan()
+    public function ruangan()
     {
         return $this->belongsTo(Ruangan::class, 'ruangan_id');
     }
-
 }

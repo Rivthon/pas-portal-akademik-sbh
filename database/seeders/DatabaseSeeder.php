@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        $this->call(RoleAndPermissionSeeder::class);
+
         // $this->call(PpsmSeeder::class);
         // $this->call(PkmProgramSeeder::class);
         // $this->call(PenguasaanBahasaSeeder::class);
-        $this->call(P2mwProgramSeeder::class);
-        $this->call(KegiatanTambahanSeeder::class);
+        // $this->call(P2mwProgramSeeder::class);
+        // $this->call(KegiatanTambahanSeeder::class);
 
     }
 }

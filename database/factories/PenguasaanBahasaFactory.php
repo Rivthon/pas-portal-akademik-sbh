@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\PenguasaanBahasa;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PenguasaanBahasa>
+ * @extends Factory<PenguasaanBahasa>
  */
 class PenguasaanBahasaFactory extends Factory
 {

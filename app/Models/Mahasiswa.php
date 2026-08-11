@@ -2,26 +2,22 @@
 
 namespace App\Models;
 
-use App\Models\Krs;
-use App\Models\Dosen;
-use App\Models\Jadwal;
-use App\Models\Absensi;
-use App\Models\Permintaan;
-use App\Models\ProgramStudi;
-use App\Models\TagihanMahasiswa;
-use App\Models\PengajuanTranskrip;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class Mahasiswa extends Authenticatable
 {
     use HasFactory, Notifiable;
 
     protected $table = 'mahasiswa'; // Nama tabel di database
+
     protected $primaryKey = 'mahasiswa_id'; // Primary key yang digunakan
+
     public $incrementing = true;
+
     protected $keyType = 'int';
+
     public $timestamps = true; // Pastikan timestamps aktif jika tabel menggunakan kolom 'created_at' dan 'updated_at'
 
     /**
@@ -110,6 +106,12 @@ class Mahasiswa extends Authenticatable
     {
         return $this->hasMany(Absensi::class, 'mahasiswa_id', 'mahasiswa_id');
     }
+
+    public function absensiPraktik()
+    {
+        return $this->hasMany(AbsensiPraktik::class, 'mahasiswa_id', 'mahasiswa_id');
+    }
+
     public function tagihanMahasiswa()
     {
         return $this->hasMany(TagihanMahasiswa::class, 'mahasiswa_id', 'mahasiswa_id');
@@ -127,19 +129,22 @@ class Mahasiswa extends Authenticatable
             'jadwal_id'        // Primary key tabel jadwal
         )->withPivot('tanggal', 'status', 'keterangan'); // Tambahkan kolom tambahan dari tabel pivot jika diperlukan
     }
+
     public function krs()
     {
         return $this->hasMany(Krs::class, 'mahasiswa_id', 'mahasiswa_id');
     }
+
     public function getProfileImageURL()
     {
-        return $this->avatar ? asset('storage/' . $this->avatar) : null;
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
     }
 
     public function dosen()
     {
         return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');
     }
+
     public function gelombang()
     {
         return $this->belongsTo(Gelombang::class, 'gelombang_id', 'id');
@@ -149,8 +154,18 @@ class Mahasiswa extends Authenticatable
     {
         return $this->hasMany(Permintaan::class);
     }
+
     public function pengajuanTranskrip()
     {
         return $this->hasMany(PengajuanTranskrip::class);
+    }
+
+    public function pengumpulanTugas()
+    {
+        return $this->hasMany(
+            LmsPengumpulanTugas::class,
+            'mahasiswa_id',
+            'mahasiswa_id'
+        );
     }
 }

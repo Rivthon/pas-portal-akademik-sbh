@@ -9,7 +9,7 @@
             <div class="col-md-7">
                 <h5 class="card-title text-primary mb-3 fw-bold">Manajemen Jadwal Kuliah</h5>
                 <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Halaman ini berisi informasi mengenai jadwal kuliah reguler mahasiswa. Anda dapat mengatur ruangan, jam, dan hari untuk masing-masing kelas. 
+                    Halaman ini berisi informasi mengenai jadwal kuliah reguler mahasiswa. Anda dapat mengatur ruangan, jam, dan hari untuk masing-masing kelas.
                     Jadwal disesuaikan dengan kurikulum program studi masing-masing, <br>
                     <span class="badge bg-label-primary mt-2 fs-6">Tahun Ajaran {{ $tahunAjaran->nama }} ({{ $tahunAjaran->semester }})</span>
                 </p>
@@ -21,7 +21,7 @@
     </div>
 </div>
 
-@can('jadwal-uts-create')
+@can('jadwal-create')
 <!-- IMPORT JADWAL SECTION -->
 <div class="card shadow-sm mb-4 border-top border-5 border-success">
     <div class="card-header bg-white pb-0 d-flex justify-content-between align-items-center">
@@ -96,7 +96,7 @@
         <div class="mt-2 text-end">
             <button id="search-btn" class="btn btn-primary px-4"><i class="bx bx-search-alt me-1"></i> Tampilkan Jadwal</button>
         </div>
-        
+
         <div id="alert-container" class="mt-3"></div>
     </div>
 </div>
@@ -259,7 +259,7 @@
             let id = row.getAttribute('data-id');
             let field = e.target.getAttribute('data-field');
             let value = e.target.value;
-            
+
             // Tambahkan disabled agar menghindari spam click
             e.target.disabled = true;
             let originalBg = e.target.style.backgroundColor;
@@ -279,14 +279,14 @@
                 },
                 body: JSON.stringify({ field: field, value: value })
             });
-            
+
             let data = await response.json();
             element.disabled = false;
 
             if (data.success) {
                 element.style.backgroundColor = '#d1e7dd'; // hijau success
                 setTimeout(() => { element.style.backgroundColor = originalBg; }, 1000);
-                
+
                 Swal.fire({
                     toast: true,
                     position: 'bottom-end',
@@ -356,7 +356,7 @@
         showConfirmButton: false
     });
     @endif
-    
+
     @if(session('error'))
     Swal.fire({
         title: 'Gagal!',

@@ -36,7 +36,7 @@
                         </a>
                         @endcan
 
-                        @can('jadwal-uas -delete')
+                        @can('jadwal-uas-delete')
                         <button type="submit" class="btn btn-danger btn-sm mb-1"
                             onclick="return confirm('Apakah Anda yakin?')">
                             <i class="bx bx-trash"></i>

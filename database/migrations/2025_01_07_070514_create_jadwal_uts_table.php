@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-          Schema::create('jadwal_uts', function (Blueprint $table) {
+        Schema::create('jadwal_uts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('ta_id'); // ID Tahun Akademik
             $table->unsignedBigInteger('jurusan_id'); // ID Jurusan

@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use Database\Factories\PenguasaanBahasaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PenguasaanBahasa extends Model
 {
-    /** @use HasFactory<\Database\Factories\PenguasaanBahasaFactory> */
+    /** @use HasFactory<PenguasaanBahasaFactory> */
     use HasFactory;
+
     protected $table = 'penguasaan_bahasa'; // nama tabel migration
+
     protected $fillable = [
         'mahasiswa_id',
         'nama_bahasa',
@@ -22,6 +25,7 @@ class PenguasaanBahasa extends Model
         'catatan_validator',
         'bobot',
     ];
+
     /* ──────── Relasi ──────── */
     public function mahasiswa()
     {

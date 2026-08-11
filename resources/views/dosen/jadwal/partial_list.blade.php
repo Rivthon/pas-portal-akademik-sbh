@@ -25,6 +25,7 @@
                     <div class="mb-2 mt-1">
                         <span class="badge bg-label-primary rounded-pill">{{ $jadwal['kode_matakuliah'] ?? '-' }}</span>
                         <span class="badge bg-label-info rounded-pill ms-1">SMT {{ $jadwal['semester_matkul'] ?? '-' }}</span>
+                        <span class="badge bg-label-secondary rounded-pill ms-1"><i class="bx bx-buildings me-1"></i>{{ $jadwal['program_studi'] ?? '-' }}</span>
                     </div>
                     <hr class="mt-1 mb-2">
                     <p class="text-secondary mb-2">
@@ -85,12 +86,12 @@
                         <label for="nama_matakuliah" class="form-label fw-semibold text-muted mb-1">Mata Kuliah</label>
                         <input type="text" class="form-control bg-light border-0 fw-bold text-primary" id="nama_matakuliah" name="nama_matakuliah" readonly>
                     </div>
-                    
+
                     <div class="mb-4">
                         <label for="tanggal_pertemuan" class="form-label fw-semibold">Tanggal Pertemuan</label>
                         <input type="date" class="form-control" id="tanggal_pertemuan" name="tanggal_pertemuan" required>
                     </div>
-                    
+
                     <div class="row mb-2">
                         <div class="col-md-6 mb-3">
                             <label for="jam_mulai" class="form-label fw-semibold">Jam Mulai</label>
@@ -102,6 +103,15 @@
                             <input type="time" class="form-control" id="jam_selesai" name="jam_selesai" required>
                             <p id="format-jam-selesai" class="text-muted small mt-1 mb-0"></p>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="metode_pbm" class="form-label fw-semibold">Metode PBM</label>
+                        <select class="form-select" id="metode_pbm" name="metode_pbm" required>
+                            <option value="offline" selected>Offline / Tatap Muka</option>
+                            <option value="online">Online / Daring</option>
+                        </select>
+                        <small class="text-muted">Pilih metode pelaksanaan pertemuan ini.</small>
                     </div>
 
                     <div class="mb-4">

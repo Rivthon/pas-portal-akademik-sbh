@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::create('bobot_nilai', function (Blueprint $table) {
+        Schema::create('bobot_nilai', function (Blueprint $table) {
             $table->id();
 
             // ID dari program studi dan mata kuliah tanpa foreign key

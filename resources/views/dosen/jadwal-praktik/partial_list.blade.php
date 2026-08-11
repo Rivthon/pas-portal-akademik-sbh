@@ -71,17 +71,17 @@
                 <form id="pertemuanprakForm">
                     @csrf
                     <input type="hidden" id="jadwal_praktik_id" name="jadwal_praktik_id">
-                    
+
                     <div class="mb-4">
                         <label for="nama_matakuliah" class="form-label fw-semibold text-muted mb-1">Mata Kuliah Praktik</label>
                         <input type="text" class="form-control bg-light border-0 fw-bold text-primary" id="nama_matakuliah" name="nama_matakuliah" readonly>
                     </div>
-                    
+
                     <div class="mb-4">
                         <label for="tanggal_pertemuan" class="form-label fw-semibold">Tanggal Pertemuan</label>
                         <input type="date" class="form-control" id="tanggal_pertemuan" name="tanggal_pertemuan" required>
                     </div>
-                    
+
                     <div class="row mb-2">
                         <div class="col-md-6 mb-3">
                             <label for="jam_mulai" class="form-label fw-semibold">Jam Mulai</label>
@@ -93,6 +93,15 @@
                             <input type="time" class="form-control" id="jam_selesai" name="jam_selesai" required>
                             <p id="format-jam-selesai" class="text-muted small mt-1 mb-0"></p>
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="metode_pbm_praktik" class="form-label fw-semibold">Metode PBM</label>
+                        <select class="form-select" id="metode_pbm_praktik" name="metode_pbm" required>
+                            <option value="offline" selected>Offline / Tatap Muka</option>
+                            <option value="online">Online / Daring</option>
+                        </select>
+                        <small class="text-muted">Pilih metode pelaksanaan pertemuan praktik ini.</small>
                     </div>
 
                     <div class="mb-4">

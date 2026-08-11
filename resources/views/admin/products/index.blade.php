@@ -8,7 +8,7 @@
         </div>
         <div class="pull-right">
             @can('product-create')
-            <a class="btn btn-success btn-sm mb-2" href="{{ route('products.create') }}"><i class="fa fa-plus"></i> Create New Product</a>
+            <a class="btn btn-success btn-sm mb-2" href="{{ route('admin.products.create') }}"><i class="fa fa-plus"></i> Create New Product</a>
             @endcan
         </div>
     </div>
@@ -33,10 +33,10 @@
         <td>{{ $product->name }}</td>
         <td>{{ $product->detail }}</td>
         <td>
-            <form action="{{ route('products.destroy',$product->id) }}" method="POST">
-                <a class="btn btn-info btn-sm" href="{{ route('products.show',$product->id) }}"><i class="fa-solid fa-list"></i> Show</a>
+            <form action="{{ route('admin.products.destroy',$product->id) }}" method="POST">
+                <a class="btn btn-info btn-sm" href="{{ route('admin.products.show',$product->id) }}"><i class="fa-solid fa-list"></i> Show</a>
                 @can('product-edit')
-                <a class="btn btn-primary btn-sm" href="{{ route('products.edit',$product->id) }}"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                <a class="btn btn-primary btn-sm" href="{{ route('admin.products.edit',$product->id) }}"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
                 @endcan
 
                 @csrf

@@ -3,18 +3,15 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\TahunAkademik;
-use Illuminate\Http\Request;
-
-use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class TahunAkademikController extends Controller
 {
-
-    function __construct()
+    public function __construct()
     {
         $this->middleware('permission:tahun-ajaran-list|tahun-ajaran-create|tahun-ajaran-edit|tahun-ajaran-delete', ['only' => ['index', 'show']]);
         $this->middleware('permission:tahun-ajaran-create', ['only' => ['create', 'store']]);
@@ -25,7 +22,7 @@ class TahunAkademikController extends Controller
     /**
      * Display a listing of the resource.
      */
-  public function index(Request $request)
+    public function index(Request $request)
     {
         $search = $request->input('search');
 
@@ -40,16 +37,14 @@ class TahunAkademikController extends Controller
         return view('admin.akademik.tahun-ajaran.index', compact('tahunAjarans'));
     }
 
-
     public function create(): View
     {
         return view('admin.akademik.tahun-ajaran.create');
     }
 
-
     public function store(Request $request): RedirectResponse
     {
-         // Validasi input
+        // Validasi input
         $request->validate([
             // 'jurusan_id' => 'required|integer|exists:program_studi,jurusan_id',
             'nama' => 'required|string|max:255',
@@ -65,6 +60,8 @@ class TahunAkademikController extends Controller
 
         ]);
 
+        activity_log('tambah_tahun_ajaran', 'Admin menambah tahun ajaran: '.$request->nama.' ('.$request->semester.')');
+
         // Redirect dengan pesan sukses
         Alert::toast('Tahun Ajaran berhasil dibuat.', 'success')
             ->position('bottom-end') // Posisi toast
@@ -73,13 +70,10 @@ class TahunAkademikController extends Controller
         return redirect()->route('admin.tahun-ajaran.index');
     }
 
-
-
     public function edit(TahunAkademik $tahunAjaran): View
     {
         return view('admin.akademik.tahun-ajaran.edit', compact('tahunAjaran'));
     }
-
 
     public function update(Request $request, TahunAkademik $tahunAjaran): RedirectResponse
     {
@@ -93,10 +87,12 @@ class TahunAkademikController extends Controller
         // Update data
         $tahunAjaran->update($request->all());
 
+        activity_log('update_tahun_ajaran', 'Admin memperbarui tahun ajaran: '.$tahunAjaran->nama);
+
         // Tampilkan notifikasi SweetAlert
         Alert::toast('Tahun Ajaran berhasil diperbarui.', 'success')
-            ->position('bottom-end') // Posisi toast
-            ->autoClose(3000);    // Durasi dalam milidetik
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         // Redirect ke halaman indeks
         return redirect()->route('admin.tahun-ajaran.index');
@@ -104,14 +100,16 @@ class TahunAkademikController extends Controller
 
     public function destroy(TahunAkademik $tahunAjaran): RedirectResponse
     {
+        activity_log('hapus_tahun_ajaran', 'Admin menghapus tahun ajaran: '.$tahunAjaran->nama);
         $tahunAjaran->delete();
 
         Alert::toast('Tahun Ajaran berhasil dihapus.', 'info')
-            ->position('bottom-end') // Posisi toast
-            ->autoClose(3000);    // Durasi dalam milidetik
+            ->position('bottom-end')
+            ->autoClose(3000);
 
         return redirect()->route('admin.tahun-ajaran.index');
     }
+
     public function updateStatus($id)
     {
         // Nonaktifkan semua status
@@ -122,9 +120,12 @@ class TahunAkademikController extends Controller
         $tahunAjaran->status_ta = 1;
         $tahunAjaran->save();
 
+        activity_log('ubah_tahun_ajaran_aktif', 'Admin mengaktifkan tahun ajaran: '.$tahunAjaran->nama);
+
         Alert::toast('Tahun Ajaran berhasil diubah.', 'success')
-            ->position('bottom-end') // Posisi toast
-            ->autoClose(3000);    // Durasi dalam milidetik
+            ->position('bottom-end')
+            ->autoClose(3000);
+
         return redirect()->route('admin.tahun-ajaran.index');
     }
 }

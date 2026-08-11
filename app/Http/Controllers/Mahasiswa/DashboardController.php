@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\Mahasiswa;
 
-use Carbon\Carbon;
-use App\Models\Krs;
-use App\Models\Jadwal;
-use App\Models\Absensi;
-use App\Models\Setting;
-use Illuminate\Http\Request;
-use App\Models\TahunAkademik;
-use App\Models\CalendarAkademik;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Http;
+use App\Models\CalendarAkademik;
+use App\Models\Jadwal;
+use App\Models\Krs;
+use App\Models\LmsMateri;
+use App\Models\LmsQuiz;
+use App\Models\LmsTugas;
+use App\Models\Setting;
+use App\Models\TahunAkademik;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class DashboardController extends Controller
 {
-
-        public function index()
+    public function index()
     {
         $mahasiswa = auth('mahasiswa')->user();
         $tanggalSekarang = Carbon::now()->translatedFormat('l, d F Y');
@@ -34,38 +34,40 @@ class DashboardController extends Controller
         // **2. Cache Kalender Akademik Berdasarkan Jurusan**
         $kalenderAkademik = Cache::remember("kalender_akademik_{$mahasiswa->jurusan_id}", 3600, function () use ($mahasiswa) {
             return CalendarAkademik::where('jurusan_id', $mahasiswa->jurusan_id)
-                // ->orderBy('tanggal_mulai', 'desc')
-                // ->take(5)
-                ->get();
+                ->aktif()
+                ->whereNotNull('path')
+                ->get()
+                ->filter(fn (CalendarAkademik $kalender) => $kalender->fileExists())
+                ->values();
         });
 
         // **3. Hitung Total SKS dan IPK (Hanya Jika KHS Sudah Dinilai)**
-          $khs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+        $khs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereHas('kurikulum.mataKuliah') // Pastikan ada relasi ke mata kuliah
             ->get();
 
-            // Filter hanya KHS yang memiliki nilai
-            $filteredKhs = $khs->filter(fn($item) => !empty($item->khs));
+        // Filter hanya KHS yang memiliki nilai
+        $filteredKhs = $khs->filter(fn ($item) => ! empty($item->khs));
 
-            // Hitung total SKS
-            $totalSks = $filteredKhs->sum(fn($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
+        // Hitung total SKS
+        $totalSks = $filteredKhs->sum(fn ($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
 
-            // Hitung total bobot
-            function calculateWeight($grade) {
-                $gradeWeights = [
-                    'A' => 4.00, 'AB' => 3.75, 'BA' => 3.50, 'B' => 3.00,
-                    'BC' => 2.75, 'C' => 2.00, 'D' => 1.00, 'E' => 0
-                ];
-                return $gradeWeights[$grade] ?? 0;
-            }
+        // Hitung total bobot
+        function calculateWeight($grade)
+        {
+            $gradeWeights = [
+                'A' => 4.00, 'AB' => 3.75, 'BA' => 3.50, 'B' => 3.00,
+                'BC' => 2.75, 'C' => 2.00, 'D' => 1.00, 'E' => 0,
+            ];
 
-            $totalBobot = $filteredKhs->sum(fn($item) =>
-                (optional($item->kurikulum->mataKuliah)->sks ?? 0) * calculateWeight($item->khs)
-            );
+            return $gradeWeights[$grade] ?? 0;
+        }
 
-            // Hitung IPK (Indeks Prestasi Kumulatif)
-            $ipk = $totalSks ? $totalBobot / $totalSks : 0;
+        $totalBobot = $filteredKhs->sum(fn ($item) => (optional($item->kurikulum->mataKuliah)->sks ?? 0) * calculateWeight($item->khs)
+        );
 
+        // Hitung IPK (Indeks Prestasi Kumulatif)
+        $ipk = $totalSks ? $totalBobot / $totalSks : 0;
 
         // **4. Cache Berita dari WordPress (Dihidden sementara untuk penggantian API)**
         $berita = collect([]);
@@ -94,6 +96,10 @@ class DashboardController extends Controller
         });
         */
 
+        $lmsAnnouncements = $this->lmsAnnouncements($mahasiswa, $ta);
+
+        activity_log('akses_dashboard', 'Mahasiswa mengakses dashboard');
+
         return view('mahasiswa.dashboard', compact(
             'tanggalSekarang',
             'settings',
@@ -101,8 +107,94 @@ class DashboardController extends Controller
             'kalenderAkademik',
             'totalSks',
             'ipk',
-            'berita'
+            'berita',
+            'lmsAnnouncements'
         ));
+    }
+
+    private function lmsAnnouncements($mahasiswa, $ta)
+    {
+        if (! $ta) {
+            return collect();
+        }
+
+        $kurikulumIds = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $ta->ta_id)
+            ->pluck('kurikulum_id');
+
+        $jadwalIds = Jadwal::where('ta_id', $ta->ta_id)
+            ->whereIn('kurikulum_id', $kurikulumIds)
+            ->when(strtolower((string) $mahasiswa->kelas) === 'karyawan', fn ($query) => $query
+                ->whereRaw('LOWER(jenis_kelas) = ?', ['karyawan']))
+            ->when(strtolower((string) $mahasiswa->kelas) !== 'karyawan', fn ($query) => $query
+                ->whereRaw('LOWER(jenis_kelas) = ?', ['reguler']))
+            ->pluck('id');
+
+        if ($jadwalIds->isEmpty()) {
+            return collect();
+        }
+
+        $materi = LmsMateri::whereIn('jadwal_id', $jadwalIds)
+            ->where('status', 1)
+            ->with('jadwal.kurikulum.mataKuliah')
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn ($item) => [
+                'type' => 'materi',
+                'title' => 'Materi baru: '.$item->judul,
+                'detail' => $item->tipe ? strtoupper($item->tipe) : 'Materi pembelajaran',
+                'course' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',
+                'event_at' => $item->created_at,
+                'url' => route('mahasiswa.lms.show', $item->jadwal_id),
+                'icon' => 'bx-book-open',
+                'color' => 'info',
+            ]);
+
+        $tugas = LmsTugas::whereIn('jadwal_id', $jadwalIds)
+            ->where('aktif', true)
+            ->with('jadwal.kurikulum.mataKuliah')
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn ($item) => [
+                'type' => 'tugas',
+                'title' => 'Tugas baru: '.$item->judul,
+                'detail' => $item->deadline
+                    ? 'Deadline '.$item->deadline->translatedFormat('d M Y, H:i')
+                    : 'Tanpa deadline',
+                'course' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',
+                'event_at' => $item->created_at,
+                'url' => route('mahasiswa.lms.tugas.show', $item->tugas_id),
+                'icon' => 'bx-task',
+                'color' => 'warning',
+            ]);
+
+        $quiz = LmsQuiz::whereIn('jadwal_id', $jadwalIds)
+            ->where('aktif', true)
+            ->with('jadwal.kurikulum.mataKuliah')
+            ->latest()
+            ->limit(8)
+            ->get()
+            ->map(fn ($item) => [
+                'type' => 'quiz',
+                'title' => 'Quiz baru: '.$item->judul,
+                'detail' => $item->mulai_at && now()->lt($item->mulai_at)
+                    ? 'Mulai '.$item->mulai_at->translatedFormat('d M Y, H:i')
+                    : 'Sudah dapat dibuka',
+                'course' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',
+                'event_at' => $item->created_at,
+                'url' => route('mahasiswa.lms.quiz.index', $item->jadwal_id),
+                'icon' => 'bx-question-mark',
+                'color' => 'primary',
+            ]);
+
+        return $materi
+            ->concat($tugas)
+            ->concat($quiz)
+            ->sortByDesc('event_at')
+            ->take(8)
+            ->values();
     }
 
     // **Fungsi Konversi Nilai ke Bobot IPK**
@@ -122,6 +214,4 @@ class DashboardController extends Controller
             default => 0.0,
         };
     }
-
-
 }

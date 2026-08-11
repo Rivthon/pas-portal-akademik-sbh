@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AbsensiPraktik;
 use App\Http\Requests\StoreAbsensiPraktikRequest;
 use App\Http\Requests\UpdateAbsensiPraktikRequest;
+use App\Models\AbsensiPraktik;
 
 class AbsensiPraktikController extends Controller
 {

@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Krs;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Krs>
+ * @extends Factory<Krs>
  */
 class KrsFactory extends Factory
 {

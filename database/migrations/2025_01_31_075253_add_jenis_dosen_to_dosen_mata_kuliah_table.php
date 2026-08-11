@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::table('dosen_mata_kuliah', function (Blueprint $table) {
+        Schema::table('dosen_mata_kuliah', function (Blueprint $table) {
             $table->enum('jenis_dosen', ['teori', 'praktik'])->after('kurikulum_id')->default('teori');
         });
     }

@@ -1,20 +1,20 @@
 <div class="table-responsive">
-    <table class="table table-hover table-bordered align-middle text-center">
-        <thead class="table-primary">
+    <table class="table table-modern table-hover align-middle text-center mb-0">
+        <thead>
             <tr>
-                <th style="width: 5%;">No</th>
-                <th>Mahasiswa</th>
+                <th style="width: 5%;" class="text-center">No</th>
+                <th class="text-start">Mahasiswa</th>
                 <th>Jenis</th>
                 <th>Status</th>
-                <th>Keperluan</th>
+                <th class="text-start">Keperluan</th>
                 <th style="width: 15%;">Aksi</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($pengajuan as $index => $item)
             <tr>
-                <td>{{ $loop->iteration + ($pengajuan->currentPage() - 1) * $pengajuan->perPage() }}</td>
-                <td>{{ $item->mahasiswa->nama }}</td>
+                <td class="text-center">{{ $loop->iteration + ($pengajuan->currentPage() - 1) * $pengajuan->perPage() }}</td>
+                <td class="text-start fw-semibold" style="font-size: .85rem;">{{ $item->mahasiswa->nama }}</td>
                 <td><span class="badge bg-primary">{{ ucfirst($item->jenis) }}</span></td>
                 <td>
                     @php
@@ -28,7 +28,7 @@
                     @endphp
                     <span class="badge bg-{{ $badgeColor }} text-uppercase">{{ $item->status }}</span>
                 </td>
-                <td>{{ $item->keperluan }}</td>
+                <td class="text-start" style="font-size: .85rem;">{{ $item->keperluan }}</td>
                 <td>
                     <a href="{{ route('admin.pengajuan.edit', $item->id) }}" class="btn btn-sm btn-info text-white">
                         <i class="bx bx-show"></i> Detail

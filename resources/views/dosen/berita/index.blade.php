@@ -42,7 +42,7 @@
     let perPage = 6; // Jumlah berita per halaman
 
     document.addEventListener("DOMContentLoaded", function () {
-        fetch('/dosen/dosen/api/berita-kampus')
+        fetch('/dosen/api/berita-kampus')
             .then(response => response.json())
             .then(data => {
 
@@ -82,7 +82,7 @@
                             <div class="card-body">
                                 <h6 class="card-title fw-bold">${post.title}</h6>
                                 <p class="text-muted small">${post.date}</p>
-                                <a href="/dosen/dosen/berita/${post.id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
+                                <a href="/dosen/berita/${post.id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
                             </div>
                         </div>
                     </div>

@@ -203,7 +203,7 @@
                 <img src="{{ $qrFilePath }}" alt="QR Code Verifikasi" style="width: 80px; height: 80px; border: 1px solid #ccc; padding: 3px;">
                 @endif
             </td>
-            
+
             <!-- Kolom Tanda Tangan -->
             <td style="width: 50%; text-align: right; vertical-align: top; border: none;">
                 <p style="margin-bottom: 5px;">Ketua Program Studi</p>

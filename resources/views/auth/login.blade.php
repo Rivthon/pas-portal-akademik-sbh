@@ -154,9 +154,15 @@
 
                     <!-- Submit Button -->
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button id="admin-login-submit" type="submit" class="btn btn-primary">
+                            <span data-login-label>Login</span>
+                        </button>
                     </div>
                 </form>
+                @include('auth.partials.login-cooldown', [
+                    'buttonId' => 'admin-login-submit',
+                    'storageKey' => 'admin',
+                ])
 
                 <!-- Footer -->
                 <div class="text-center mt-4">

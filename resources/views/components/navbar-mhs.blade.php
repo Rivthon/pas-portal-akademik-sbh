@@ -1,5 +1,6 @@
-<nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme"
+<nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme shadow-sm border-0"
     id="layout-navbar">
+
     <!-- Menu Toggle (Visible on smaller screens) -->
     <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
         <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
@@ -8,58 +9,72 @@
     </div>
 
     <!-- Title / App Name -->
-    <div class="navbar-nav-right d-flex align-items-center w-100" id="navbar-collapse">
-        <h5 class="mb-0">{{ $settings->name }}</h5>
+    <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
+        <!-- Brand/System Name -->
+        <h5 class="mb-0 fw-bold text-primary d-none d-md-block">
+            <i class="bx bxs-graduation me-2 align-middle"></i>Portal Mahasiswa
+        </h5>
 
         <ul class="navbar-nav flex-row align-items-center ms-auto">
-            <!-- User Menu -->
+            <!-- Welcome Greeting -->
+            <li class="nav-item d-none d-sm-flex align-items-center me-3 border-end pe-3">
+                <span class="text-muted fw-light me-1">Hari ini,</span>
+                <span class="fw-semibold text-dark">{{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</span>
+            </li>
+
+            <!-- Mahasiswa User Menu -->
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                <a class="nav-link dropdown-toggle hide-arrow" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle hide-arrow d-flex align-items-center" href="javascript:void(0);" data-bs-toggle="dropdown">
+                     <div class="me-3 d-none d-sm-block text-end">
+                        <span class="d-block fw-bold text-dark mt-1" style="line-height:1;">{{ Auth::guard('mahasiswa')->user()->nama }}</span>
+                        <small class="text-muted">Mahasiswa</small>
+                    </div>
                     <div class="avatar avatar-online">
                         <img src="{{ auth('mahasiswa')->user()->getProfileImageURL() }}"
                             onerror="this.src='{{ asset('dashboard_assets/assets/img/avatars/1.png') }}'"
                             alt="Avatar of {{ auth('mahasiswa')->user()->nama }}"
-                            class="d-block h-100 ms-0 ms-sm-4 rounded user-profile-img bg-light shadow-sm"
+                            class="d-block w-px-40 h-px-40 rounded-circle user-profile-img bg-light shadow-sm" style="object-fit: cover;"
                             id="avatar-profile">
                     </div>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 py-2">
+                    <li class="dropdown-header bg-light border-bottom mb-2 pb-3 pt-3 text-center">
+                        <div class="avatar mx-auto mb-2">
+                            <img src="{{ auth('mahasiswa')->user()->getProfileImageURL() }}"
+                                onerror="this.src='{{ asset('dashboard_assets/assets/img/avatars/1.png') }}'"
+                                alt="Avatar" class="w-px-50 h-px-50 rounded-circle shadow-sm" style="object-fit: cover;">
+                        </div>
+                        <h6 class="mb-0 fw-bold">{{ Auth::guard('mahasiswa')->user()->nama }}</h6>
+                        <small class="text-muted">{{ Auth::guard('mahasiswa')->user()->nim ?? 'NIM Belum Diatur' }}</small>
+                    </li>
+
                     <li>
-                        <a class="dropdown-item" href="#">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0 me-2">
-                                    <i class="bx bxs-user-account"></i>
-                                </div>
-                                <div>
-                                    <span class="fw-medium d-block">
-                                        {{ auth('mahasiswa')->user()->nama }}
-                                    </span>
-                                </div>
-                            </div>
+                        <a class="dropdown-item py-2" href="{{ route('mahasiswa.profile.index') }}">
+                            <i class="bx bx-user me-2 text-primary"></i> <span class="align-middle">Pengaturan Profil</span>
                         </a>
                     </li>
+
                     <li>
-                        <a class="dropdown-item" href="{{ route('mahasiswa.profile.index') }}">
-                            <i class="bx bx-user"></i>
-                            <span class="align-middle">Profile</span>
+                        <a class="dropdown-item py-2" href="{{ route('mahasiswa.index.berita') }}">
+                            <i class="bx bx-news me-2 text-info"></i> <span class="align-middle">Berita Kampus</span>
                         </a>
                     </li>
+
                     <li>
-                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-divider my-2"></div>
                     </li>
                     <li>
-                        <form method="POST" action="{{ route('mahasiswa.logout') }}">
+                        <a class="dropdown-item py-2 text-danger fw-semibold" href="#" onclick="event.preventDefault(); document.getElementById('logout-form-nav').submit();">
+                            <i class="bx bx-power-off me-2"></i>
+                            <span class="align-middle">Keluar Sistem</span>
+                        </a>
+                        <form method="POST" action="{{ route('mahasiswa.logout') }}" id="logout-form-nav" class="d-none">
                             @csrf
-                            <button type="submit" class="dropdown-item"
-                                onclick="return confirm('Are you sure you want to log out?')">
-                                <i class="bx bx-power-off me-2"></i>
-                                <span class="align-middle">Log Out</span>
-                            </button>
                         </form>
                     </li>
                 </ul>
             </li>
-            <!-- /User Menu -->
+            <!-- / Mahasiswa User Menu -->
         </ul>
     </div>
 </nav>

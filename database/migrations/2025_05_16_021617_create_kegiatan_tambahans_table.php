@@ -24,7 +24,7 @@ return new class extends Migration
                 'LKMM-Dasar',
                 'LKMM-Menengah',
                 'LKMM-Lanjut',
-                'Lainnya'
+                'Lainnya',
             ])->nullable();
             $table->string('tingkat')->nullable(); // Internasional / Nasional / Regional / Lokal / Prodi / Universitas
             $table->integer('bobot')->default(0); // Diisi oleh validator

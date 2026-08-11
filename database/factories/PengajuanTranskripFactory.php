@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\PengajuanTranskrip;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\PengajuanTranskrip>
+ * @extends Factory<PengajuanTranskrip>
  */
 class PengajuanTranskripFactory extends Factory
 {

@@ -3,19 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Dosen;
+use App\Models\DosenMatakuliah;
 use App\Models\Kurikulum;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
 use App\Models\TahunAkademik;
-use App\Models\DosenMatakuliah;
-use Illuminate\Support\Facades\DB;
+use App\Services\JadwalPraktikAssignmentService;
+use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class DosenKurikulumController extends Controller
 {
-
     public function index(Request $request)
     {
         $dosens = Dosen::all();
@@ -26,7 +24,7 @@ class DosenKurikulumController extends Controller
         $search = $request->input('search');
 
         // Query assigned data dengan filter pencarian
-        $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.mataKuliah.programStudi'])
+        $assignedData = DosenMatakuliah::with(['dosen', 'kurikulum.mataKuliah.programStudi'])
             ->when($search, function ($query) use ($search) {
                 $query->whereHas('kurikulum.mataKuliah', function ($q) use ($search) {
                     $q->where('matakuliah_id', 'like', "%{$search}%")
@@ -98,7 +96,7 @@ class DosenKurikulumController extends Controller
         $semester = $request->input('semester');
         $tahunAjaran = $request->input('tahunAjaran');
 
-        $assignedData = DosenMataKuliah::with(['dosen', 'kurikulum.mataKuliah'])
+        $assignedData = DosenMatakuliah::with(['dosen', 'kurikulum.mataKuliah'])
             ->whereHas('kurikulum', function ($query) use ($programStudi, $semester, $tahunAjaran) {
                 // Filter berdasarkan tahun ajaran
                 if ($tahunAjaran) {
@@ -122,7 +120,8 @@ class DosenKurikulumController extends Controller
 
         return response()->json($assignedData);
     }
-    public function store(Request $request)
+
+    public function store(Request $request, JadwalPraktikAssignmentService $jadwalPraktikService)
     {
         $request->validate([
             'kurikulum_id' => 'required',
@@ -134,14 +133,17 @@ class DosenKurikulumController extends Controller
 
         $inserted = 0;
         foreach ($request->dosen_id as $dosen_id) {
-            DosenMataKuliah::create([
+            $assignment = DosenMatakuliah::create([
                 'dosen_id' => $dosen_id,
                 'kurikulum_id' => $request->kurikulum_id,
                 'jenis_dosen' => $request->jenis_dosen,
                 'jenis_kelas' => $request->jenis_kelas,
             ]);
+            $jadwalPraktikService->ensureForAssignment($assignment);
             $inserted++;
         }
+
+        activity_log('assign_dosen', "Admin menugaskan $inserted dosen ke mata kuliah (kurikulum_id: {$request->kurikulum_id})");
 
         return response()->json(['message' => "$inserted Dosen berhasil ditugaskan ke mata kuliah ini!"]);
     }
@@ -170,7 +172,7 @@ class DosenKurikulumController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             // Jika terjadi error atau kegagalan input
-            Alert::toast('Gagal menambahkan dosen ke kurikulum. Error: ' . $e->getMessage(), 'error')
+            Alert::toast('Gagal menambahkan dosen ke kurikulum. Error: '.$e->getMessage(), 'error')
                 ->position('bottom-end')
                 ->autoClose(3000);
 
@@ -179,7 +181,6 @@ class DosenKurikulumController extends Controller
         }
     }
 
-
     public function getDosens($kurikulumId)
     {
         $kurikulum = Kurikulum::findOrFail($kurikulumId);
@@ -187,32 +188,33 @@ class DosenKurikulumController extends Controller
 
         return view('kurikulum.dosens', compact('dosens', 'kurikulum'));
     }
+
     public function destroy($id)
     {
         try {
-            $dosenKurikulum = DosenMataKuliah::find($id);
+            $dosenKurikulum = DosenMatakuliah::find($id);
 
             // Cek apakah data ada
-            if (!$dosenKurikulum) {
+            if (! $dosenKurikulum) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Data tidak ditemukan'
+                    'message' => 'Data tidak ditemukan',
                 ], 404);
             }
 
             // Hapus data
+            activity_log('hapus_assign_dosen', 'Admin menghapus assign dosen (ID: '.$id.')');
             $dosenKurikulum->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Dosen berhasil dihapus'
+                'message' => 'Dosen berhasil dihapus',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan: '.$e->getMessage(),
             ], 500);
         }
     }
-
 }

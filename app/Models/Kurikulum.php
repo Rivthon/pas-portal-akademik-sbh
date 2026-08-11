@@ -2,12 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Krs;
-use App\Models\Ruangan;
-use App\Models\Matakuliah;
-use App\Models\ProgramStudi;
-use App\Models\TahunAkademik;
-use App\Models\DosenMatakuliah;
 use Illuminate\Database\Eloquent\Model;
 
 class Kurikulum extends Model
@@ -48,16 +42,28 @@ class Kurikulum extends Model
     {
         return $this->belongsTo(Ruangan::class, 'ruangan_id');
     }
-      public function krs()
+
+    public function krs()
     {
         return $this->hasMany(Krs::class, 'kurikulum_id');
     }
-   public function dosenToMatakuliah()
+
+    public function dosenToMatakuliah()
     {
         return $this->hasMany(DosenMatakuliah::class, 'kurikulum_id', 'kurikulum_id');
     }
+
     public function penilaian()
     {
         return $this->hasMany(Penilaian::class, 'kurikulum_id');
+    }
+
+    public function rps()
+    {
+        return $this->hasOne(
+            Rps::class,
+            'kurikulum_id',
+            'kurikulum_id'
+        );
     }
 }

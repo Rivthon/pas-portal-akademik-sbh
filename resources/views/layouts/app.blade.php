@@ -34,7 +34,7 @@
 <body class="g-sidenav-show  bg-gray-100">
     <div id="app">
         @auth
-            @include('layouts.sidebar')
+            @include('components.sidebar')
         @endauth
 
         <!-- Main Content -->
@@ -46,4 +46,3 @@
     </div>
 </body>
 </html>
-

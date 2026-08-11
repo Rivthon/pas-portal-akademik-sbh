@@ -2,10 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use App\Models\Matakuliah;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ProgramStudi extends Model
 {
@@ -16,6 +14,7 @@ class ProgramStudi extends Model
     protected $primaryKey = 'jurusan_id'; // Kolom primary key
 
     public $incrementing = true; // Set true jika primary key auto increment
+
     protected $keyType = 'int'; // Tipe data primary key
 
     protected $fillable = [
@@ -29,17 +28,11 @@ class ProgramStudi extends Model
         'header_kapro',
         'header_dospem',
         'header_mhs',
-        'persen_tugas',
-        'persen_uts',
-        'persen_uas',
-        'persen_absen',
-        'persen_praktik',
 
     ];
 
-     public function mahasiswa()
+    public function mahasiswa()
     {
-    return $this->hasMany(Mahasiswa::class, 'jurusan_id');
+        return $this->hasMany(Mahasiswa::class, 'jurusan_id');
     }
-
 }

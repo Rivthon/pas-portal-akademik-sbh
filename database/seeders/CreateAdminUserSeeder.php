@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class CreateAdminUserSeeder extends Seeder
 {
@@ -15,14 +14,23 @@ class CreateAdminUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $email = env('SEED_ADMIN_EMAIL');
+        $password = env('SEED_ADMIN_PASSWORD');
+
+        if (! $email || ! $password || strlen($password) < 16) {
+            throw new \RuntimeException(
+                'Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (minimum 16 characters) before creating an admin.'
+            );
+        }
+
         $user = User::create(['name' => 'hadi21',
-            'email' => 'hadi21@sbh.ac.id',
-            'password' => bcrypt('pasword123')
+            'email' => $email,
+            'password' => bcrypt($password),
         ]);
 
         $role = Role::create(['name' => 'Admin']);
 
-        $permissions = Permission::pluck('id','id')->all();
+        $permissions = Permission::pluck('id', 'id')->all();
 
         $role->syncPermissions($permissions);
 

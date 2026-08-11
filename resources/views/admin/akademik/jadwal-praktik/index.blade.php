@@ -9,7 +9,7 @@
             <div class="col-md-7">
                 <h5 class="card-title text-primary mb-3 fw-bold">Manajemen Jadwal Praktik</h5>
                 <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Halaman ini berisi informasi khusus mengenai jadwal praktikum mahasiswa. Anda dapat mengatur ruangan laboratorium, hari, serta jam pelaksanaan praktik. 
+                    Halaman ini berisi informasi khusus mengenai jadwal praktikum mahasiswa. Anda dapat mengatur ruangan laboratorium, hari, serta jam pelaksanaan praktik.
                     Jadwal akan disesuaikan dengan kurikulum program studi khusus praktikum. <br>
                     <span class="badge bg-label-primary mt-2 fs-6">Tahun Ajaran {{ $tahunAjaran->nama }} ({{ $tahunAjaran->semester }})</span>
                 </p>
@@ -21,7 +21,7 @@
     </div>
 </div>
 
-@can('jadwal-uts-create')
+@can('jadwal-praktik-create')
 <!-- IMPORT JADWAL SECTION -->
 <div class="card shadow-sm mb-4 border-top border-5 border-success">
     <div class="card-header bg-white pb-0 d-flex justify-content-between align-items-center">
@@ -96,7 +96,7 @@
         <div class="mt-2 text-end">
             <button id="search-btn" class="btn btn-primary px-4"><i class="bx bx-search-alt me-1"></i> Tampilkan Jadwal</button>
         </div>
-        
+
         <div id="alert-container" class="mt-3"></div>
     </div>
 </div>
@@ -265,10 +265,10 @@
             let id = row.getAttribute('data-id');
             let field = e.target.getAttribute('data-field');
             let value = e.target.value;
-            
+
             e.target.disabled = true;
             let originalBg = e.target.style.backgroundColor;
-            e.target.style.backgroundColor = '#fff3cd'; 
+            e.target.style.backgroundColor = '#fff3cd';
 
             await updateJadwalAjax(id, field, value, e.target, originalBg);
         }
@@ -284,14 +284,14 @@
                 },
                 body: JSON.stringify({ field: field, value: value })
             });
-            
+
             let data = await response.json();
             element.disabled = false;
 
             if (data.success) {
-                element.style.backgroundColor = '#d1e7dd'; 
+                element.style.backgroundColor = '#d1e7dd';
                 setTimeout(() => { element.style.backgroundColor = originalBg; }, 1000);
-                
+
                 Swal.fire({
                     toast: true,
                     position: 'bottom-end',
@@ -302,7 +302,7 @@
                     timer: 2000
                 });
             } else {
-                element.style.backgroundColor = '#f8d7da'; 
+                element.style.backgroundColor = '#f8d7da';
                 Swal.fire({
                     icon: 'error',
                     title: 'Gagal',

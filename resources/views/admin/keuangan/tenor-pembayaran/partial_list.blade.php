@@ -29,18 +29,14 @@
                 <td class="text-center text-success fw-bold">{{ $item->persentase }}%</td>
                 <td class="text-center">{{ \Carbon\Carbon::parse($item->batas_waktu)->translatedFormat('d M Y') }}</td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-icon btn-outline-warning" 
-                        onclick="editTenor({{ $item->id }}, '{{ $item->semester }}', '{{ $item->tahun_masuk }}', '{{ $item->gelombang_id }}', '{{ $item->tenor }}', '{{ $item->persentase }}', '{{ $item->batas_waktu }}')" title="Edit Tenor">
+                    <button type="button" class="btn btn-sm btn-icon btn-outline-warning"
+                        onclick="editTenorAjax({{ $item->id }}, '{{ $item->semester }}', '{{ $item->tahun_masuk }}', '{{ $item->gelombang_id }}', '{{ $item->tenor }}', '{{ $item->persentase }}', '{{ \Carbon\Carbon::parse($item->batas_waktu)->format('Y-m-d') }}')" title="Edit Tenor">
                         <i class="bx bxs-edit"></i>
                     </button>
-                    <form action="{{ route('admin.tenor-pembayaran.destroy', $item->id) }}" method="POST" style="display:inline;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-sm btn-icon btn-outline-danger" title="Hapus Tenor"
-                            onclick="return confirm('Yakin ingin menghapus cicilan Tenor Ke-{{ $item->tenor }} ini?')">
-                            <i class="bx bxs-trash"></i>
-                        </button>
-                    </form>
+                    <button type="button" class="btn btn-sm btn-icon btn-outline-danger" title="Hapus Tenor"
+                        onclick="deleteTenorAjax({{ $item->id }}, 'Tenor Ke-{{ $item->tenor }} (SMT {{ $item->semester }})')">
+                        <i class="bx bxs-trash"></i>
+                    </button>
                 </td>
             </tr>
             @empty

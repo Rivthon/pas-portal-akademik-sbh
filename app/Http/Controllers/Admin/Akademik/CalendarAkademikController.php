@@ -3,18 +3,22 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\CalendarAkademik;
 use App\Models\ProgramStudi;
 use Illuminate\Http\Request;
-use App\Models\CalendarAkademik;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use RealRashid\SweetAlert\Facades\Alert;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-
 
 class CalendarAkademikController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:kalender-list', ['only' => ['index']]);
+        $this->middleware('permission:kalender-edit', ['only' => ['edit', 'update']]);
+    }
+
     /**
      * Menampilkan daftar kalender akademik berdasarkan ProgramStudi.
      */
@@ -22,7 +26,8 @@ class CalendarAkademikController extends Controller
     {
         $programStudi = ProgramStudi::all();
         $kalender = CalendarAkademik::with('programStudi')->get();
-        return view('admin.akademik.calendar-akademik.index', compact('kalender','programStudi'));
+
+        return view('admin.akademik.calendar-akademik.index', compact('kalender', 'programStudi'));
     }
 
     /**
@@ -32,19 +37,20 @@ class CalendarAkademikController extends Controller
     {
         $kalender = CalendarAkademik::findOrFail($id);
         $programStudi = ProgramStudi::all();
+
         return view('admin.akademik.calendar-akademik.edit', compact('kalender', 'programStudi'));
     }
 
     /**
      * Mengupdate data kalender akademik.
      */
-  public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         // Validasi input
         $request->validate([
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'status' => 'required|boolean',
-            'file' => 'nul  lable|mimes:pdf|max:2048', // PDF maksimal 2MB
+            'file' => 'nullable|file|mimes:pdf|max:2048', // PDF maksimal 2MB
         ]);
 
         // Mulai transaksi database
@@ -53,12 +59,13 @@ class CalendarAkademikController extends Controller
         try {
             // Ambil data berdasarkan ID
             $kalender = CalendarAkademik::findOrFail($id);
+            $jurusanSebelumnya = $kalender->jurusan_id;
 
             // Jika ada file baru yang diupload, hapus file lama dan simpan yang baru
             if ($request->hasFile('file')) {
                 // Hapus file lama jika ada
-                if ($kalender->path && Storage::disk('public')->exists($kalender->path)) {
-                    Storage::disk('public')->delete($kalender->path);
+                if ($kalender->fileExists()) {
+                    Storage::disk('public')->delete($kalender->storagePath());
                 }
 
                 // Simpan file baru di public storage
@@ -84,6 +91,9 @@ class CalendarAkademikController extends Controller
             // Commit transaksi jika tidak ada error
             DB::commit();
 
+            Cache::forget("kalender_akademik_{$jurusanSebelumnya}");
+            Cache::forget("kalender_akademik_{$kalender->jurusan_id}");
+
             // Tampilkan notifikasi sukses
             Alert::toast('Kalender Akademik berhasil diperbarui.', 'success')
                 ->position('bottom-end')
@@ -95,12 +105,11 @@ class CalendarAkademikController extends Controller
             DB::rollBack();
 
             // Tampilkan notifikasi error
-            Alert::error('Gagal memperbarui Kalender Akademik', 'Terjadi kesalahan: ' . $e->getMessage())
+            Alert::error('Gagal memperbarui Kalender Akademik', 'Terjadi kesalahan: '.$e->getMessage())
                 ->position('bottom-end')
                 ->autoClose(5000);
 
             return back()->withInput(); // Kembali ke halaman sebelumnya dengan data input
         }
     }
-
 }

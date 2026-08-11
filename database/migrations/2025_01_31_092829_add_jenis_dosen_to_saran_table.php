@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-         Schema::table('saran', function (Blueprint $table) {
+        Schema::table('saran', function (Blueprint $table) {
             $table->string('jenis_dosen')->nullable()->after('saran'); // Menambahkan kolom jenis_dosen
         });
     }

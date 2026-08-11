@@ -69,12 +69,12 @@
     <div class="row">
         @php
         $menus = [
-        ['title' => 'Sertifikasi / Kompetensi', 'route' => route('admin.skpi.sertifikasi')],
-        ['title' => 'Penguasaan bahasa asing', 'route' => route('admin.skpi.bahasa')],
-        ['title' => 'Program Pembinaan Mahasiswa Wirausaha', 'route' => route('admin.skpi.wirausaha')],
-        ['title' => 'Program Kreativitas Mahasiswa', 'route' => route('admin.skpi.pkm')],
-        ['title' => 'PPSM', 'route' => route('admin.skpi.ppsm')],
-        ['title' => 'Kegiatan Tambahan', 'route' => route('admin.skpi.tambahan')],
+        ['title' => 'Sertifikasi / Kompetensi', 'route' => route('admin.skpi.sertifikasi'), 'permission' => 'skpi-sertifikasi-list'],
+        ['title' => 'Penguasaan bahasa asing', 'route' => route('admin.skpi.bahasa'), 'permission' => 'skpi-bahasa-list'],
+        ['title' => 'Program Pembinaan Mahasiswa Wirausaha', 'route' => route('admin.skpi.wirausaha'), 'permission' => 'skpi-wirausaha-list'],
+        ['title' => 'Program Kreativitas Mahasiswa', 'route' => route('admin.skpi.pkm'), 'permission' => 'skpi-pkm-list'],
+        ['title' => 'PPSM', 'route' => route('admin.skpi.ppsm'), 'permission' => 'skpi-ppsm-list'],
+        ['title' => 'Kegiatan Tambahan', 'route' => route('admin.skpi.tambahan'), 'permission' => 'skpi-tambahan-list'],
         ];
         $icons = [
         'Sertifikasi / Kompetensi' => 'cert',
@@ -87,6 +87,7 @@
         @endphp
 
         @foreach ($menus as $menu)
+        @continue(!auth()->user()->can($menu['permission']))
         @php
         $icon = $icons[$menu['title']] ?? 'file';
         @endphp

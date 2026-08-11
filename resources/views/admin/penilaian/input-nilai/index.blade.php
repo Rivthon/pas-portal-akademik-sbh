@@ -181,19 +181,27 @@
         background: rgba(105,108,255,.03);
     }
 
-    /* Input Nilai */
-    .nilai-table .komponen-nilai {
+    /* Input Nilai & Input Absolute */
+    .nilai-table .komponen-nilai,
+    .nilai-table .input-nilai-akhir {
         border: 1px solid rgba(0,0,0,.08);
         background: #fafbfc;
         border-radius: 8px;
         text-align: center;
         font-weight: 600;
         font-size: .82rem;
-        width: 75px;
+        width: 80px;
         padding: .35rem .4rem;
         transition: all .15s ease;
     }
-    .nilai-table .komponen-nilai:focus {
+    .nilai-table .input-nilai-akhir {
+        background: #f0f2ff;
+        border-color: #b2b4ff;
+        color: #566a7f;
+        font-weight: 800;
+    }
+    .nilai-table .komponen-nilai:focus,
+    .nilai-table .input-nilai-akhir:focus {
         border-color: #696cff;
         box-shadow: 0 0 0 3px rgba(105,108,255,.12);
         background: #fff;
@@ -212,15 +220,10 @@
     }
 
     /* Nilai Result */
-    .nilai-result {
-        font-size: .95rem;
-        font-weight: 800;
-        color: #384551;
-    }
     .badge-mutu {
-        font-size: .7rem;
+        font-size: .75rem;
         font-weight: 800;
-        padding: 4px 10px;
+        padding: 6px 12px;
         border-radius: 6px;
         letter-spacing: .04em;
     }
@@ -292,7 +295,7 @@
                 <h4 class="hero-title"><i class="bx bx-edit-alt me-2"></i>Input Nilai Mahasiswa</h4>
                 <p class="hero-sub mb-0">
                     Pilih tahun ajaran, program studi, dan mata kuliah untuk mulai menginput nilai.
-                    Nilai akhir & huruf mutu akan dihitung otomatis berdasarkan bobot yang telah dikonfigurasi.
+                    Nilai akhir & huruf mutu akan dihitung otomatis berdasarkan bobot, namun BAAK dapat mengedit nilai absolut secara manual.
                 </p>
             </div>
             <img src="{{ asset('dashboard_assets/assets/img/illustrations/man-with-laptop.png') }}"
@@ -423,7 +426,7 @@
                 <div class="save-bar" style="display: none;" id="save-bar">
                     <div class="info-text">
                         <i class="bx bx-info-circle me-1"></i>
-                        Nilai akhir & huruf mutu dihitung otomatis berdasarkan bobot. Klik simpan untuk menyimpan ke database.
+                        Nilai akhir & huruf mutu terhitung otomatis. BAAK dapat mengubah nilai absolut jika diperlukan sebelum menyimpan.
                     </div>
                     <button type="submit" class="btn btn-primary" id="save-nilai" style="border-radius: 10px; padding: .55rem 1.5rem;">
                         <i class="bx bx-save me-1"></i> Simpan Nilai
@@ -435,7 +438,7 @@
 
 </div>
 
-@push('head')
+@push('script')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Step indicator logic
@@ -507,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const mkId = document.getElementById('mata-kuliah').value;
         const taId = document.getElementById('tahun-ajaran').value;
-        
+
         if (!mkId || !taId) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({ title: 'Perhatian!', text: 'Silakan pilih Tahun Ajaran dan Mata Kuliah terlebih dahulu.', icon: 'warning' });
@@ -516,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        
+
         window.open(`/admin/mahasiswa/input-nilai/export/${mkId}/${taId}/excel`, '_blank');
     });
 
@@ -524,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const mkId = document.getElementById('mata-kuliah').value;
         const taId = document.getElementById('tahun-ajaran').value;
-        
+
         if (!mkId || !taId) {
             if (typeof Swal !== 'undefined') {
                 Swal.fire({ title: 'Perhatian!', text: 'Silakan pilih Tahun Ajaran dan Mata Kuliah terlebih dahulu.', icon: 'warning' });
@@ -533,9 +536,514 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
-        
+
         window.open(`/admin/mahasiswa/input-nilai/export/${mkId}/${taId}/pdf`, '_blank');
     });
+});
+
+$(document).ready(function () {
+    // Initialize Select2
+    $("#tahun-ajaran, #program-studi, #mata-kuliah").select2({
+        allowClear: true,
+        placeholder: "Pilih opsi",
+        width: '100%'
+    });
+
+    // DOM Elements
+    const tableBody = $("#table-mahasiswa tbody");
+    const saveButton = $("#save-nilai");
+    const loadingSpinner = $("#loading-spinner");
+    const errorMessage = $("#error-message");
+
+    // Global bobot storage
+    let currentBobot = { uts: 25, uas: 35, tugas: 20, absensi: 10, praktik: 10 };
+    let currentKonfigurasi = {};
+
+    // Utility Functions
+    const showTableMessage = (message, sub) => {
+        const subHtml = sub ? `<div class="empty-sub">${sub}</div>` : '';
+        tableBody.html(`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon"><i class="bx bx-search-alt"></i></div><div class="empty-text">${message}</div>${subHtml}</div></td></tr>`);
+        $('#table-info').text(message);
+        $('#save-bar').hide();
+    };
+
+    const showError = (message) => {
+        if (typeof toastr !== 'undefined') {
+            toastr.error(message, 'Error!');
+        } else {
+            errorMessage.text(message).fadeIn().delay(3000).fadeOut();
+        }
+    };
+
+    const setLoading = (isLoading) => {
+        if (isLoading) {
+            loadingSpinner.show();
+            $("select").prop("disabled", true);
+        } else {
+            loadingSpinner.hide();
+            $("select").not("#program-studi, #mata-kuliah").prop("disabled", false);
+
+            if ($("#tahun-ajaran").val()) {
+                $("#program-studi").prop("disabled", false);
+            }
+            if ($("#program-studi").val()) {
+                $("#mata-kuliah").prop("disabled", false);
+            }
+        }
+    };
+
+    // Calculate grade from score
+    const calculateGrade = (score) => {
+        if (score >= 85.5) return 'A';
+        if (score >= 78.5) return 'AB';
+        if (score >= 74.5) return 'BA';
+        if (score >= 70.5) return 'B';
+        if (score >= 66.5) return 'BC';
+        if (score >= 59.5) return 'C';
+        if (score >= 45.5) return 'D';
+        return 'E';
+    };
+
+    // Update Badge Huruf Mutu
+    const updateBadgeMutu = ($row, hurufMutu) => {
+        const $badge = $row.find('.nilai-huruf');
+        $badge.text(hurufMutu);
+        
+        // Reset Kelas Badge
+        $badge.removeClass('bg-success bg-primary bg-warning bg-danger');
+
+        // Tetapkan Warna Baru
+        if (hurufMutu === 'A' || hurufMutu === 'AB') {
+            $badge.addClass('bg-success');
+        } else if (hurufMutu === 'BA' || hurufMutu === 'B') {
+            $badge.addClass('bg-primary');
+        } else if (hurufMutu === 'BC' || hurufMutu === 'C') {
+            $badge.addClass('bg-warning');
+        } else {
+            $badge.addClass('bg-danger');
+        }
+    };
+
+    // Auto-calculate row dari Komponen Nilai
+    const autoCalcRow = ($row) => {
+        const uts = parseFloat($row.find('input[name^="uts"]').val()) || 0;
+        const uas = parseFloat($row.find('input[name^="uas"]').val()) || 0;
+        const tugas = parseFloat($row.find('input[name^="tugas"]').val()) || 0;
+        const absensi = parseFloat($row.find('input[name^="absensi"]').val()) || 0;
+        const praktik = parseFloat($row.find('input[name^="praktik"]').val()) || 0;
+
+        const nilaiAkhir = (
+            (uts * currentBobot.uts / 100) +
+            (uas * currentBobot.uas / 100) +
+            (tugas * currentBobot.tugas / 100) +
+            (absensi * currentBobot.absensi / 100) +
+            (praktik * currentBobot.praktik / 100)
+        ).toFixed(2);
+
+        const hurufMutu = calculateGrade(parseFloat(nilaiAkhir));
+
+        // Update nilai pada Input Absolute & Huruf Mutu
+        $row.find('.input-nilai-akhir').val(nilaiAkhir);
+        updateBadgeMutu($row, hurufMutu);
+    };
+
+    // Render bobot panel
+    const renderBobotPanel = (bobot, konfigurasi) => {
+        const source = konfigurasi.bobot_source === 'custom' ?
+            '<span class="badge bg-label-success"><i class="bx bx-check-circle me-1"></i>Custom MK</span>' :
+            '<span class="badge bg-label-warning"><i class="bx bx-info-circle me-1"></i>Default Prodi</span>';
+
+        const totalPersen = parseFloat(bobot.uts) + parseFloat(bobot.uas) + parseFloat(bobot.tugas) + parseFloat(bobot.absensi) + parseFloat(bobot.praktik);
+
+        const html = `
+                <div id="bobot-panel" class="card mb-3 border" style="border-color: rgba(105,108,255,.15) !important;">
+                    <div class="card-header d-flex align-items-center justify-content-between py-2" style="background: rgba(105,108,255,.04);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bx bx-calculator text-primary"></i>
+                            <span class="fw-bold" style="font-size: .85rem;">Bobot Penilaian</span>
+                            ${source}
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted" style="font-size: .75rem;">Total: <strong class="${totalPersen === 100 ? 'text-success' : 'text-danger'}">${totalPersen}%</strong></span>
+                            <button type="button" id="btn-edit-bobot" class="btn btn-sm btn-outline-primary" style="font-size: .72rem;">
+                                <i class="bx bx-edit-alt me-1"></i>Ubah Bobot
+                            </button>
+                        </div>
+                    </div>
+                    <div id="bobot-display" class="card-body py-2">
+                        <div class="d-flex flex-wrap gap-3">
+                            <span class="badge bg-label-primary">UTS: ${bobot.uts}%</span>
+                            <span class="badge bg-label-primary">UAS: ${bobot.uas}%</span>
+                            <span class="badge bg-label-primary">Tugas: ${bobot.tugas}%</span>
+                            <span class="badge bg-label-primary">Absen: ${bobot.absensi}%</span>
+                            <span class="badge bg-label-primary">Praktik: ${bobot.praktik}%</span>
+                        </div>
+                    </div>
+                    <div id="bobot-edit" class="card-body py-3" style="display: none;">
+                        <div class="row g-2 align-items-end">
+                            <div class="col">
+                                <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UTS (%)</label>
+                                <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uts" value="${bobot.uts}" min="0" max="100">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">UAS (%)</label>
+                                <input type="number" class="form-control form-control-sm bobot-input" id="bobot-uas" value="${bobot.uas}" min="0" max="100">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Tugas (%)</label>
+                                <input type="number" class="form-control form-control-sm bobot-input" id="bobot-tugas" value="${bobot.tugas}" min="0" max="100">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Absen (%)</label>
+                                <input type="number" class="form-control form-control-sm bobot-input" id="bobot-absen" value="${bobot.absensi}" min="0" max="100">
+                            </div>
+                            <div class="col">
+                                <label class="form-label mb-1" style="font-size: .7rem; font-weight: 700;">Praktik (%)</label>
+                                <input type="number" class="form-control form-control-sm bobot-input" id="bobot-praktik" value="${bobot.praktik}" min="0" max="100">
+                            </div>
+                            <div class="col-auto">
+                                <button type="button" id="btn-save-bobot" class="btn btn-sm btn-primary">
+                                    <i class="bx bx-save me-1"></i>Simpan
+                                </button>
+                                <button type="button" id="btn-cancel-bobot" class="btn btn-sm btn-outline-secondary">Batal</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        $('#bobot-panel').remove();
+        $('#bobot-panel-container').html(html);
+    };
+
+    // Update table header with bobot %
+    const updateTableHeader = (bobot) => {
+        $('.th-komponen').eq(0).html(`UTS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.uts}%)</small>`);
+        $('.th-komponen').eq(1).html(`UAS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.uas}%)</small>`);
+        $('.th-komponen').eq(2).html(`TUGAS <small class="text-muted badge bg-label-secondary ms-1">(${bobot.tugas}%)</small>`);
+        $('.th-komponen').eq(3).html(`ABSEN <small class="text-muted badge bg-label-secondary ms-1">(${bobot.absensi}%)</small>`);
+        $('.th-komponen').eq(4).html(`PRAKTIK <small class="text-muted badge bg-label-secondary ms-1">(${bobot.praktik}%)</small>`);
+    };
+
+    // Tahun Ajaran Change Handler
+    $("#tahun-ajaran").on("change", function () {
+        const tahunAjaranId = $(this).val();
+        $("#program-studi").val(null).trigger("change");
+        $("#mata-kuliah").val(null).trigger("change");
+        $("#program-studi").prop("disabled", !tahunAjaranId);
+        $('#bobot-panel-container').empty();
+        showTableMessage(
+            tahunAjaranId ? "Silakan pilih program studi" : "Silakan pilih tahun ajaran",
+            "Ikuti langkah di atas untuk memulai input nilai"
+        );
+    });
+
+    // Program Studi Change Handler
+    $("#program-studi").on("change", async function () {
+        const programStudiId = $(this).val();
+        const tahunAjaranId = $("#tahun-ajaran").val();
+        const mataKuliahSelect = $("#mata-kuliah");
+
+        mataKuliahSelect.val(null).trigger("change");
+        showTableMessage("Memuat data mata kuliah...", "Mohon tunggu sebentar");
+        saveButton.hide();
+        $('#save-bar').hide();
+        $('#bobot-panel-container').empty();
+
+        if (!programStudiId || !tahunAjaranId) return;
+
+        setLoading(true);
+
+        try {
+            const response = await $.ajax({
+                url: `/admin/mata-kuliah/${programStudiId}/${tahunAjaranId}`,
+                method: 'GET',
+                dataType: 'json'
+            });
+
+            mataKuliahSelect.empty().append('<option value=""></option>');
+
+            if (response.length > 0) {
+                $.each(response, function (index, mk) {
+                    mataKuliahSelect.append(
+                        `<option value="${mk.matakuliah_id}">
+                            ${mk.nama} (${mk.matakuliah_id}) - Semester ${mk.smt}
+                        </option>`
+                    );
+                });
+                mataKuliahSelect.prop("disabled", false);
+                showTableMessage("Silakan pilih mata kuliah", "Pilih mata kuliah dari dropdown di atas");
+            } else {
+                showTableMessage("Tidak ada mata kuliah tersedia");
+                showError("Tidak ditemukan mata kuliah untuk program studi ini");
+                mataKuliahSelect.prop("disabled", false);
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            showError("Gagal memuat mata kuliah");
+            showTableMessage("Gagal memuat data");
+            mataKuliahSelect.prop("disabled", false);
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    // Mata Kuliah Change Handler — load mahasiswa + bobot
+    $("#mata-kuliah").on("change", async function () {
+        const mataKuliahId = $(this).val();
+        const tahunAjaranId = $("#tahun-ajaran").val();
+
+        tableBody.empty();
+        saveButton.hide();
+        $('#bobot-panel-container').empty();
+
+        if (!mataKuliahId || !tahunAjaranId) {
+            showTableMessage("Silakan pilih mata kuliah", "Pilih mata kuliah dari dropdown di atas");
+            return;
+        }
+
+        setLoading(true);
+        showTableMessage("Memuat data mahasiswa...", "Mohon tunggu sebentar");
+
+        try {
+            const response = await $.ajax({
+                url: `/admin/mahasiswa/input-nilai/${mataKuliahId}/${tahunAjaranId}`,
+                method: 'GET',
+                dataType: 'json'
+            });
+
+            if (response.mahasiswa && response.mahasiswa.length > 0) {
+                currentBobot = response.konfigurasi.bobot;
+                currentKonfigurasi = response.konfigurasi;
+
+                renderBobotPanel(currentBobot, currentKonfigurasi);
+                updateTableHeader(currentBobot);
+
+                renderMahasiswaTable(response.mahasiswa);
+                saveButton.show();
+                $('#save-bar').show();
+                $('#table-info').text(response.mahasiswa.length + ' Mahasiswa ditemukan');
+
+                $('#table-actions').show();
+                $('#btn-export-excel').attr('href', `/admin/mahasiswa/input-nilai/export/${mataKuliahId}/${tahunAjaranId}/excel`);
+                $('#btn-export-pdf').attr('href', `/admin/mahasiswa/input-nilai/export/${mataKuliahId}/${tahunAjaranId}/pdf`);
+
+            } else {
+                showTableMessage("Tidak ada mahasiswa", "Tidak ada mahasiswa aktif yang mengambil mata kuliah ini");
+                $('#table-actions').hide();
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            const errMsg = error.responseJSON?.message || "Gagal memuat data mahasiswa";
+            showError(errMsg);
+            showTableMessage("Gagal memuat data", errMsg);
+        } finally {
+            setLoading(false);
+            $("#mata-kuliah").prop("disabled", false);
+        }
+    });
+
+    // Render Mahasiswa Table
+    const renderMahasiswaTable = (students) => {
+        tableBody.empty();
+
+        $.each(students, function (index, mhs) {
+            const uts = parseFloat(mhs.uts) || 0;
+            const uas = parseFloat(mhs.uas) || 0;
+            const tugas = parseFloat(mhs.tugas) || 0;
+            const absen = parseFloat(mhs.absen) || 0;
+            const praktik = parseFloat(mhs.praktik) || 0;
+
+            // Pre-calculate nilai akhir jika nilai_akhir dari DB belum ada
+            let nilaiAkhir = mhs.nilai_akhir ? parseFloat(mhs.nilai_akhir).toFixed(2) : (
+                (uts * currentBobot.uts / 100) +
+                (uas * currentBobot.uas / 100) +
+                (tugas * currentBobot.tugas / 100) +
+                (absen * currentBobot.absensi / 100) +
+                (praktik * currentBobot.praktik / 100)
+            ).toFixed(2);
+
+            const hurufMutu = calculateGrade(parseFloat(nilaiAkhir));
+
+            const row = `
+                    <tr>
+                        <td class="text-center">${index + 1}</td>
+                        <td class="student-cell">
+                            <div class="student-name">${mhs.nama}</div>
+                            <div class="student-nim">${mhs.nim}</div>
+                        </td>
+                        <td>
+                            <input type="hidden" name="krs_id[${mhs.mahasiswa_id}]" value="${mhs.krs_id || ''}">
+                            <input type="number" step="0.01" name="uts[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm komponen-nilai" value="${mhs.uts || ''}"
+                                min="0" max="100">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="uas[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm komponen-nilai" value="${mhs.uas || ''}"
+                                min="0" max="100">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="tugas[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm komponen-nilai" value="${mhs.tugas || ''}"
+                                min="0" max="100">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="absensi[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm komponen-nilai" value="${mhs.absen || ''}"
+                                min="0" max="100">
+                        </td>
+                        <td>
+                            <input type="number" step="0.01" name="praktik[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm komponen-nilai" value="${mhs.praktik || ''}"
+                                min="0" max="100">
+                        </td>
+                        <td class="text-center">
+                            <!-- PERBAIKAN BAAK: Mengubah nilai absolut menjadi input number -->
+                            <input type="number" step="0.01" name="nilai_akhir[${mhs.mahasiswa_id}]"
+                                class="form-control form-control-sm input-nilai-akhir" value="${nilaiAkhir}"
+                                min="0" max="100">
+                        </td>
+                        <td class="text-center">
+                            <span class="badge ${hurufMutu === 'A' || hurufMutu === 'AB' ? 'bg-success' : hurufMutu === 'BA' || hurufMutu === 'B' ? 'bg-primary' : hurufMutu === 'BC' || hurufMutu === 'C' ? 'bg-warning' : 'bg-danger'} nilai-huruf badge-mutu">${hurufMutu}</span>
+                        </td>
+                    </tr>
+                `;
+            tableBody.append(row);
+        });
+    };
+
+    // Auto-calculate ketika komponen nilai diubah
+    $(document).on("input", ".komponen-nilai", function () {
+        const $row = $(this).closest("tr");
+        autoCalcRow($row);
+    });
+
+    // PERBAIKAN BAAK: Auto-update Huruf Mutu ketika Nilai Absolut diubah manual oleh BAAK
+    $(document).on("input", ".input-nilai-akhir", function () {
+        const $row = $(this).closest("tr");
+        const score = parseFloat($(this).val()) || 0;
+        const hurufMutu = calculateGrade(score);
+        updateBadgeMutu($row, hurufMutu);
+    });
+
+    // Bobot panel: toggle edit mode
+    $(document).on("click", "#btn-edit-bobot", function () {
+        $('#bobot-display').hide();
+        $('#bobot-edit').show();
+    });
+    $(document).on("click", "#btn-cancel-bobot", function () {
+        $('#bobot-edit').hide();
+        $('#bobot-display').show();
+    });
+
+    // Bobot panel: save bobot via AJAX
+    $(document).on("click", "#btn-save-bobot", async function () {
+        const btn = $(this);
+        btn.prop('disabled', true).html('<i class="bx bx-loader-alt bx-spin me-1"></i>Menyimpan...');
+
+        const newBobot = {
+            program_studi_id: currentKonfigurasi.program_studi_id,
+            matakuliah_id: currentKonfigurasi.matakuliah_id,
+            persen_uts: parseFloat($('#bobot-uts').val()) || 0,
+            persen_uas: parseFloat($('#bobot-uas').val()) || 0,
+            persen_tugas: parseFloat($('#bobot-tugas').val()) || 0,
+            persen_absen: parseFloat($('#bobot-absen').val()) || 0,
+            persen_praktik: parseFloat($('#bobot-praktik').val()) || 0,
+        };
+
+        try {
+            const response = await $.ajax({
+                url: '{{ route("admin.bobot-nilai.save") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    ...newBobot,
+                },
+                dataType: 'json'
+            });
+
+            if (response.success) {
+                currentBobot = {
+                    uts: newBobot.persen_uts,
+                    uas: newBobot.persen_uas,
+                    tugas: newBobot.persen_tugas,
+                    absensi: newBobot.persen_absen,
+                    praktik: newBobot.persen_praktik,
+                };
+                currentKonfigurasi.bobot = currentBobot;
+                currentKonfigurasi.bobot_source = 'custom';
+
+                renderBobotPanel(currentBobot, currentKonfigurasi);
+                updateTableHeader(currentBobot);
+
+                $('#table-mahasiswa tbody tr').each(function () {
+                    autoCalcRow($(this));
+                });
+
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Bobot berhasil disimpan & nilai diperbarui.', 'Berhasil!');
+                }
+            } else {
+                showError(response.message || 'Gagal menyimpan bobot');
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            showError("Gagal menyimpan bobot nilai");
+        } finally {
+            btn.prop('disabled', false).html('<i class="bx bx-save me-1"></i>Simpan');
+        }
+    });
+
+    // Form Submission Handler
+    $("#form-nilai").on("submit", async function (e) {
+        e.preventDefault();
+
+        const form = this;
+        const formData = $(form).serialize();
+        const originalText = saveButton.text();
+
+        saveButton.prop("disabled", true).text("Menyimpan...");
+        setLoading(true);
+
+        try {
+            const response = await $.ajax({
+                url: $(form).attr("action"),
+                method: 'POST',
+                data: formData,
+                dataType: 'json'
+            });
+
+            if (response.success) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(response.message, 'Berhasil!', { timeOut: 3000, progressBar: true });
+                } else {
+                    Swal.fire({ title: 'Berhasil!', text: response.message, icon: 'success', timer: 2000, showConfirmButton: false });
+                }
+            } else {
+                showError(response.message || "Gagal menyimpan data");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            showError("Terjadi kesalahan saat menyimpan data");
+        } finally {
+            saveButton.prop("disabled", false).text(originalText);
+            setLoading(false);
+        }
+    });
+});
+
+// Clear Selection Button
+$("#clear-selection").on("click", function () {
+    $("#mata-kuliah").val(null).trigger("change").prop("disabled", false);
+    $("#program-studi").val(null).trigger("change");
+    showTableMessage("Silakan pilih mata kuliah", "Ikuti langkah di atas untuk memulai input nilai");
+    $("#save-nilai").hide();
+    $('#save-bar').hide();
+    $('#bobot-panel-container').empty();
+    const tahunAjaranSelected = $("#tahun-ajaran").val();
+    $("#program-studi").prop("disabled", !tahunAjaranSelected);
+    $("#mata-kuliah").prop("disabled", false);
 });
 </script>
 @endpush

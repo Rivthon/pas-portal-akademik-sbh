@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ppsm;
 use App\Http\Requests\StoreppsmRequest;
 use App\Http\Requests\UpdateppsmRequest;
+use App\Models\ppsm;
 
 class PpsmController extends Controller
 {

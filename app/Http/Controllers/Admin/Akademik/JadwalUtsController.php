@@ -3,196 +3,632 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
-use App\Models\Ruangan;
 use App\Models\JadwalUts;
 use App\Models\Kurikulum;
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
+use App\Models\Ruangan;
 use App\Models\TahunAkademik;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
-use Illuminate\Support\Facades\Validator;
 
 class JadwalUtsController extends Controller
 {
+    /**
+     * Menampilkan halaman manajemen jadwal UTS.
+     */
+    public function index(): View|RedirectResponse
+    {
+        try {
+            $tahunAjaran = $this->getTahunAkademikAktif();
 
-
-        public function index()
-        {
-            try {
-                $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
-                    return TahunAkademik::where('status_ta', 1)->first();
-                });
-
-                if (!$tahunAjaran) {
-                    return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
-                }
-
-                $matakuliah = Matakuliah::all();
-                $programStudi = ProgramStudi::all();
-                $ruangan = Ruangan::all();
-
-                if ($programStudi->isEmpty()) {
-                    return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
-                }
-
-                return view('admin.akademik.jadwal-uts.index', compact('programStudi', 'tahunAjaran', 'matakuliah', 'ruangan'));
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', 'Terjadi kesalahan pada server.');
+            if (! $tahunAjaran) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Tidak ada tahun ajaran yang aktif.');
             }
+
+            $matakuliah = Matakuliah::all();
+
+            $programStudi = ProgramStudi::query()
+                ->orderBy('nama')
+                ->get();
+
+            $ruangan = Ruangan::query()
+                ->orderBy('nama')
+                ->get();
+
+            if ($programStudi->isEmpty()) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'Data program studi tidak tersedia.');
+            }
+
+            return view(
+                'admin.akademik.jadwal-uts.index',
+                compact(
+                    'programStudi',
+                    'tahunAjaran',
+                    'matakuliah',
+                    'ruangan'
+                )
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->back()
+                ->with(
+                    'error',
+                    'Terjadi kesalahan saat membuka halaman jadwal UTS.'
+                );
         }
-            public function generateJadwalUTS(Request $request)
-            {
-                $request->validate([
-                    'jurusan_id'  => 'required|exists:program_studi,jurusan_id',
-                    'jenis_kelas' => 'required|in:Reguler,Karyawan',
-                ]);
+    }
 
-                $kurikulums = Kurikulum::where('jurusan_id', $request->jurusan_id)->get();
+    /**
+     * Membuat data awal jadwal UTS berdasarkan kurikulum.
+     */
+    public function generateJadwalUTS(
+        Request $request
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'jurusan_id' => [
+                'required',
+                'exists:program_studi,jurusan_id',
+            ],
+            'jenis_kelas' => [
+                'required',
+                Rule::in(['Reguler', 'Karyawan']),
+            ],
+        ], [
+            'jurusan_id.required' =>
+                'Program studi wajib dipilih.',
+            'jurusan_id.exists' =>
+                'Program studi tidak ditemukan.',
+            'jenis_kelas.required' =>
+                'Jenis kelas wajib dipilih.',
+            'jenis_kelas.in' =>
+                'Jenis kelas tidak valid.',
+        ]);
 
-                if ($kurikulums->isEmpty()) {
-                    return redirect()->back()->with('error', 'Data Kurikulum tidak ditemukan untuk Prodi ini.');
-                }
+        try {
+            $tahunAjaran = $this->getTahunAkademikAktif();
 
-                $importedCount = 0;
+            if (! $tahunAjaran) {
+                return redirect()
+                    ->back()
+                    ->with(
+                        'error',
+                        'Tidak ada tahun ajaran yang aktif.'
+                    );
+            }
 
-                foreach ($kurikulums as $kurikulum) {
-                    $exists = JadwalUts::where([
-                        'ta_id'         => $kurikulum->ta_id,
-                        'jurusan_id'    => $kurikulum->jurusan_id,
-                        'matakuliah_id' => $kurikulum->matakuliah_id,
-                        'jenis_kelas'   => $request->jenis_kelas,
-                    ])->exists();
+            /*
+             * Jadwal hanya dibuat dari kurikulum pada tahun
+             * akademik aktif.
+             */
+            $kurikulums = Kurikulum::query()
+                ->where(
+                    'jurusan_id',
+                    $validated['jurusan_id']
+                )
+                ->where(
+                    'ta_id',
+                    $tahunAjaran->ta_id
+                )
+                ->get();
 
-                    if (!$exists) {
+            if ($kurikulums->isEmpty()) {
+                return redirect()
+                    ->back()
+                    ->with(
+                        'error',
+                        'Data kurikulum tidak ditemukan untuk program studi dan tahun akademik aktif.'
+                    );
+            }
+
+            $importedCount = DB::transaction(
+                function () use ($kurikulums, $validated) {
+                    $count = 0;
+
+                    foreach ($kurikulums as $kurikulum) {
+                        $exists = JadwalUts::query()
+                            ->where(
+                                'ta_id',
+                                $kurikulum->ta_id
+                            )
+                            ->where(
+                                'jurusan_id',
+                                $kurikulum->jurusan_id
+                            )
+                            ->where(
+                                'matakuliah_id',
+                                $kurikulum->matakuliah_id
+                            )
+                            ->where(
+                                'jenis_kelas',
+                                $validated['jenis_kelas']
+                            )
+                            ->exists();
+
+                        if ($exists) {
+                            continue;
+                        }
+
                         JadwalUts::create([
-                            'ta_id'         => $kurikulum->ta_id,
-                            'jurusan_id'    => $kurikulum->jurusan_id,
-                            'matakuliah_id' => $kurikulum->matakuliah_id,
-                            'ruangan_id'    => null, // Bisa diatur jika diperlukan
-                            'jam_mulai'           => null,
-                            'jam_selesai'         => null,
-                            'tanggal'       => now()->addDays(7), // Jadwal UTS seminggu dari hari ini
-                            'jenis_kelas'   => $request->jenis_kelas,
+                            'ta_id' =>
+                                $kurikulum->ta_id,
+                            'jurusan_id' =>
+                                $kurikulum->jurusan_id,
+                            'matakuliah_id' =>
+                                $kurikulum->matakuliah_id,
+                            'ruangan_id' => null,
+                            'jam_mulai' => null,
+                            'jam_selesai' => null,
+
+                            /*
+                             * Tanggal default tujuh hari
+                             * setelah jadwal ditarik.
+                             */
+                            'tanggal' =>
+                                now()->addDays(7)->format('Y-m-d'),
+
+                            'jenis_kelas' =>
+                                $validated['jenis_kelas'],
                         ]);
-                        $importedCount++;
+
+                        $count++;
                     }
+
+                    return $count;
                 }
+            );
 
-                if ($importedCount > 0) {
-                    Alert::toast("$importedCount Jadwal UTS berhasil di-import.", 'success')
-                        ->position('center')
-                        ->autoClose(3000);
-                } else {
-                    Alert::toast("Tidak ada data baru yang di-import.", 'warning')
-                        ->position('center')
-                        ->autoClose(3000);
-                }
+            if ($importedCount > 0) {
+                activity_log(
+                    'generate_jadwal_uts',
+                    'Admin generate ' .
+                    $importedCount .
+                    ' jadwal UTS untuk prodi ' .
+                    $validated['jurusan_id'] .
+                    ' kelas ' .
+                    $validated['jenis_kelas']
+                );
 
-                return redirect()->back();
+                Alert::toast(
+                    $importedCount .
+                    ' jadwal UTS berhasil di-import.',
+                    'success'
+                )
+                    ->position('center')
+                    ->autoClose(3000);
+            } else {
+                Alert::toast(
+                    'Tidak ada data baru yang di-import.',
+                    'warning'
+                )
+                    ->position('center')
+                    ->autoClose(3000);
             }
 
+            return redirect()->back();
+        } catch (\Throwable $e) {
+            report($e);
 
-        public function filter(Request $request)
-        {
-           try {
-            $programStudi = $request->query('programStudi');
-            $semester = $request->query('semester');
-            $jenisKelas = $request->query('jenis_kelas');
+            return redirect()
+                ->back()
+                ->with(
+                    'error',
+                    'Terjadi kesalahan saat menarik data jadwal UTS.'
+                );
+        }
+    }
 
-            if (!$programStudi || !$semester) {
-                return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
+    /**
+     * Mengambil jadwal berdasarkan program studi,
+     * semester, jenis kelas, dan tahun akademik aktif.
+     */
+    public function filter(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'programStudi' => [
+                'required',
+                'exists:program_studi,jurusan_id',
+            ],
+            'semester' => [
+                'required',
+                'integer',
+                'between:1,8',
+            ],
+            'jenis_kelas' => [
+                'required',
+                Rule::in(['Reguler', 'Karyawan']),
+            ],
+        ], [
+            'programStudi.required' =>
+                'Program studi wajib dipilih.',
+            'programStudi.exists' =>
+                'Program studi tidak ditemukan.',
+            'semester.required' =>
+                'Semester wajib dipilih.',
+            'semester.integer' =>
+                'Semester harus berupa angka.',
+            'semester.between' =>
+                'Semester harus antara 1 sampai 8.',
+            'jenis_kelas.required' =>
+                'Jenis kelas wajib dipilih.',
+            'jenis_kelas.in' =>
+                'Jenis kelas tidak valid.',
+        ]);
+
+        try {
+            $tahunAjaran = $this->getTahunAkademikAktif();
+
+            if (! $tahunAjaran) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Tidak ada tahun ajaran yang aktif.',
+                ], 404);
             }
 
-            if (!$jenisKelas) {
-                return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
-            }
-
-            // Ambil tahun ajaran yang statusnya aktif
-            $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
-                return TahunAkademik::where('status_ta', 1)->first();
-            });
-
-            if (!$tahunAjaran) {
-                return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
-            }
-
-                // Ambil data jadwal UTS dengan filter jurusan_id dan semester dari matakuliah
-                $jadwal = JadwalUts::select(
+            $jadwal = JadwalUts::query()
+                ->select([
                     'jadwal_uts.id',
-                        'jadwal_uts.ta_id',
-                        'jadwal_uts.jurusan_id',
-                        'matakuliah.nama as nama_matakuliah',
-                        'matakuliah.smt as semester',
-                        'jadwal_uts.jam_mulai',
-                        'jadwal_uts.jam_selesai',
-                        'jadwal_uts.tanggal',
-                        'ruangan.nama as nama_ruangan',
-                        'jadwal_uts.jenis_kelas',
-                        'jadwal_uts.ruangan_id',
-                        'jadwal_uts.jenis_kelas'
-                    )
-                    ->join('matakuliah', function ($join) use ($semester) {
-                        $join->on('jadwal_uts.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-                            ->where('matakuliah.smt', '=', $semester);
-                    })
-                    ->leftJoin('ruangan', 'jadwal_uts.ruangan_id', '=', 'ruangan.ruangan_id')
-                    ->where('jadwal_uts.jurusan_id', $programStudi)
-                      ->where('jadwal_uts.jenis_kelas', $jenisKelas)
-                    ->where('jadwal_uts.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
-                    ->orderBy('jadwal_uts.tanggal', 'asc')
-                    ->orderBy('jadwal_uts.jam_mulai', 'asc')
-                    ->get();
+                    'jadwal_uts.ta_id',
+                    'jadwal_uts.jurusan_id',
+                    'jadwal_uts.matakuliah_id',
+                    'matakuliah.nama as nama_matakuliah',
+                    'matakuliah.smt as semester',
+                    'jadwal_uts.jam_mulai',
+                    'jadwal_uts.jam_selesai',
+                    'jadwal_uts.tanggal',
+                    'ruangan.nama as nama_ruangan',
+                    'jadwal_uts.ruangan_id',
+                    'jadwal_uts.jenis_kelas',
+                ])
+                ->join(
+                    'matakuliah',
+                    'jadwal_uts.matakuliah_id',
+                    '=',
+                    'matakuliah.matakuliah_id'
+                )
+                ->leftJoin(
+                    'ruangan',
+                    'jadwal_uts.ruangan_id',
+                    '=',
+                    'ruangan.ruangan_id'
+                )
+                ->where(
+                    'jadwal_uts.jurusan_id',
+                    $validated['programStudi']
+                )
+                ->where(
+                    'matakuliah.smt',
+                    $validated['semester']
+                )
+                ->where(
+                    'jadwal_uts.jenis_kelas',
+                    $validated['jenis_kelas']
+                )
+                ->where(
+                    'jadwal_uts.ta_id',
+                    $tahunAjaran->ta_id
+                )
+                ->orderByRaw(
+                    'jadwal_uts.tanggal IS NULL ASC'
+                )
+                ->orderBy(
+                    'jadwal_uts.tanggal',
+                    'asc'
+                )
+                ->orderByRaw(
+                    'jadwal_uts.jam_mulai IS NULL ASC'
+                )
+                ->orderBy(
+                    'jadwal_uts.jam_mulai',
+                    'asc'
+                )
+                ->orderBy(
+                    'matakuliah.nama',
+                    'asc'
+                )
+                ->get();
 
-                if ($jadwal->isEmpty()) {
-                    return response()->json(['message' => 'Tidak ada jadwal UTS yang ditemukan untuk program studi dan semester ini.'], 404);
-                }
-
-                return response()->json($jadwal);
-            } catch (\Exception $e) {
-                return response()->json(['message' => 'Terjadi kesalahan pada server.', 'error' => $e->getMessage()], 500);
+            if ($jadwal->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' =>
+                        'Tidak ada jadwal UTS yang ditemukan untuk program studi, semester, dan jenis kelas tersebut.',
+                ], 404);
             }
+
+            return response()->json($jadwal);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Terjadi kesalahan pada server saat mengambil jadwal.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Memperbarui satu field jadwal melalui AJAX.
+     */
+    public function update(
+        Request $request,
+        int|string $id
+    ): JsonResponse {
+        /*
+         * Field dibatasi agar pengguna tidak dapat mengubah
+         * kolom lain dengan memanipulasi request.
+         */
+        $request->validate([
+            'field' => [
+                'required',
+                Rule::in([
+                    'tanggal',
+                    'jam_mulai',
+                    'jam_selesai',
+                    'ruangan_id',
+                ]),
+            ],
+        ], [
+            'field.required' =>
+                'Field yang akan diperbarui tidak ditemukan.',
+            'field.in' =>
+                'Field tersebut tidak diizinkan untuk diperbarui.',
+        ]);
+
+        $jadwal = JadwalUts::find($id);
+
+        if (! $jadwal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal tidak ditemukan.',
+            ], 404);
         }
 
-          public function update(Request $request, $id)
-            {
-                $jadwal = JadwalUts::find($id);
+        $field = $request->input('field');
 
-                if (!$jadwal) {
-                    return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
+        /*
+         * Validasi value disesuaikan dengan field.
+         */
+        $rules = match ($field) {
+            'tanggal' => [
+                'required',
+                'date_format:Y-m-d',
+            ],
+
+            'jam_mulai' => [
+                'required',
+                'date_format:H:i',
+            ],
+
+            'jam_selesai' => [
+                'required',
+                'date_format:H:i',
+                function (
+                    string $attribute,
+                    mixed $value,
+                    \Closure $fail
+                ) use ($request, $jadwal) {
+                    $jamMulai = $jadwal->jam_mulai;
+
+                    /*
+                     * Apabila request yang akan datang nantinya
+                     * membawa jam_mulai, gunakan nilai tersebut.
+                     */
+                    if ($request->filled('jam_mulai')) {
+                        $jamMulai =
+                            $request->input('jam_mulai');
+                    }
+
+                    if (
+                        $jamMulai &&
+                        $value <= substr(
+                            (string) $jamMulai,
+                            0,
+                            5
+                        )
+                    ) {
+                        $fail(
+                            'Jam selesai harus lebih besar dari jam mulai.'
+                        );
+                    }
+                },
+            ],
+
+            'ruangan_id' => [
+                'required',
+                'exists:ruangan,ruangan_id',
+            ],
+
+            default => [],
+        };
+
+        $messages = [
+            'value.required' =>
+                'Nilai wajib diisi.',
+            'value.date_format' =>
+                $field === 'tanggal'
+                    ? 'Format tanggal harus lengkap: tanggal, bulan, dan tahun.'
+                    : 'Format jam tidak valid.',
+            'value.exists' =>
+                'Ruangan yang dipilih tidak ditemukan.',
+        ];
+
+        $validatedValue = $request->validate(
+            [
+                'value' => $rules,
+            ],
+            $messages
+        );
+
+        try {
+            /*
+             * Validasi tambahan ketika jam mulai diubah
+             * tetapi jam selesai sudah tersedia.
+             */
+            if (
+                $field === 'jam_mulai' &&
+                $jadwal->jam_selesai
+            ) {
+                $jamMulaiBaru =
+                    substr($validatedValue['value'], 0, 5);
+
+                $jamSelesai =
+                    substr(
+                        (string) $jadwal->jam_selesai,
+                        0,
+                        5
+                    );
+
+                if ($jamMulaiBaru >= $jamSelesai) {
+                    return response()->json([
+                        'success' => false,
+                        'message' =>
+                            'Jam mulai harus lebih kecil dari jam selesai.',
+                    ], 422);
                 }
-
-                // Validasi input berdasarkan field
-                if ($request->field === 'jam_mulai') {
-                    $request->validate(['value' => 'required|string']);
-                } elseif ($request->field === 'jam_selesai') {
-                    $request->validate(['value' => 'required|string']);
-                } elseif ($request->field === 'tanggal') {
-                    $request->validate(['value' => 'required|date']);
-                } elseif ($request->field === 'ruangan_id') {
-                    $request->validate(['value' => 'required|exists:ruangan,ruangan_id']);
-                }
-
-                // Update field yang diedit
-                $jadwal->update([$request->field => $request->value]);
-
-                return response()->json(['success' => true, 'message' => 'Jadwal berhasil diperbarui.']);
             }
 
-         public function destroy($id)
-        {
+            $value = $validatedValue['value'];
+
+            /*
+             * Jam disimpan dalam format HH:mm:ss agar
+             * sesuai dengan kolom TIME pada database.
+             */
+            if (
+                in_array(
+                    $field,
+                    ['jam_mulai', 'jam_selesai'],
+                    true
+                )
+            ) {
+                $value .= ':00';
+            }
+
+            $jadwal->update([
+                $field => $value,
+            ]);
+
+            activity_log(
+                'update_jadwal_uts',
+                'Admin memperbarui jadwal UTS ID: ' .
+                $id .
+                ' (' .
+                $field .
+                ') menjadi ' .
+                $value
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' =>
+                    $this->getUpdateSuccessMessage($field),
+                'data' => [
+                    'id' => $jadwal->id,
+                    'field' => $field,
+                    'value' => $value,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Terjadi kesalahan saat menyimpan perubahan.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Menghapus jadwal UTS.
+     */
+    public function destroy(
+        int|string $id
+    ): JsonResponse {
+        try {
             $jadwal = JadwalUts::find($id);
 
-            if (!$jadwal) {
-                return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
+            if (! $jadwal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak ditemukan.',
+                ], 404);
             }
+
+            activity_log(
+                'hapus_jadwal_uts',
+                'Admin menghapus jadwal UTS ID: ' .
+                $id
+            );
 
             $jadwal->delete();
 
-            return response()->json(['success' => true, 'message' => 'Data berhasil dihapus']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil dihapus.',
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' =>
+                    'Terjadi kesalahan saat menghapus jadwal.',
+            ], 500);
         }
+    }
+
+    /**
+     * Mengambil tahun akademik aktif dari cache.
+     */
+    private function getTahunAkademikAktif(): ?TahunAkademik
+    {
+        return Cache::remember(
+            'active_tahun_akademik',
+            3600,
+            function () {
+                return TahunAkademik::query()
+                    ->where('status_ta', 1)
+                    ->first();
+            }
+        );
+    }
+
+    /**
+     * Pesan sukses berdasarkan field yang diperbarui.
+     */
+    private function getUpdateSuccessMessage(
+        string $field
+    ): string {
+        return match ($field) {
+            'tanggal' =>
+                'Tanggal ujian berhasil diperbarui.',
+
+            'jam_mulai' =>
+                'Jam mulai berhasil diperbarui.',
+
+            'jam_selesai' =>
+                'Jam selesai berhasil diperbarui.',
+
+            'ruangan_id' =>
+                'Ruangan ujian berhasil diperbarui.',
+
+            default =>
+                'Jadwal berhasil diperbarui.',
+        };
+    }
 }

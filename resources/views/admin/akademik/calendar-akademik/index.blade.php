@@ -60,10 +60,12 @@
                     <td>{{ $r->programStudi->nama ?? 'Tidak Ada' }}</td>
                     {{-- <td>{{ $r->tahun_ajaran }}</td> --}}
                     <td>
-                        @if ($r->path)
-                        <a href="{{ asset('storage/' . $r->path) }}" target="_blank" class="btn btn-info btn-sm">
+                        @if ($r->fileExists())
+                        <a href="{{ route('admin.calender.file', $r) }}" target="_blank" class="btn btn-info btn-sm">
                             <i class="fa-solid fa-file-pdf"></i> Lihat PDF
                         </a>
+                        @elseif ($r->path)
+                        <span class="badge bg-label-danger">File hilang, silakan upload ulang</span>
                         @else
                         <span class="badge bg-label-warning">Tidak Ada File</span>
                         @endif
@@ -74,7 +76,7 @@
                         </span>
                     </td>
                     <td>
-                        @can('calender-edit')
+                        @can('kalender-edit')
                         <a class="btn btn-primary btn-sm" href="{{ route('admin.calender.edit',$r->id) }}">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                         </a>

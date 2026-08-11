@@ -35,8 +35,8 @@
                 required>
                 <option value="">-- Pilih Mata Kuliah --</option>
                 @foreach($mataKuliah as $jadwal)
-                <option value="{{ $jadwal->jadwal_id }}">
-                    {{ $jadwal->mataKuliah->name }} - {{ $jadwal->hari }} ({{ $jadwal->jam_mulai }} - {{
+                <option value="{{ $jadwal->id }}">
+                    {{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }} - {{ $jadwal->hari }} ({{ $jadwal->jam_mulai }} - {{
                     $jadwal->jam_selesai }})
                 </option>
                 @endforeach

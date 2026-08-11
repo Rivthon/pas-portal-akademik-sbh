@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\P2mwProgram;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\P2mwProgram>
+ * @extends Factory<P2mwProgram>
  */
 class P2mwProgramFactory extends Factory
 {

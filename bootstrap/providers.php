@@ -1,8 +1,13 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use Barryvdh\DomPDF\ServiceProvider;
+use RealRashid\SweetAlert\SweetAlertServiceProvider;
+use Yajra\DataTables\DataTablesServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    Yajra\DataTables\DataTablesServiceProvider::class,
-    Barryvdh\DomPDF\ServiceProvider::class,
-    RealRashid\SweetAlert\SweetAlertServiceProvider::class,
+    AppServiceProvider::class,
+    DataTablesServiceProvider::class,
+    ServiceProvider::class,
+    SweetAlertServiceProvider::class,
 ];

@@ -1,268 +1,342 @@
 @extends('layouts.master')
 @section('title', 'Penilaian Dosen')
 @section('content')
-<!-- Page Title and Description -->
-<div class="card shadow-sm mb-4">
-    <div class="d-flex align-items-center item g-0">
-        <!-- Content Section -->
-        <div class="col-md-7">
-            <div class="card-body">
-                <!-- Title -->
-                <h5 class="card-title text-primary mb-3 fw-bold">
-                    Evaluasi Dosen Mengajar (EDOM)
-                </h5>
-                <!-- Description -->
-                <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Melakukan penilaian terhadap dosen yang mengajar pada mata kuliah tertentu. Pastikan Anda telah
-                    memilih tahun ajaran, program studi, mata kuliah, dan dosen yang bersangkutan.
-                </p>
-                <div class="d-flex gap-2">
-                    <form action="{{ route('admin.reset.edom') }}" method="POST" id="resetEdomForm">
-                        @csrf
-                        <button type="button" class="btn btn-info" onclick="confirmResetEdom()">Pengaturan Ulang
-                            EDOM</button>
-                    </form>
-                    <form action="{{ route('admin.setup.edom') }}" method="POST" id="setupEdomForm">
-                        @csrf
-                        <button type="button" class="btn btn-success" onclick="confirmSetupEdom()">Pengaturan Pulihkan
-                            EDOM</button>
-                    </form>
-                </div>
-            </div>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="text-dark fw-bold mb-1">Evaluasi Dosen Mengajar (EDOM)</h4>
+            <p class="text-muted mb-0">Analisis presisi dan laporan performa dosen untuk semester akademik berjalan.</p>
         </div>
-        <!-- Image Section -->
-        <div class=" col-md-5 text-center">
-            <div class="p-3">
-                <img src="{{ asset('assets/img/illustrations/nilai.png') }}" class="img-fluid"
-                    alt="Illustration of a schedule" style="max-height: 200px;">
-            </div>
-        </div>
-    </div>
-</div>
-<div class="card shadow-sm mb-4">
-    <form method="POST" action="{{ route('admin.penilaian.filter') }}">
-        @csrf
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h5 class="mb-0">Filter Penilaian</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3 align-items-end">
-                    <!-- Tahun Ajaran -->
-                    <div class="col-md-4">
-                        <label for="ta_id" class="form-label">Tahun Ajaran</label>
-                        <select name="ta_id" id="ta_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- Pilih Tahun Ajaran --</option>
-                            @foreach ($tahunAjaran as $ta)
-                            <option value="{{ $ta->ta_id }}" {{ (isset($ta_id) && $ta_id==$ta->ta_id) ? 'selected' : ''
-                                }}>
-                                {{ $ta->nama }} - {{ $ta->semester }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Program Studi -->
-                    <div class="col-md-4">
-                        <label for="jurusan_id" class="form-label">Program Studi</label>
-                        <select name="jurusan_id" id="jurusan_id" class="form-select select2" onchange="this.form.submit()">
-                            <option value="">-- Pilih Program Studi --</option>
-                            @foreach ($programStudi as $ps)
-                            <option value="{{ $ps->jurusan_id }}" {{ (isset($jurusan_id) && $jurusan_id==$ps->
-                                jurusan_id) ?
-                                'selected' : '' }}>
-                                {{ $ps->nama }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Mata Kuliah -->
-                    @if (isset($kurikulum))
-                    <div class="col-md-4">
-                        <label for="kurikulum_id" class="form-label">Mata Kuliah</label>
-                        <select name="kurikulum_id" id="kurikulum_id" class="form-select select2" onchange="this.form.submit()">
-                            <option value="">-- Pilih Mata Kuliah --</option>
-                            @foreach ($kurikulum as $k)
-                            <option value="{{ $k->kurikulum_id }}" {{ (isset($kurikulum_id) && $kurikulum_id==$k->
-                                kurikulum_id) ? 'selected' : '' }}>
-                                {{ $k->mataKuliah?->nama ?? '-' }} - {{ $k->programStudi?->nama ?? '-' }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-
-                    <!-- Dosen -->
-                    @if (isset($dosen))
-                    <div class="col-md-6">
-                        <label for="dosen_id" class="form-label">Dosen</label>
-                        <select name="dosen_id" id="dosen_id" class="form-select select2">
-                            <option value="">-- Pilih Dosen --</option>
-                            @foreach ($dosen as $d)
-                            <option value="{{ $d->dosen_id }}" {{ (isset($dosen_id) && $dosen_id==$d->dosen_id) ?
-                                'selected'
-                                : '' }}>
-                                @if(isset($dosenSudahEdom) && in_array($d->dosen_id, $dosenSudahEdom))
-                                    ✅ {{ $d->nama }} (Sudah EDOM)
-                                @else
-                                    {{ $d->nama }}
-                                @endif
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    @endif
-
-                    <!-- Jenis Dosen -->
-                    <div class="col-md-6">
-                        <label for="jenis_dosen" class="form-label">Metode Ajar</label>
-                        <select name="jenis_dosen" id="jenis_dosen" class="form-select">
-                            <option value="">-- Pilih Jenis Dosen --</option>
-                            <option value="teori" {{ (isset($jenis_dosen) && $jenis_dosen=='teori' ) ? 'selected' : ''
-                                }}>
-                                Teori</option>
-                            <option value="praktik" {{ (isset($jenis_dosen) && $jenis_dosen=='praktik' ) ? 'selected'
-                                : '' }}>Praktik</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Tombol Submit -->
-                <div class="text-end mt-4">
-                    <a href="{{ route('admin.penilaian.index') }}" class="btn btn-secondary me-2">
-                        <i class="fas fa-undo"></i> Reset
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-    <!-- Display Data Table -->
-    @if (isset($penilaian) && $ta_id && $jurusan_id && $kurikulum_id && $dosen_id)
-    <div class="card mt-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">Hasil Penilaian</h6>
-            <form action="{{ route('admin.penilaian.cetak-pdf') }}" method="POST" target="_blank">
+        <div class="d-flex gap-2">
+            <form action="{{ route('admin.reset.edom') }}" method="POST" id="resetEdomForm">
                 @csrf
-                <input type="hidden" name="ta_id" value="{{ $ta_id }}">
-                <input type="hidden" name="jurusan_id" value="{{ $jurusan_id }}">
-                <input type="hidden" name="kurikulum_id" value="{{ $kurikulum_id }}">
-                <input type="hidden" name="dosen_id" value="{{ $dosen_id }}">
-                <input type="hidden" name="jenis_dosen" value="{{ $jenis_dosen ?? '' }}">
-                <button type="submit" class="btn btn-danger btn-sm">
-                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmResetEdom()">
+                    <i class="fas fa-undo-alt me-1"></i> Reset Status Mhs
+                </button>
+            </form>
+            <form action="{{ route('admin.setup.edom') }}" method="POST" id="setupEdomForm">
+                @csrf
+                <button type="button" class="btn btn-success shadow-sm" onclick="confirmSetupEdom()">
+                    <i class="fas fa-check-double me-1"></i> Pulihkan Status Mhs
                 </button>
             </form>
         </div>
-        <div class="card-body mt-2">
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-primary">
-                        <tr>
-                            <th>No</th>
-                            <th>Aspek Penilaian</th>
-                            <th>Rata-rata Nilai</th>
-                            <th>Kriteria</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($rataRataNilai as $evaluasiId => $nilai)
-                        <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $penilaian->firstWhere('evaluasi_id', $evaluasiId)->evaluasi->nama }}</td>
-                            <td>{{ number_format($nilai, 2) }}</td>
-                            <td>{{ $kriteria($nilai) }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
-    @if ($sarans->isNotEmpty())
-    <div class="card shadow-sm mt-4">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="card-header ">
-                    <p class="mb-0">List Saran</p>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Saran</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($sarans as $key => $saran)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $saran->saran }}</td>
-                                </tr>
+
+    <!-- Search Parameters -->
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body p-4">
+            <h6 class="fw-bold mb-4 d-flex align-items-center text-dark">
+                <span class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                    style="width: 32px; height: 32px;">
+                    <i class="bx bxs-filter-alt"></i>
+                </span>
+                Search Parameters
+            </h6>
+
+            <form method="GET" action="{{ route('admin.penilaian.index') }}" id="filterForm">
+                <div class="row g-3">
+                    <!-- Academic Year -->
+                    <div class="col-md-4">
+                        <label for="ta_id" class="form-label small fw-bold text-muted text-uppercase mb-1">Academic Year
+                            <span class="text-danger">*</span></label>
+                        <select name="ta_id" id="ta_id" class="form-select select2" required>
+                            <option value="">-- Pilih --</option>
+                            @foreach ($tahunAjaran as $ta)
+                                <option value="{{ $ta->ta_id }}" {{ request('ta_id') == $ta->ta_id ? 'selected' : '' }}>
+                                    {{ $ta->nama }} ({{ ucfirst($ta->semester) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Study Program -->
+                    <div class="col-md-4">
+                        <label for="jurusan_id" class="form-label small fw-bold text-muted text-uppercase mb-1">Study
+                            Program <span class="text-danger">*</span></label>
+                        <select name="jurusan_id" id="jurusan_id" class="form-select select2" required>
+                            <option value="">-- Pilih Jurusan --</option>
+                            @foreach ($programStudi as $ps)
+                                <option value="{{ $ps->jurusan_id }}" {{ request('jurusan_id') == $ps->jurusan_id ? 'selected' : '' }}>
+                                    {{ $ps->nama }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Course -->
+                    <div class="col-md-4">
+                        <label for="kurikulum_id"
+                            class="form-label small fw-bold text-muted text-uppercase mb-1">Course</label>
+                        <select name="kurikulum_id" id="kurikulum_id" class="form-select select2">
+                            <option value="">All Courses</option>
+                            @if(isset($kurikulumList))
+                                @foreach ($kurikulumList as $k)
+                                    <option value="{{ $k->kurikulum_id }}" {{ request('kurikulum_id') == $k->kurikulum_id ? 'selected' : '' }}>
+                                        {{ $k->mataKuliah?->nama ?? '-' }} - SMT {{ $k->mataKuliah?->smt }}
+                                    </option>
                                 @endforeach
-                            </tbody>
-                        </table>
+                            @endif
+                        </select>
+                    </div>
+
+                    <!-- Method -->
+                    <div class="col-md-4">
+                        <label for="jenis_dosen"
+                            class="form-label small fw-bold text-muted text-uppercase mb-1">Method</label>
+                        <select name="jenis_dosen" id="jenis_dosen" class="form-select select2">
+                            <option value="">Any Method</option>
+                            <option value="teori" {{ request('jenis_dosen') == 'teori' ? 'selected' : '' }}>Teori</option>
+                            <option value="praktik" {{ request('jenis_dosen') == 'praktik' ? 'selected' : '' }}>Praktik
+                            </option>
+                        </select>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card-header ">
-                    <p class="mb-0">List Nama Mahasiswa Yang Sudah mengisi EDOM</p>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>No</th>
-                                    <th>Nama Mahasiswa</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($sarans->unique('mahasiswa_id') as $saran)
-                                <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $saran->mahasiswa->nama ?? '-' }}</td>
 
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                <!-- Validation Info & Buttons -->
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div>
+                        <small class="text-muted d-none" id="loadingIndicator">
+                            <i class="fas fa-spinner fa-spin me-1"></i> Memuat daftar kursus...
+                        </small>
                     </div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('admin.penilaian.index') }}" class="btn btn-light border px-4 shadow-sm">
+                            <i class="fas fa-redo-alt me-1 text-muted"></i> Reset
+                        </a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                            <i class="fas fa-search me-1"></i> Apply Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Evaluation Registry -->
+    @if(request('ta_id') && request('jurusan_id'))
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div style="width: 5px; height: 25px; background: #4e73df; border-radius: 5px; margin-right: 12px;"></div>
+                    <h5 class="mb-0 fw-bold d-inline-block me-3">Evaluation Registry</h5>
+                    <span class="badge bg-light text-dark px-3 py-2 border rounded-pill">{{ $assignments->count() }} Results</span>
+                </div>
+                <div>
+                    <form action="{{ route('admin.penilaian.cetak-registry') }}" method="GET" target="_blank" class="m-0">
+                        <input type="hidden" name="ta_id" value="{{ request('ta_id') }}">
+                        <input type="hidden" name="jurusan_id" value="{{ request('jurusan_id') }}">
+                        <input type="hidden" name="kurikulum_id" value="{{ request('kurikulum_id') }}">
+                        <input type="hidden" name="jenis_dosen" value="{{ request('jenis_dosen') }}">
+                        <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                            <i class="bx bx-printer me-1"></i> Print Result
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card-body p-0 mt-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="edomTable">
+                        <thead class="text-uppercase small text-muted"
+                            style="background-color: #f8f9fa; letter-spacing: 0.5px;">
+                            <tr>
+                                <th class="ps-4 py-3 fw-bold border-bottom-0" width="5%">No</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="25%">Lecturer Name</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="25%">Course</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="15%">Method</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="15%">Status</th>
+                                <th class="py-3 fw-bold border-bottom-0 pe-4" width="15%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($assignments as $index => $row)
+                                <tr>
+                                    <td class="ps-4 text-muted">{{ str_pad($index + 1, 2, '0', STR_PAD_LEFT) }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if($row->dosen->foto ?? false)
+                                                <img src="{{ Storage::url($row->dosen->foto) }}" class="rounded-circle me-3" width="40"
+                                                    height="40" style="object-fit:cover;">
+                                            @else
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 text-secondary"
+                                                    style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            @endif
+                                            <div>
+                                                <h6 class="mb-0 fw-bold text-dark">{{ $row->dosen->nama ?? '-' }}</h6>
+                                                <small class="text-muted">NIDN: {{ $row->dosen->nidn ?? '-' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <h6 class="mb-0 text-dark">{{ $row->kurikulum->mataKuliah->nama ?? '-' }}</h6>
+                                        <small class="text-muted">SMT {{ $row->kurikulum->semester ?? '-' }} •
+                                            {{ $row->kurikulum->mataKuliah->sks ?? '-' }} SKS</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill shadow-sm">
+                                            {{ ucfirst($row->jenis_dosen) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if($row->status_edom)
+                                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                                                <i class="fas fa-circle me-1" style="font-size: 8px;"></i> Sudah Evaluasi
+                                            </span>
+                                        @else
+                                            <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">
+                                                <i class="fas fa-circle me-1" style="font-size: 8px;"></i> Belum Ada
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="pe-4">
+                                        @if($row->status_edom)
+                                            <a href="{{ route('admin.penilaian.detail', ['dosen_id' => $row->dosen_id, 'kurikulum_id' => $row->kurikulum_id, 'jenis_dosen' => $row->jenis_dosen, 'ta_id' => request('ta_id'), 'jurusan_id' => request('jurusan_id')]) }}"
+                                                class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+                                                View Report
+                                            </a>
+                                        @else
+                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm fw-bold"
+                                                disabled>
+                                                No Data
+                                            </button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-folder-open mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                                            <h5>Tidak ada data ditemukan</h5>
+                                            <p>Silakan sesuaikan parameter pencarian Anda.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
-
-    </div>
+    @else
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-search mb-3" style="font-size: 4rem; opacity: 0.2;"></i>
+            <h4>Pilih Parameter Pencarian</h4>
+            <p>Silakan pilih Tahun Ajaran dan Program Studi lalu klik "Apply Filter" untuk melihat data dosen.</p>
+        </div>
     @endif
-    @endif
-
-</div>
 
 @endsection
 
-@push('scripts')
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Terapkan Select2 untuk dropdown
-        $('.select2').select2({
-            theme: 'bootstrap-5',
-            placeholder: "Pilih salah satu",
-            allowClear: true
+@push('script')
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Init Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: "-- Pilih --",
+                allowClear: true
+            });
+
+            // Setup AJAX Cascade logic
+            const taSelect = $('#ta_id');
+            const jurusanSelect = $('#jurusan_id');
+            const kurikulumSelect = $('#kurikulum_id');
+            const loadingStr = $('#loadingIndicator');
+
+            function fetchKurikulum() {
+                let ta = taSelect.val();
+                let jur = jurusanSelect.val();
+
+                // Only update if both are selected, otherwise just show main list
+                if (ta && jur) {
+                    loadingStr.removeClass('d-none');
+                    $.ajax({
+                        url: '{{ route("admin.penilaian.getKurikulum") }}',
+                        data: { ta_id: ta, jurusan_id: jur },
+                        success: function (res) {
+                            kurikulumSelect.empty().append('<option value="">All Courses</option>');
+                            res.forEach(item => {
+                                kurikulumSelect.append(new Option(item.nama, item.id));
+                            });
+                            // Trigger select2 update cautiously
+                            kurikulumSelect.trigger('change.select2');
+                        },
+                        error: function () {
+                            console.error('Failed to fetch kurikulum.');
+                        },
+                        complete: function () {
+                            loadingStr.addClass('d-none');
+                        }
+                    });
+                } else {
+                    kurikulumSelect.empty().append('<option value="">All Courses</option>');
+                    kurikulumSelect.trigger('change.select2');
+                }
+            }
+
+            // Catch the select2 change event
+            taSelect.on('change', function () {
+                fetchKurikulum();
+            });
+
+            jurusanSelect.on('change', function () {
+                fetchKurikulum();
+            });
+
+            // Optional: DataTable for styling the registry if they have a lot of items
+            if ($("#edomTable").length > 0 && $("#edomTable tbody tr.d-none").length === 0) {
+                $("#edomTable").DataTable({
+                    "pageLength": 10,
+                    "lengthChange": false,
+                    "searching": true,
+                    "info": true,
+                    "ordering": false,
+                    "language": {
+                        "search": "_INPUT_",
+                        "searchPlaceholder": "Search in registry..."
+                    },
+                    "dom": "<'row mb-3'<'col-sm-12 col-md-6'f><'col-sm-12 col-md-6 text-md-end'p>>" +
+                        "<'row'<'col-sm-12'tr>>" +
+                        "<'row mt-3'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+                });
+            }
         });
 
-        // Auto-submit hanya untuk Tahun Ajaran
-        document.getElementById("ta_id").addEventListener("change", function () {
-            this.form.submit();
-        });
-    });
+        function confirmResetEdom() {
+            Swal.fire({
+                title: 'Konfirmasi Reset EDOM?',
+                text: "Status EDOM semua mahasiswa akan direset menjadi 'Belum mengisi'.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#secondary',
+                confirmButtonText: 'Ya, Reset!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('resetEdomForm').submit();
+                }
+            })
+        }
 
-</script>
+        function confirmSetupEdom() {
+            Swal.fire({
+                title: 'Konfirmasi Pulihkan Status?',
+                text: "Status EDOM semua mahasiswa akan dikembalikan menjadi 'Sudah mengisi' (selesai).",
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#1cc88a',
+                cancelButtonColor: '#secondary',
+                confirmButtonText: 'Ya, Pulihkan!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('setupEdomForm').submit();
+                }
+            })
+        }
+    </script>
 @endpush

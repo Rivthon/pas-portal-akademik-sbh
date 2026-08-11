@@ -2,13 +2,12 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class PengajuanTranskrip extends Model
 {
-   use HasFactory;
+    use HasFactory;
 
     protected $table = 'pengajuan_transkrip';
 
@@ -22,10 +21,11 @@ class PengajuanTranskrip extends Model
     ];
 
     // Relasi ke mahasiswa
-     public function mahasiswa()
+    public function mahasiswa()
     {
         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
     }
+
     // Scope untuk filter berdasarkan status
     public function scopeStatus($query, $status)
     {

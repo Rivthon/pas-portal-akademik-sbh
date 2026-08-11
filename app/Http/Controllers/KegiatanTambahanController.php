@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KegiatanTambahan;
 use App\Http\Requests\StoreKegiatanTambahanRequest;
 use App\Http\Requests\UpdateKegiatanTambahanRequest;
+use App\Models\KegiatanTambahan;
 
 class KegiatanTambahanController extends Controller
 {

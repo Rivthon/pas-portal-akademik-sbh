@@ -2,14 +2,15 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\PpsmFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Ppsm extends Model
 {
-    /** @use HasFactory<\Database\Factories\PpsmFactory> */
+    /** @use HasFactory<PpsmFactory> */
     use HasFactory;
+
     protected $table = 'ppsm';
 
     protected $fillable = [
@@ -23,9 +24,10 @@ class Ppsm extends Model
         'catatan_validator',
         'bobot',
     ];
+
     /* ──────── Relasi ──────── */
     public function mahasiswa()
-     {
-         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
-     }
+    {
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+    }
 }

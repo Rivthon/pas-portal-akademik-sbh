@@ -28,7 +28,7 @@
                                 <input type="file" name="file" id="file" class="form-control" accept=".xlsx, .csv" required>
                                 <small class="text-muted"><i class="bx bx-info-circle"></i> Pastikan file berformat sesuai template</small>
                             </div>
-                            
+
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-success w-100">
                                     <i class="bx bx-upload me-1"></i> Mulai Import
@@ -62,7 +62,7 @@
             <small class="text-muted">Gunakan filter di bawah untuk melakukan pencarian spesifik.</small>
         </div>
     </div>
-    
+
     <div class="card-body mt-4">
         <div class="bg-label-primary p-4 rounded mb-4">
             <div class="row g-3">
@@ -71,7 +71,7 @@
                     <label class="form-label fw-bold text-primary"><i class="bx bx-search-alt"></i> Kata Kunci</label>
                     <input type="text" id="search" class="form-control border-primary text-primary" placeholder="Ketik Nama / NIM...">
                 </div>
-                
+
                 <!-- Program Studi -->
                 <div class="col-md-3">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-book"></i> Program Studi</label>
@@ -88,7 +88,7 @@
                     <label class="form-label fw-bold text-primary"><i class="bx bx-calendar-event"></i> Tahun Masuk</label>
                     <select id="tahun-masuk" class="form-select border-primary text-primary">
                         <option value="">Semua Tahun</option>
-                        @for ($year = 2019; $year <= date('Y'); $year++) 
+                        @for ($year = 2019; $year <= date('Y'); $year++)
                             <option value="{{ $year }}">{{ $year }}</option>
                         @endfor
                     </select>
@@ -134,5 +134,176 @@
         </div>
     </div>
 </div>
+@push('script')
+<script>
+$(document).ready(function () {
+    // Fungsi untuk Fetch Data Mahasiswa
+    function fetchMahasiswa(url) {
+        var search = $('#search').val();
+        var programStudi = $('#program-studi').val();
+        var tahunMasuk = $('#tahun-masuk').val();
+        var status = $('#status').val();
 
+        // Menampilkan loading indicator
+        $('#table-container').html('<div class="text-center my-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Memuat data...</div>');
+
+        $.ajax({
+            url: url,
+            type: 'GET',
+            data: {
+                search: search,
+                jurusan_id: programStudi,
+                tahun_masuk: tahunMasuk,
+                status: status
+            },
+            dataType: 'json',
+            success: function (response) {
+                $('#table-container').html(response.html);
+                $('#pagination-container').html(response.pagination);
+            },
+            error: function (xhr) {
+                $('#table-container').html('<div class="alert alert-danger">Terjadi kesalahan saat memuat data.</div>');
+                console.error(xhr.responseText);
+            }
+        });
+    }
+
+    // Event ketika tombol cari ditekan
+    $('#search-btn').on('click', function () {
+        fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
+    });
+
+    // Event ketika menekan Enter di input pencarian
+    $('#search').on('keypress', function (e) {
+        if (e.which === 13) { // 13 = Enter
+            fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
+        }
+    });
+
+    // Event untuk pagination menggunakan event delegation
+    $(document).on('click', '#pagination-container a', function (e) {
+        e.preventDefault();
+        var url = $(this).attr('href');
+        if (url) {
+            fetchMahasiswa(url);
+        }
+    });
+
+    // Status Dropdown Event
+    $(document).on("change", ".status-dropdown", function () {
+        let selectElement = $(this);
+        let mahasiswaRow = selectElement.closest("tr");
+        let mahasiswaId = mahasiswaRow.data("id");
+        let newStatus = selectElement.val();
+        let statusBadge = mahasiswaRow.find(".status-badge");
+
+        $.ajax({
+            url: `/admin/mahasiswa/${mahasiswaId}/update-status`,
+            type: "PUT",
+            data: {
+                _token: "{{ csrf_token() }}",
+                status_mhs: newStatus,
+            },
+            beforeSend: function () {
+                selectElement.prop("disabled", true);
+            },
+            success: function (response) {
+                let statusColors = {
+                    "aktif": "success",
+                    "nonaktif": "danger",
+                    "lulus": "primary",
+                    "dropout": "warning",
+                    "cuti": "info",
+                };
+
+                // Perbarui badge status
+                statusBadge.removeClass().addClass(`badge status-badge bg-${statusColors[newStatus]}`).text(newStatus.charAt(0).toUpperCase() + newStatus.slice(1));
+
+                // Tampilkan alert sukses
+                showStatusAlert("success", response.message || "Status berhasil diperbarui!");
+            },
+            error: function (xhr, status, error) {
+                let errorMsg = "Terjadi kesalahan saat memperbarui status.";
+
+                if (xhr.responseJSON) {
+                    errorMsg = xhr.responseJSON.message || errorMsg;
+                } else if (xhr.responseText) {
+                    errorMsg = xhr.responseText;
+                }
+
+                showStatusAlert("danger", errorMsg);
+            },
+            complete: function () {
+                selectElement.prop("disabled", false);
+            }
+        });
+    });
+
+    // Dosen Dropdown Event
+    $(document).on("change", ".dosen-dropdown", function () {
+        let selectElement = $(this);
+        let mahasiswaRow = selectElement.closest("tr");
+        let mahasiswaId = mahasiswaRow.data("id");
+        let newDosen = selectElement.val();
+
+        $.ajax({
+            url: `/admin/mahasiswa/${mahasiswaId}/update-dosen`,
+            type: "PUT",
+            data: {
+                _token: "{{ csrf_token() }}",
+                dosen_id: newDosen,
+            },
+            beforeSend: function () {
+                selectElement.prop("disabled", true);
+            },
+            success: function (response) {
+                showStatusAlert("success", response.message || "Dosen berhasil diperbarui!");
+            },
+            error: function (xhr) {
+                let errorMsg = "Terjadi kesalahan saat memperbarui dosen.";
+                if (xhr.responseJSON) {
+                    errorMsg = xhr.responseJSON.message || errorMsg;
+                }
+                showStatusAlert("danger", errorMsg);
+            },
+            complete: function () {
+                selectElement.prop("disabled", false);
+            }
+        });
+    });
+
+    function showStatusAlert(type, message) {
+        let alertBox = $("#status-alert");
+        if (alertBox.length === 0) {
+            $('#alert-container').html(`<div id="status-alert" class="alert alert-${type} d-block">${message}</div>`);
+            setTimeout(() => $("#status-alert").removeClass("d-block").addClass("d-none"), 5000);
+        } else {
+            alertBox.removeClass().addClass(`alert alert-${type} d-block`).html(message);
+            setTimeout(() => alertBox.removeClass("d-block").addClass("d-none"), 5000);
+        }
+    }
+
+    // Export Button Event
+    $('#export-btn').on('click', function (e) {
+        e.preventDefault();
+
+        const baseUrl = $('#export-url').val();
+        const search = $('#search').val();
+        const programStudi = $('#program-studi').val();
+        const tahunMasuk = $('#tahun-masuk').val();
+        const status = $('#status').val();
+
+        if (!search && !programStudi && !tahunMasuk && !status) {
+            if (!confirm("Tidak ada filter diterapkan. Apakah Anda yakin ingin mengekspor semua data mahasiswa?")) {
+                return;
+            }
+        }
+
+        const exportUrl = `${baseUrl}?search=${encodeURIComponent(search)}&jurusan_id=${programStudi}&tahun_masuk=${tahunMasuk}&status=${status}`;
+
+        window.location.href = exportUrl;
+    });
+});
+</script>
+@endpush
 @endsection

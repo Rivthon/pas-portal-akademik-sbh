@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\KegiatanTambahan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\KegiatanTambahan>
+ * @extends Factory<KegiatanTambahan>
  */
 class KegiatanTambahanFactory extends Factory
 {

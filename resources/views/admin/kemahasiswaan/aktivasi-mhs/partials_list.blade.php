@@ -11,6 +11,7 @@
                 <th><i class="bx bx-bar-chart-alt-2 me-1"></i>Nilai UTS</th>
                 <th><i class="bx bx-bar-chart me-1"></i>Nilai UAS</th>
                 <th><i class="bx bx-medal me-1"></i>UAP</th>
+                <th><i class="bx bx-file me-1"></i>KHS</th>
             </tr>
         </thead>
         <tbody>
@@ -54,7 +55,7 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="krs"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_krs)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_krs) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_krs ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_krs ? 'AKTIF' : 'NONAKTIF' }}
@@ -67,7 +68,7 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="uts"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uts)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uts) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_uts ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_uts ? 'AKTIF' : 'NONAKTIF' }}
@@ -80,7 +81,7 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="uas"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uas)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uas) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_uas ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_uas ? 'AKTIF' : 'NONAKTIF' }}
@@ -93,7 +94,7 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="nilai_uts"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_nilai_uts)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_nilai_uts) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_nilai_uts ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_nilai_uts ? 'AKTIF' : 'NONAKTIF' }}
@@ -106,7 +107,7 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="nilai_uas"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_nilai_uas)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_nilai_uas) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_nilai_uas ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_nilai_uas ? 'AKTIF' : 'NONAKTIF' }}
@@ -119,17 +120,30 @@
                     <div class="toggle-wrapper">
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input toggle-status" type="checkbox" data-type="uap"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uap)>
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uap) @disabled(!auth()->user()->can('aktivasi-update'))>
                         </div>
                         <span class="toggle-label {{ $m->status_uap ? 'aktif' : 'nonaktif' }}">
                             {{ $m->status_uap ? 'AKTIF' : 'NONAKTIF' }}
                         </span>
                     </div>
                 </td>
+
+                {{-- Status KHS --}}
+                <td>
+                    <div class="toggle-wrapper">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input toggle-status" type="checkbox" data-type="akhir"
+                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_akhir) @disabled(!auth()->user()->can('aktivasi-update'))>
+                        </div>
+                        <span class="toggle-label {{ $m->status_akhir ? 'aktif' : 'nonaktif' }}">
+                            {{ $m->status_akhir ? 'AKTIF' : 'NONAKTIF' }}
+                        </span>
+                    </div>
+                </td>
             </tr>
             @empty
             <tr>
-                <td colspan="9" class="text-center py-5">
+                <td colspan="10" class="text-center py-5">
                     <div class="d-flex flex-column align-items-center gap-2">
                         <i class="bx bx-search-alt" style="font-size: 2.5rem; color: #c2c6de;"></i>
                         <span class="text-muted fw-semibold">Tidak ada data ditemukan.</span>

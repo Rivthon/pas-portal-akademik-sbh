@@ -10,7 +10,9 @@ class AbsensiPraktik extends Model
     use HasFactory;
 
     protected $table = 'absensi_praktik';
+
     protected $primaryKey = 'absensi_praktik_id';
+
     public $timestamps = true; // Jika tabel absensi_praktik menggunakan kolom created_at dan updated_at
 
     protected $fillable = [
@@ -19,14 +21,20 @@ class AbsensiPraktik extends Model
         'tanggal',
         'status',
         'keterangan',
-        'pertemuan_id',
+        'pertemuan_praktik_id',
     ];
+
+    protected function casts(): array
+    {
+        return ['tanggal' => 'date'];
+    }
 
     // Relasi ke model Mahasiswa
     public function mahasiswa()
     {
         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id', 'mahasiswa_id');
     }
+
     public function pertemuan()
     {
         return $this->belongsTo(PertemuanPraktik::class, 'pertemuan_praktik_id', 'pertemuan_praktik_id');

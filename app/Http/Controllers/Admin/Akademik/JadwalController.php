@@ -3,61 +3,58 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Jadwal;
-use App\Models\Ruangan;
 use App\Models\Kurikulum;
-use Illuminate\View\View;
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
-use Illuminate\Http\Request;
+use App\Models\Ruangan;
 use App\Models\TahunAkademik;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class JadwalController extends Controller
 {
-   public function index()
-{
-    try {
-        // Ambil tahun ajaran yang statusnya aktif (cached)
-        $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
-            return TahunAkademik::where('status_ta', 1)->first();
-        });
+    public function index()
+    {
+        try {
+            // Ambil tahun ajaran yang statusnya aktif (cached)
+            $tahunAjaran = Cache::remember('active_tahun_akademik', 3600, function () {
+                return TahunAkademik::where('status_ta', 1)->first();
+            });
 
-        if (!$tahunAjaran) {
-            return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
+            if (! $tahunAjaran) {
+                return redirect()->back()->with('error', 'Tidak ada tahun ajaran yang aktif.');
+            }
+
+            // Ambil semua data yang dibutuhkan
+            $matakuliah = Matakuliah::all();
+            $programStudi = ProgramStudi::all();
+            $ruangan = Ruangan::all();
+
+            if ($programStudi->isEmpty()) {
+                return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
+            }
+
+            // Kirim data ke view
+            return view('admin.akademik.jadwal.index', compact(
+                'programStudi',
+                'tahunAjaran',
+                'matakuliah',
+                'ruangan'
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Gagal memuat halaman jadwal: '.$e->getMessage());
+
+            return abort(500, 'Terjadi kesalahan pada server.');
         }
-
-        // Ambil semua data yang dibutuhkan
-        $matakuliah = Matakuliah::all();
-        $programStudi = ProgramStudi::all();
-        $ruangan = Ruangan::all();
-
-        if ($programStudi->isEmpty()) {
-            return redirect()->back()->with('error', 'Data program studi tidak tersedia.');
-        }
-
-        // Kirim data ke view
-        return view('admin.akademik.jadwal.index', compact(
-            'programStudi',
-            'tahunAjaran',
-            'matakuliah',
-            'ruangan'
-        ));
-    } catch (\Exception $e) {
-        \Log::error('Gagal memuat halaman jadwal: ' . $e->getMessage());
-        return abort(500, 'Terjadi kesalahan pada server.');
     }
-}
-
-
 
     public function generatejadwal(Request $request)
     {
         $request->validate([
-            'jurusan_id'  => 'required|exists:program_studi,jurusan_id',
+            'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'jenis_kelas' => 'required|in:Reguler,Karyawan',
         ]);
 
@@ -71,33 +68,34 @@ class JadwalController extends Controller
 
         foreach ($kurikulums as $kurikulum) {
             $exists = Jadwal::where([
-                'ta_id'         => $kurikulum->ta_id,
-                'jurusan_id'    => $kurikulum->jurusan_id,
+                'ta_id' => $kurikulum->ta_id,
+                'jurusan_id' => $kurikulum->jurusan_id,
                 'kurikulum_id' => $kurikulum->kurikulum_id,
-                'jenis_kelas'   => $request->jenis_kelas,
+                'jenis_kelas' => $request->jenis_kelas,
             ])->exists();
 
-            if (!$exists) {
+            if (! $exists) {
                 Jadwal::create([
-                    'ta_id'         => $kurikulum->ta_id,
-                    'jurusan_id'    => $kurikulum->jurusan_id,
+                    'ta_id' => $kurikulum->ta_id,
+                    'jurusan_id' => $kurikulum->jurusan_id,
                     'kurikulum_id' => $kurikulum->kurikulum_id,
-                    'ruangan_id'    => null, // Bisa diatur jika diperlukan
-                    'jam_mulai'     => null,
-                    'jam_selesai'     => null,
-                    'hari'          => null, // Jadwal UTS seminggu dari hari ini
-                    'jenis_kelas'   => $request->jenis_kelas,
+                    'ruangan_id' => null, // Bisa diatur jika diperlukan
+                    'jam_mulai' => null,
+                    'jam_selesai' => null,
+                    'hari' => null, // Jadwal UTS seminggu dari hari ini
+                    'jenis_kelas' => $request->jenis_kelas,
                 ]);
                 $importedCount++;
             }
         }
 
         if ($importedCount > 0) {
+            activity_log('generate_jadwal', 'Admin generate '.$importedCount.' jadwal kuliah untuk prodi '.$request->jurusan_id);
             Alert::toast("$importedCount Jadwal Kuliah berhasil di-import.", 'success')
                 ->position('center')
                 ->autoClose(3000);
         } else {
-            Alert::toast("Tidak ada data baru yang di-import.", 'warning')
+            Alert::toast('Tidak ada data baru yang di-import.', 'warning')
                 ->position('center')
                 ->autoClose(3000);
         }
@@ -112,11 +110,11 @@ class JadwalController extends Controller
             $semester = $request->query('semester');
             $jenisKelas = $request->query('jenis_kelas');
 
-            if (!$programStudi || !$semester) {
+            if (! $programStudi || ! $semester) {
                 return response()->json(['message' => 'Program studi dan semester diperlukan.'], 400);
             }
 
-            if (!$jenisKelas) {
+            if (! $jenisKelas) {
                 return response()->json(['message' => 'Jenis kelas diperlukan.', 'error' => 'Jenis kelas tidak ditemukan dalam permintaan.'], 400);
             }
 
@@ -126,7 +124,7 @@ class JadwalController extends Controller
                 return TahunAkademik::where('status_ta', 1)->first();
             });
 
-            if (!$tahunAjaran) {
+            if (! $tahunAjaran) {
                 return response()->json(['message' => 'Tidak ada tahun ajaran yang aktif.'], 404);
             }
 
@@ -144,17 +142,17 @@ class JadwalController extends Controller
                 'jadwal.jenis_kelas',
                 'jadwal.ruangan_id'
             )
-            ->join('kurikulum', 'jadwal.kurikulum_id', '=', 'kurikulum.kurikulum_id') // Menghubungkan dengan kurikulum
-            ->join('matakuliah', function ($join) use ($semester) {
-                $join->on('kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-                    ->where('matakuliah.smt', '=', $semester);
-            })
-            ->leftJoin('ruangan', 'jadwal.ruangan_id', '=', 'ruangan.ruangan_id')
-            ->where('jadwal.jurusan_id', $programStudi)
-             ->where('jadwal.jenis_kelas', $jenisKelas)
-            ->where('jadwal.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
-            ->orderBy('jadwal.jam_mulai', 'asc')
-            ->get();
+                ->join('kurikulum', 'jadwal.kurikulum_id', '=', 'kurikulum.kurikulum_id') // Menghubungkan dengan kurikulum
+                ->join('matakuliah', function ($join) use ($semester) {
+                    $join->on('kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+                        ->where('matakuliah.smt', '=', $semester);
+                })
+                ->leftJoin('ruangan', 'jadwal.ruangan_id', '=', 'ruangan.ruangan_id')
+                ->where('jadwal.jurusan_id', $programStudi)
+                ->where('jadwal.jenis_kelas', $jenisKelas)
+                ->where('jadwal.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
+                ->orderBy('jadwal.jam_mulai', 'asc')
+                ->get();
 
             if ($jadwal->isEmpty()) {
                 return response()->json(['message' => 'Tidak ada jadwal UTS yang ditemukan untuk program studi dan semester ini.'], 404);
@@ -170,7 +168,7 @@ class JadwalController extends Controller
     {
         $jadwal = Jadwal::find($id);
 
-        if (!$jadwal) {
+        if (! $jadwal) {
             return response()->json(['success' => false, 'message' => 'Jadwal tidak ditemukan.']);
         }
 
@@ -188,6 +186,8 @@ class JadwalController extends Controller
         // Update field yang diedit
         $jadwal->update([$request->field => $request->value]);
 
+        activity_log('update_jadwal', 'Admin memperbarui jadwal ID: '.$id.' ('.$request->field.')');
+
         return response()->json(['success' => true, 'message' => 'Jadwal berhasil diperbarui.']);
     }
 
@@ -197,6 +197,7 @@ class JadwalController extends Controller
             $jadwal = Jadwal::find($id);
 
             if ($jadwal) {
+                activity_log('hapus_jadwal', 'Admin menghapus jadwal ID: '.$id);
                 $jadwal->delete();
                 Alert::toast('Data Jadwal berhasil dihapus.', 'info')
                     ->position('bottom-end')
@@ -211,9 +212,10 @@ class JadwalController extends Controller
                 return redirect()->back();
             }
         } catch (\Exception $e) {
-            Alert::toast('Gagal menghapus data: ' . $e->getMessage(), 'error')
+            Alert::toast('Gagal menghapus data: '.$e->getMessage(), 'error')
                 ->position('bottom-end')
                 ->autoClose(3000);
+
             return redirect()->back();
         }
     }

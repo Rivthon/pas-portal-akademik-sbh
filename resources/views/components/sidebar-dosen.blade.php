@@ -14,7 +14,6 @@
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-2">
-        <!-- Dashboard -->
         <li class="menu-header small text-uppercase">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Dashboard</span>
         </li>
@@ -25,87 +24,125 @@
             </a>
         </li>
 
-        <!-- Perkuliahan -->
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Perkuliahan</span>
         </li>
-        <li class="menu-item @if(Route::is('dosen.jadwal*')) active open @endif">
+
+        <li class="menu-item @if(Route::is('dosen.rps.*')) active @endif">
+            <a href="{{ route('dosen.rps.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-file text-primary"></i>
+                <div data-i18n="RPS" class="fw-medium">RPS</div>
+            </a>
+        </li>
+
+        <li class="menu-item @if(Route::is('dosen.lms.*')) active @endif">
+            <a href="{{ route('dosen.lms.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-book-reader text-primary"></i>
+                <div class="fw-medium">LMS</div>
+            </a>
+        </li>
+
+        <li class="menu-item @if(Route::is('dosen.nilai-dosen.lihat')) active @endif">
+            <a href="{{ route('dosen.nilai-dosen.lihat') }}" class="menu-link">
+                <i class="menu-icon bx bx-group text-info"></i>
+                <div class="fw-medium">Status KRS Bimbingan</div>
+            </a>
+        </li>
+
+        <li class="menu-item @if(Route::is('dosen.kurikulum-krs.*')) active @endif">
+            <a href="{{ route('dosen.kurikulum-krs.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-book-content text-primary"></i>
+                <div class="fw-medium">Kurikulum KRS</div>
+            </a>
+        </li>
+
+        <!-- <li class="menu-item @if(Route::is('dosen.jadwal*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-book-open text-warning"></i>
-                <div data-i18n="Absensi" class="fw-medium">Jadwal Mengajar</div>
+                <div data-i18n="Jadwal Mengajar" class="fw-medium">Jadwal Mengajar</div>
             </a>
             <ul class="menu-sub">
                 <li class="menu-item @if(Route::is('dosen.jadwal.index')) active @endif">
                     <a href="{{ route('dosen.jadwal.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-book-content"></i>
-                        <div data-i18n="Buat Absensi">Teori</div>
+                        <div data-i18n="Teori">Teori</div>
                     </a>
                 </li>
                 <li class="menu-item @if(Route::is('dosen.jadwal-praktik.index')) active @endif">
                     <a href="{{ route('dosen.jadwal-praktik.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-flask"></i>
-                        <div data-i18n="Buat Absensi">Praktikum</div>
+                        <div data-i18n="Praktikum">Praktikum</div>
                     </a>
                 </li>
             </ul>
-        </li>
+        </li> -->
 
-        <li class="menu-item @if(Route::is('dosen.absensi.*')) active open @endif">
+        <li class="menu-item @if(Route::is('dosen.absensi.*') or Route::is('dosen.absensi-praktik.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-user-check text-success"></i>
-                <div data-i18n="Absensi" class="fw-medium">Absensi & BAP</div>
+                <div data-i18n="Absensi & BAP" class="fw-medium">Absensi & BAP</div>
             </a>
             <ul class="menu-sub">
+                <li class="menu-item @if(Route::is('dosen.absensi.index')) active @endif">
+                    <a href="{{ route('dosen.absensi.index') }}" class="menu-link">
+                        <i class="menu-icon bx bx-book"></i>
+                        <div>Absensi Teori</div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('dosen.absensi-praktik.*')) active @endif">
+                    <a href="{{ route('dosen.absensi-praktik.index') }}" class="menu-link">
+                        <i class="menu-icon bx bx-test-tube"></i>
+                        <div>Absensi Praktik</div>
+                    </a>
+                </li>
                 <li class="menu-item @if(Route::is('dosen.absensi.cetak.index')) active @endif">
                     <a href="{{ route('dosen.absensi.cetak.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-printer"></i>
-                        <div data-i18n="Buat Absensi">Cetak Laporan</div>
+                        <div data-i18n="Cetak Laporan">Rekaptulasi Absensi</div>
                     </a>
                 </li>
             </ul>
         </li>
 
-        <!-- Modul Akademik -->
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Modul Penilaian</span>
         </li>
-        <li class="menu-item @if(Route::is('dosen.nilai-dosen.*') || Route::is('dosen.edom.*')) active open @endif">
+        <li class="menu-item @if(Route::is('dosen.nilai-dosen.input') || Route::is('dosen.edom.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-bar-chart-alt-2" style="color: #696cff;"></i>
-                <div data-i18n="Input Nilai" class="fw-medium">Manajemen Nilai</div>
+                <div data-i18n="Manajemen Nilai" class="fw-medium">Manajemen Nilai</div>
             </a>
             <ul class="menu-sub">
                 <li class="menu-item @if(Route::is('dosen.nilai-dosen.input')) active @endif">
                     <a href="{{ route('dosen.nilai-dosen.input') }}" class="menu-link">
                         <i class="menu-icon bx bx-edit"></i>
-                        <div data-i18n="Input Nilai">Input KHS Mahasiswa</div>
-                    </a>
-                </li>
-                <li class="menu-item @if(Route::is('dosen.nilai-dosen.lihat')) active @endif">
-                    <a href="{{ route('dosen.nilai-dosen.lihat') }}" class="menu-link">
-                        <i class="menu-icon bx bx-list-check"></i>
-                        <div data-i18n="Lihat Nilai">History & Daftar Bimbingan</div>
+                        <div data-i18n="Input KHS Mahasiswa">Input KHS Mahasiswa</div>
                     </a>
                 </li>
                 <li class="menu-item @if(Route::is('dosen.edom.hasil')) active @endif">
                     <a href="{{ route('dosen.edom.hasil') }}" class="menu-link">
                         <i class="menu-icon bx bx-star"></i>
-                        <div data-i18n="Evaluasi Dosen">Hasil Evaluasi (EDOM)</div>
+                        <div data-i18n="Hasil Evaluasi (EDOM)">Hasil Evaluasi (EDOM)</div>
                     </a>
                 </li>
             </ul>
         </li>
 
-        <!-- Pengaturan -->
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Lainnya</span>
         </li>
-        <li class="menu-item @if(Route::is('dosen.settings.*') || Route::is('dosen.index.berita') || Route::is('dosen.profile.index')) active open @endif">
+        <li class="menu-item @if(Route::is('dosen.settings.*') || Route::is('dosen.index.berita') || Route::is('dosen.profile.index') || Route::is('dosen.permintaan.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon tf-icons bx bxs-cog text-secondary"></i>
-                <div data-i18n="Barang" class="fw-medium">Pengaturan & Akun</div>
+                <div data-i18n="Pengaturan & Akun" class="fw-medium">Pengaturan & Akun</div>
             </a>
             <ul class="menu-sub">
+                <li class="menu-item @if(Route::is('dosen.permintaan.*')) active @endif">
+                    <a href="{{ route('dosen.permintaan.index') }}" class="menu-link">
+                        <i class="menu-icon bx bx-support"></i>
+                        <div>Helpdesk</div>
+                    </a>
+                </li>
                 <li class="menu-item @if(Route::is('dosen.index.berita')) active @endif">
                     <a href="{{ route('dosen.index.berita') }}" class="menu-link">
                         <i class="menu-icon bx bx-news"></i>

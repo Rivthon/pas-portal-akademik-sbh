@@ -421,105 +421,105 @@
         </section>
 
         {{-- ===== Schedule Table ===== --}}
-        <section class="mb-4">
-            <div class="dash-schedule">
-                <div class="schedule-header">
-                    <div>
-                        <div class="schedule-title">
-                            <i class="bx bx-calendar me-1" style="color: #696cff;"></i>
-                            Jadwal Perkuliahan Hari Ini
+        <!-- <section class="mb-4">
+                <div class="dash-schedule">
+                    <div class="schedule-header">
+                        <div>
+                            <div class="schedule-title">
+                                <i class="bx bx-calendar me-1" style="color: #696cff;"></i>
+                                Jadwal Perkuliahan Hari Ini
+                            </div>
+                            <span style="font-size:.72rem; color: #8592a3; font-weight: 500;">
+                                {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
+                            </span>
                         </div>
-                        <span style="font-size:.72rem; color: #8592a3; font-weight: 500;">
-                            {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
-                        </span>
+                        <a href="{{ route('admin.jadwal.index') }}" class="btn btn-sm btn-label-primary"
+                            style="font-size: .78rem; font-weight: 700;">
+                            Lihat Semua <i class="bx bx-right-arrow-alt ms-1"></i>
+                        </a>
                     </div>
-                    <a href="{{ route('admin.jadwal.index') }}" class="btn btn-sm btn-label-primary"
-                        style="font-size: .78rem; font-weight: 700;">
-                        Lihat Semua <i class="bx bx-right-arrow-alt ms-1"></i>
-                    </a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="padding-left: 1.75rem;">Waktu</th>
-                                <th>Mata Kuliah</th>
-                                <th>Dosen</th>
-                                <th>Ruangan</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($jadwalHariIni as $jdw)
-                                @php
-                                    $jamMulai = \Carbon\Carbon::parse($jdw->jam_mulai)->format('H:i');
-                                    $jamSelesai = \Carbon\Carbon::parse($jdw->jam_selesai)->format('H:i');
-                                    $now = \Carbon\Carbon::now();
-
-                                    // Determine status
-                                    $mulai = \Carbon\Carbon::parse($jdw->jam_mulai);
-                                    $selesai = \Carbon\Carbon::parse($jdw->jam_selesai);
-                                    if ($now->between($mulai, $selesai)) {
-                                        $statusClass = 'berlangsung';
-                                        $statusText = 'Berlangsung';
-                                    } elseif ($now->lt($mulai)) {
-                                        $statusClass = 'menunggu';
-                                        $statusText = 'Menunggu';
-                                    } else {
-                                        $statusClass = 'selesai';
-                                        $statusText = 'Selesai';
-                                    }
-
-                                    $mkNama = $jdw->kurikulum->mataKuliah->nama ?? '-';
-                                    $prodiNama = $jdw->programStudi->singkat ?? ($jdw->programStudi->nama ?? '-');
-                                    $smt = $jdw->kurikulum->mataKuliah->smt ?? '-';
-
-                                    $dosenNames = collect();
-                                    if ($jdw->kurikulum && $jdw->kurikulum->dosenToMatakuliah) {
-                                        $dosenNames = $jdw->kurikulum->dosenToMatakuliah->map(function ($dm) {
-                                            return $dm->dosen->nama ?? '-';
-                                        });
-                                    }
-                                    $dosenDisplay = $dosenNames->isNotEmpty() ? $dosenNames->first() : '-';
-
-                                    $ruangan = $jdw->ruangan->nama ?? '-';
-                                @endphp
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
                                 <tr>
-                                    <td style="padding-left: 1.75rem;">
-                                        <span class="fw-bold" style="color: #1a1c1e;">{{ $jamMulai }} - {{ $jamSelesai }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="schedule-mk-name">{{ $mkNama }}</div>
-                                        <div class="schedule-mk-sub">Prodi {{ $prodiNama }} — Semester {{ $smt }}</div>
-                                    </td>
-                                    <td>
-                                        <span style="font-weight: 500; color: #566a7f;">{{ $dosenDisplay }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="schedule-room">{{ $ruangan }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="schedule-status {{ $statusClass }}">
-                                            <span class="dot"></span>
-                                            {{ $statusText }}
-                                        </span>
-                                    </td>
+                                    <th style="padding-left: 1.75rem;">Waktu</th>
+                                    <th>Mata Kuliah</th>
+                                    <th>Dosen</th>
+                                    <th>Ruangan</th>
+                                    <th>Status</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="text-center py-5">
-                                        <div class="d-flex flex-column align-items-center gap-2">
-                                            <i class="bx bx-calendar-x" style="font-size: 2.5rem; color: #c2c6de;"></i>
-                                            <span class="text-muted fw-semibold">Tidak ada jadwal untuk hari ini.</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @forelse($jadwalHariIni as $jdw)
+                                    @php
+                                        $jamMulai = \Carbon\Carbon::parse($jdw->jam_mulai)->format('H:i');
+                                        $jamSelesai = \Carbon\Carbon::parse($jdw->jam_selesai)->format('H:i');
+                                        $now = \Carbon\Carbon::now();
+
+                                        // Determine status
+                                        $mulai = \Carbon\Carbon::parse($jdw->jam_mulai);
+                                        $selesai = \Carbon\Carbon::parse($jdw->jam_selesai);
+                                        if ($now->between($mulai, $selesai)) {
+                                            $statusClass = 'berlangsung';
+                                            $statusText = 'Berlangsung';
+                                        } elseif ($now->lt($mulai)) {
+                                            $statusClass = 'menunggu';
+                                            $statusText = 'Menunggu';
+                                        } else {
+                                            $statusClass = 'selesai';
+                                            $statusText = 'Selesai';
+                                        }
+
+                                        $mkNama = $jdw->kurikulum->mataKuliah->nama ?? '-';
+                                        $prodiNama = $jdw->programStudi->singkat ?? ($jdw->programStudi->nama ?? '-');
+                                        $smt = $jdw->kurikulum->mataKuliah->smt ?? '-';
+
+                                        $dosenNames = collect();
+                                        if ($jdw->kurikulum && $jdw->kurikulum->dosenToMatakuliah) {
+                                            $dosenNames = $jdw->kurikulum->dosenToMatakuliah->map(function ($dm) {
+                                                return $dm->dosen->nama ?? '-';
+                                            });
+                                        }
+                                        $dosenDisplay = $dosenNames->isNotEmpty() ? $dosenNames->first() : '-';
+
+                                        $ruangan = $jdw->ruangan->nama ?? '-';
+                                    @endphp
+                                    <tr>
+                                        <td style="padding-left: 1.75rem;">
+                                            <span class="fw-bold" style="color: #1a1c1e;">{{ $jamMulai }} - {{ $jamSelesai }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="schedule-mk-name">{{ $mkNama }}</div>
+                                            <div class="schedule-mk-sub">Prodi {{ $prodiNama }} — Semester {{ $smt }}</div>
+                                        </td>
+                                        <td>
+                                            <span style="font-weight: 500; color: #566a7f;">{{ $dosenDisplay }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="schedule-room">{{ $ruangan }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="schedule-status {{ $statusClass }}">
+                                                <span class="dot"></span>
+                                                {{ $statusText }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center py-5">
+                                            <div class="d-flex flex-column align-items-center gap-2">
+                                                <i class="bx bx-calendar-x" style="font-size: 2.5rem; color: #c2c6de;"></i>
+                                                <span class="text-muted fw-semibold">Tidak ada jadwal untuk hari ini.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section> -->
 
     </div>
 @endsection
@@ -588,12 +588,12 @@
                     labels.forEach((lbl, i) => {
                         const pct = totalAktif > 0 ? ((data[i] / totalAktif) * 100).toFixed(0) : 0;
                         html += `<div class="legend-item">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="legend-dot" style="background:${colors[i]}"></div>
-                                                <span class="legend-label">${lbl}</span>
-                                            </div>
-                                            <span class="legend-pct">${pct}%</span>
-                                        </div>`;
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="legend-dot" style="background:${colors[i]}"></div>
+                                                    <span class="legend-label">${lbl}</span>
+                                                </div>
+                                                <span class="legend-pct">${pct}%</span>
+                                            </div>`;
                     });
                     legendEl.innerHTML = html;
                 }

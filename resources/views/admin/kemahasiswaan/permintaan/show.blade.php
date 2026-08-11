@@ -1,5 +1,5 @@
 @extends('layouts.master')
-@section('title', 'Detail Permintaan Mahasiswa (Help Desk)')
+@section('title', 'Detail Permintaan Helpdesk')
 @section('content')
 <div class="card shadow-sm mb-4">
     <div class="d-flex align-items-center row g-0">
@@ -8,11 +8,11 @@
             <div class="card-body">
                 <!-- Title -->
                 <h5 class="card-title text-primary mb-3 fw-bold">
-                    Detail Permintaan Mahasiswa (Help Desk)
+                    Detail Permintaan Helpdesk
                 </h5>
                 <!-- Description -->
                 <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Untuk melihat permintaan mahasiswa, silahkan pilih menu yang ada di sebelah kiri.
+                    Permintaan dari mahasiswa dan dosen diproses melalui halaman Helpdesk yang sama.
                     <br>
                     Anda dapat melihat status permintaan mahasiswa dan melakukan tindakan yang diperlukan.
                 </p>
@@ -44,8 +44,13 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Nama Mahasiswa</td>
-                        <td>{{ $permintaan->mahasiswa->nama }}</td>
+                        <td>Pemohon</td>
+                        <td>
+                            {{ $permintaan->pemohon->nama ?? '-' }}
+                            <span class="badge bg-label-{{ $permintaan->dosen_id ? 'primary' : 'info' }} ms-2">
+                                {{ $permintaan->jenis_pemohon }}
+                            </span>
+                        </td>
                     </tr>
                     <tr>
                         <td>Jenis Permintaan</td>
@@ -89,10 +94,11 @@
                     <label for="status" class="form-label">Ubah Status</label>
                     <select name="status" id="status" class="form-select" required>
                         <option value="">-- Pilih Status --</option>
-                        <option value="pending" {{ $permintaan->status == 'pending' ? 'selected' : '' }}>Pending
+                        <option value="menunggu" {{ $permintaan->status == 'menunggu' ? 'selected' : '' }}>Menunggu
                         </option>
-                        <option value="diproses" {{ $permintaan->status == 'diproses' ? 'selected' : '' }}>Diproses
+                        <option value="disetujui" {{ $permintaan->status == 'disetujui' ? 'selected' : '' }}>Disetujui
                         </option>
+                        <option value="revisi" {{ $permintaan->status == 'revisi' ? 'selected' : '' }}>Revisi</option>
                         <option value="selesai" {{ $permintaan->status == 'selesai' ? 'selected' : '' }}>Selesai
                         </option>
                         <option value="ditolak" {{ $permintaan->status == 'ditolak' ? 'selected' : '' }}>Ditolak

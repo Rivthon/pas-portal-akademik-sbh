@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 
 class VerificationController extends Controller
 {
@@ -21,10 +20,10 @@ class VerificationController extends Controller
             $payload = json_decode($decryptedString, true);
 
             // Validasi format Payload
-            if (!isset($payload['m']) || !isset($payload['t']) || !isset($payload['type'])) {
+            if (! isset($payload['m']) || ! isset($payload['t']) || ! isset($payload['type'])) {
                 return view('public.verify-ujian', [
                     'status' => 'invalid',
-                    'message' => 'Struktur Token Verifikasi Tidak Dikenali.'
+                    'message' => 'Struktur Token Verifikasi Tidak Dikenali.',
                 ]);
             }
 
@@ -32,10 +31,10 @@ class VerificationController extends Controller
             $ta = TahunAkademik::find($payload['t']);
             $type = $payload['type']; // UTS atau UAS
 
-            if (!$mahasiswa || !$ta) {
+            if (! $mahasiswa || ! $ta) {
                 return view('public.verify-ujian', [
                     'status' => 'invalid',
-                    'message' => 'Data Mahasiswa atau Tahun Akademik tidak valid.'
+                    'message' => 'Data Mahasiswa atau Tahun Akademik tidak valid.',
                 ]);
             }
 
@@ -43,14 +42,14 @@ class VerificationController extends Controller
                 'status' => 'valid',
                 'mahasiswa' => $mahasiswa,
                 'ta' => $ta,
-                'type' => $type
+                'type' => $type,
             ]);
 
         } catch (DecryptException $e) {
             // Token corrupt / dibuat asal-asalan
             return view('public.verify-ujian', [
                 'status' => 'invalid',
-                'message' => 'Invalid Verification Token. Kartu Ujian ini mungkin Palsu atau Cacat Kriptografi.'
+                'message' => 'Invalid Verification Token. Kartu Ujian ini mungkin Palsu atau Cacat Kriptografi.',
             ]);
         }
     }

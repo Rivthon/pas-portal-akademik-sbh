@@ -11,16 +11,14 @@ class CheckMahasiswaStatus
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @param  string  $type (krs|uts|uas|uap|akhir)
+     * @param  string  $type  (krs|uts|uas|uap|akhir)
      * @return mixed
      */
     public function handle(Request $request, Closure $next, $type)
     {
         $mahasiswa = Auth::guard('mahasiswa')->user();
-        
-        if (!$mahasiswa) {
+
+        if (! $mahasiswa) {
             return redirect()->route('mahasiswa.login');
         }
 

@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\Mahasiswa;
-use Illuminate\Database\Eloquent\Model;
+use Database\Factories\SertifikasiFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Sertifikasi extends Model
 {
-    /** @use HasFactory<\Database\Factories\SertifikasiFactory> */
+    /** @use HasFactory<SertifikasiFactory> */
     use HasFactory;
+
     protected $table = 'sertifikasi_profesi_kompetensi';   // nama tabel migration
+
     protected $fillable = [
         'mahasiswa_id',
         'nama_kegiatan',
@@ -26,10 +28,10 @@ class Sertifikasi extends Model
         'catatan_validator',
         'bobot',
     ];
-     /* ──────── Relasi ──────── */
-     public function mahasiswa()
-     {
-         return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
-     }
 
+    /* ──────── Relasi ──────── */
+    public function mahasiswa()
+    {
+        return $this->belongsTo(Mahasiswa::class, 'mahasiswa_id');
+    }
 }

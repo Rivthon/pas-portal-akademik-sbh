@@ -2,11 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Krs;
-use App\Models\Jadwal;
-use App\Models\ProgramStudi;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Matakuliah extends Model
 {
@@ -30,7 +27,7 @@ class Matakuliah extends Model
         'kategori_mk',
         'sks',
         'smt',
-        'semester'
+        'semester',
     ];
 
     // Relasi ke Program Studi
@@ -43,19 +40,23 @@ class Matakuliah extends Model
     {
         return $this->hasMany(Kurikulum::class, 'matakuliah_id');
     }
-      public function krs()
+
+    public function krs()
     {
         return $this->hasMany(Krs::class, 'matakuliah_id');
     }
+
     public function penilaian()
     {
         return $this->hasManyThrough(Penilaian::class, Kurikulum::class, 'matakuliah_id', 'kurikulum_id', 'matakuliah_id', 'kurikulum_id');
     }
+
     public function getSemesterLabelAttribute()
-        {
-            if (!$this->smt) {
-                return null;
-            }
-            return "Semester {$this->smt} (" . ($this->smt % 2 == 1 ? 'Ganjil' : 'Genap') . ")";
+    {
+        if (! $this->smt) {
+            return null;
         }
+
+        return "Semester {$this->smt} (".($this->smt % 2 == 1 ? 'Ganjil' : 'Genap').')';
+    }
 }

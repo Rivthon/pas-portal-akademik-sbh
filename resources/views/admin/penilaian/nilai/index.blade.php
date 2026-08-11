@@ -1,69 +1,113 @@
 @extends('layouts.master')
 
 @section('content')
-<div class="card shadow-sm mb-4">
-    <div class="d-flex align-items-center item g-0">
-        <!-- Content Section -->
-        <div class="col-md-7">
-            <div class="card-body">
-                <!-- Title -->
-                <h5 class="card-title text-primary mb-3 fw-bold">
-                    Trankrip Nilai Mahasiswa
-                </h5>
-                <!-- Description -->
-                <p class="mb-4 text-muted" style="line-height: 1.6;">
-                    Pastikan Anda telah memilih program studi
-                    dan semester yang bersangkutan. Kemudian pilih mahasiswa yang ingin Anda lihat nilai transkripnya.
-                </p>
+@push('head')
+<style>
+    .transkrip-page .stat-card {
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 12px;
+        padding: 1.5rem;
+        background: #fff;
+    }
+    .transkrip-page .filter-card {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    .transkrip-page .filter-card label {
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .1em;
+        color: #8592a3;
+        margin-bottom: 6px;
+        display: block;
+    }
+    .transkrip-page .filter-card .form-select {
+        border: none;
+        background: #f3f3f7;
+        font-size: .85rem;
+        border-radius: 8px;
+        padding: .55rem .85rem;
+    }
+    .transkrip-page .table-card {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .transkrip-page .table-modern thead th {
+        background: #f3f3f7;
+        font-size: .68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #8592a3;
+        border: none;
+        padding: .85rem 1.25rem;
+    }
+    .transkrip-page .table-modern tbody td {
+        padding: .85rem 1.25rem;
+        vertical-align: middle;
+        border-color: rgba(0,0,0,.04);
+        font-size: .875rem;
+    }
+</style>
+@endpush
 
+<div class="transkrip-page">
+    <div class="mb-4">
+        <h4 class="fw-bold mb-1">Transkrip Nilai Mahasiswa</h4>
+        <p class="text-muted mb-0" style="font-size: .875rem;">
+            Pilih program studi dan semester, lalu pilih mahasiswa untuk melihat transkrip nilainya.
+        </p>
+    </div>
+    <div class="filter-card mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="program-studi">Program Studi</label>
+                <select id="program-studi" class="form-select">
+                    <option value="">-- Pilih Program Studi --</option>
+                    @foreach ($programStudi as $ps)
+                    <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
+                    @endforeach
+                </select>
             </div>
-        </div>
-        <!-- Image Section -->
-        <div class="col-md-5 text-center">
-            <div class="p-3">
-                <img src="{{ asset('assets/img/illustrations/nilai.png') }}" class="img-fluid"
-                    alt="Illustration of a schedule" style="max-height: 200px;">
+            <div class="col-md-4">
+                <label for="semester">Semester</label>
+                <select id="semester" class="form-select">
+                    <option value="">-- Pilih Semester --</option>
+                    @for ($i = 1; $i <= 8; $i++)
+                    <option value="{{ $i }}">Semester {{ $i }}</option>
+                    @endfor
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="mahasiswa">Pilih Mahasiswa</label>
+                <select id="mahasiswa" class="form-select" disabled>
+                    <option value="">-- Pilih Mahasiswa --</option>
+                </select>
             </div>
         </div>
     </div>
-</div>
-<div class="card">
-    <div class="container mt-4 mb-4">
-        <div>
-            <h5>Pilih Program Studi</h5>
-            <select id="program-studi" class="form-select">
-                <option value="">-- Pilih Program Studi --</option>
-                @foreach ($programStudi as $ps)
-                <option value="{{ $ps->jurusan_id }}">{{ $ps->nama }}</option>
-                @endforeach
-            </select>
 
-            <h5 class="mt-4">Pilih Semester</h5>
-            <select id="semester" class="form-select">
-                <option value="">-- Pilih Semester --</option>
-                @for ($i = 1; $i <= 8; $i++) <option value="{{ $i }}">Semester {{ $i }}</option>
-                    @endfor
-            </select>
-
-            <h5 class="mt-4">Pilih Mahasiswa</h5>
-            <select id="mahasiswa" class="form-select" disabled>
-                <option value="">-- Pilih Mahasiswa --</option>
-            </select>
-
-            <h2 class="mt-4 text-center">Transkrip Nilai <i>(Academic Transcription)</i></h2>
-
-
-            <table id="krs-table" class="table table-bordered mt-3" style="display: none;">
-                <thead class="table-primary">
+    <div class="table-card" id="krs-table-container" style="display: none;">
+        <div class="p-4 border-bottom text-center">
+            <h5 class="mb-0 fw-bold">Transkrip Nilai <i class="text-muted">(Academic Transcription)</i></h5>
+        </div>
+        <div class="table-responsive">
+            <table id="krs-table" class="table table-modern table-hover mb-0">
+                <thead>
                     <tr>
-                        <th>No</th>
+                        <th class="text-center" style="width: 5%">No</th>
                         <th>Kode MK (Code)</th>
                         <th>Mata Kuliah (Courses)</th>
-                        <th>SKS (Credit)</th>
-                        <th>Nilai (Grade)</th>
-                        <th>Huruf (Symbol)</th>
-                        <th>Angka (Score)</th>
-                        <th>SKS x Angka (Point)</th>
+                        <th class="text-center">SKS (Credit)</th>
+                        <th class="text-center">Nilai (Grade)</th>
+                        <th class="text-center">Huruf (Symbol)</th>
+                        <th class="text-center">Angka (Score)</th>
+                        <th class="text-center">SKS x Angka (Point)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -114,8 +158,10 @@
                 mahasiswaSelect.innerHTML = '<option value="">-- Pilih Mahasiswa --</option>';
                 if (data.length > 0) {
                     data.forEach((mahasiswa) => {
-                        const option = `<option value="${mahasiswa.mahasiswa_id}">${mahasiswa.nama}</option>`;
-                        mahasiswaSelect.insertAdjacentHTML('beforeend', option);
+                        const option = document.createElement('option');
+                        option.value = mahasiswa.mahasiswa_id;
+                        option.textContent = mahasiswa.nama;
+                        mahasiswaSelect.appendChild(option);
                     });
                     mahasiswaSelect.disabled = false;
                 } else {
@@ -149,7 +195,7 @@ const fetchKRS = async () => {
     const mahasiswaId = mahasiswaSelect.value; // ID Mahasiswa yang dipilih
 
     if (!mahasiswaId) {
-        krsTable.style.display = 'none';
+        document.getElementById('krs-table-container').style.display = 'none';
         return;
     }
 
@@ -161,7 +207,7 @@ const fetchKRS = async () => {
         krsTableBody.innerHTML = ''; // Bersihkan tabel sebelumnya
 
         if (data.status === "success" && data.data) {
-            krsTable.style.display = '';
+            document.getElementById('krs-table-container').style.display = 'block';
             krsTableBody.innerHTML = '';
 
             let index = 1;
@@ -195,16 +241,13 @@ const fetchKRS = async () => {
                     totalSksAngkaAll += sksAngka;
 
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index++}</td>
-                        <td>${krs.kode_mk}</td>
-                        <td>${krs.nama_mata_kuliah}</td>
-                        <td>${sks}</td>
-                        <td>${krs.akhir || '-'}</td>
-                        <td>${krs.khs || '-'}</td>
-                        <td>${nilaiAngka.toFixed(2)}</td>
-                        <td>${sksAngka.toFixed(2)}</td>
-                    `;
+                    [index++, krs.kode_mk, krs.nama_mata_kuliah, sks, krs.akhir || '-',
+                        krs.khs || '-', nilaiAngka.toFixed(2), sksAngka.toFixed(2)]
+                        .forEach((value) => {
+                            const cell = document.createElement('td');
+                            cell.textContent = value;
+                            row.appendChild(cell);
+                        });
                     krsTableBody.appendChild(row);
                 });
 
@@ -265,7 +308,7 @@ const fetchKRS = async () => {
                 krsTableBody.appendChild(predikatRow);
 
             } else {
-                krsTable.style.display = 'none';
+                document.getElementById('krs-table-container').style.display = 'none';
                 alert(data.message || "Data KRS tidak ditemukan.");
             }
 

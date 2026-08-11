@@ -18,7 +18,7 @@
         <ul class="navbar-nav flex-row align-items-center ms-auto">
             <!-- Welcome Greeting -->
             <li class="nav-item d-none d-sm-flex align-items-center me-3 border-end pe-3">
-                <span class="text-muted fw-light me-1">Hari ini,</span> 
+                <span class="text-muted fw-light me-1">Hari ini,</span>
                 <span class="fw-semibold text-dark">{{ \Carbon\Carbon::now()->translatedFormat('d F Y') }}</span>
             </li>
 
@@ -47,13 +47,13 @@
                         <h6 class="mb-0 fw-bold">{{ Auth::guard('dosen')->user()->nama }}</h6>
                         <small class="text-muted">{{ Auth::guard('dosen')->user()->nidn ?? 'NIDN Belum Diatur' }}</small>
                     </li>
-                    
+
                     <li>
                         <a class="dropdown-item py-2" href="{{ route('dosen.profile.index') }}">
                             <i class="bx bx-user me-2 text-primary"></i> <span class="align-middle">Pengaturan Profil</span>
                         </a>
                     </li>
-                    
+
                     <li>
                         <a class="dropdown-item py-2" href="{{ route('dosen.index.berita') }}">
                             <i class="bx bx-news me-2 text-info"></i> <span class="align-middle">Berita Kampus</span>

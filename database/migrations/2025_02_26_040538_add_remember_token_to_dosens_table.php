@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-       Schema::table('dosen', function (Blueprint $table) {
-        $table->rememberToken()->nullable();
-    });
+        Schema::table('dosen', function (Blueprint $table) {
+            $table->rememberToken()->nullable();
+        });
 
     }
 

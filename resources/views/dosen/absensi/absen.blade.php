@@ -2,7 +2,7 @@
 @section('title', 'Isi Absensi Teori')
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
-    
+
     {{-- Info Pertemuan Infographic Card --}}
     <div class="row mb-4">
         <div class="col-12">
@@ -14,7 +14,7 @@
                         </div>
                         <h4 class="card-title text-white mb-0 fw-bold">Informasi Absensi Teori</h4>
                     </div>
-                    
+
                     <div class="row mt-4">
                         <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
                             <p class="text-white-50 mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Mata Kuliah</p>
@@ -35,6 +35,9 @@
                             <span class="badge bg-white text-primary shadow-sm mt-1" style="font-size: 0.75rem;">
                                 {{ \Carbon\Carbon::parse($pertemuan->jam_mulai)->diffInMinutes(\Carbon\Carbon::parse($pertemuan->jam_selesai)) }} Menit
                             </span>
+                            <span class="badge bg-white text-primary shadow-sm mt-1" style="font-size: 0.75rem;">
+                                <i class="bx {{ strtolower($pertemuan->metode_pbm ?: 'offline') === 'online' ? 'bx-wifi' : 'bx-building' }} me-1"></i>{{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -51,7 +54,7 @@
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
                 <i class="bx bx-user-plus text-primary fs-4 me-2"></i>
-                <h6 class="card-title fw-bold text-dark mb-0">Tambah Mahasiswa Susulan</h6>
+                <h6 class="card-title fw-bold text-dark mb-0">Tambah Mahasiswa </h6>
             </div>
             <form id="formTambahMahasiswa">
                 @csrf
@@ -87,12 +90,12 @@
                 </button>
             </div>
         </div>
-        
+
         <div class="card-body p-0">
             <form id="absensiForm" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="pertemuan_id" value="{{ $pertemuan->pertemuan_id }}">
-                
+
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PenguasaanBahasa;
 use App\Http\Requests\StorePenguasaanBahasaRequest;
 use App\Http\Requests\UpdatePenguasaanBahasaRequest;
+use App\Models\PenguasaanBahasa;
 
 class PenguasaanBahasaController extends Controller
 {

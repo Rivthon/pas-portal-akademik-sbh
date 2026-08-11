@@ -109,7 +109,7 @@
                                     <td>
                                         <span
                                             class="badge
-                                                {{ $item->mataKuliah->kategori_mk == 1 ? 'bg-success' : ($item->kategori_mk == 0 ? 'bg-primary' : 'bg-secondary') }}">
+                                                {{ $item->mataKuliah->kategori_mk == 1 ? 'bg-success' : ($item->mataKuliah->kategori_mk == 0 ? 'bg-primary' : 'bg-secondary') }}">
                                             {{ $item->mataKuliah->kategori_mk == 1 ? 'Pilihan' :
                                             ($item->mataKuliah->kategori_mk ==
                                             0 ? 'Wajib' : 'Tidak Diketahui') }}
@@ -118,8 +118,13 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="text-center">Tidak ada jadwal tersedia untuk semester
-                                        ini.
+                                    <td colspan="6" class="text-center py-4">
+                                        @if ($hasExistingKrs)
+                                            <i class="bx bx-check-circle text-success fs-3 d-block mb-2"></i>
+                                            <strong class="text-success">KRS Sudah Diambil</strong>
+                                        @else
+                                            Tidak ada mata kuliah tersedia untuk semester ini.
+                                        @endif
                                     </td>
                                 </tr>
                                 @endforelse

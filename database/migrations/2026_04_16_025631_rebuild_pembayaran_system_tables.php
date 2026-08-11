@@ -16,11 +16,11 @@ return new class extends Migration
         // 1. Modifikasi Tabel Tenor Pembayaran
         Schema::table('tenor_pembayaran', function (Blueprint $table) {
             // Menambahkan foreign key untuk angkatan (tahun masuk bisa pakai integer)
-            if (!Schema::hasColumn('tenor_pembayaran', 'tahun_masuk')) {
+            if (! Schema::hasColumn('tenor_pembayaran', 'tahun_masuk')) {
                 $table->string('tahun_masuk', 4)->nullable()->after('id');
             }
             // Menambahkan foreign key gelombang_id
-            if (!Schema::hasColumn('tenor_pembayaran', 'gelombang_id')) {
+            if (! Schema::hasColumn('tenor_pembayaran', 'gelombang_id')) {
                 $table->unsignedBigInteger('gelombang_id')->nullable()->after('tahun_masuk');
             }
         });
@@ -50,7 +50,7 @@ return new class extends Migration
     public function down()
     {
         Schema::dropIfExists('transaksi_pembayaran');
-        
+
         Schema::table('tenor_pembayaran', function (Blueprint $table) {
             $table->dropColumn(['tahun_masuk', 'gelombang_id']);
         });

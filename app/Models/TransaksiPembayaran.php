@@ -10,9 +10,11 @@ class TransaksiPembayaran extends Model
     use HasFactory;
 
     protected $table = 'transaksi_pembayaran';
+
     protected $primaryKey = 'transaksi_id';
+
     public $timestamps = true;
-    
+
     protected $fillable = [
         'mahasiswa_id',
         'tagihan_mahasiswa_id',

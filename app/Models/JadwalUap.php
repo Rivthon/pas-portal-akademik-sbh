@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
-use App\Models\TahunAkademik;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class JadwalUap extends Model
 {
-   use HasFactory;
+    use HasFactory;
+
     protected $table = 'jadwal_uap'; // Pastikan nama tabel sesuai
+
     protected $primaryKey = 'id';   // Pastikan primary key sesuai
+
     public $timestamps = true;      //
+
     protected $fillable = [
-       'ta_id',
+        'ta_id',
         'jurusan_id',
         'nama',
         'jam_mulai',
@@ -21,6 +24,7 @@ class JadwalUap extends Model
         'tanggal',
 
     ];
+
     public function programStudi()
     {
         return $this->belongsTo(ProgramStudi::class, 'jurusan_id');
@@ -39,5 +43,4 @@ class JadwalUap extends Model
     {
         return $this->belongsTo(TahunAkademik::class, 'ta_id');
     }
-
 }

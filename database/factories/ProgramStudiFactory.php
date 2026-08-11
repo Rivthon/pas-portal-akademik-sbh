@@ -2,10 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\ProgramStudi;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\ProgramStudi>
+ * @extends Factory<ProgramStudi>
  */
 class ProgramStudiFactory extends Factory
 {

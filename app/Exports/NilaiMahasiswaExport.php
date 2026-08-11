@@ -9,8 +9,11 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 class NilaiMahasiswaExport implements FromView, ShouldAutoSize
 {
     private $mahasiswa;
+
     private $konfigurasi;
+
     private $mataKuliah;
+
     private $tahunAjaran;
 
     public function __construct($mahasiswa, $konfigurasi, $mataKuliah, $tahunAjaran)
@@ -23,12 +26,12 @@ class NilaiMahasiswaExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        return view('input-nilai.export', [
+        return view('admin.penilaian.input-nilai.export-excel', [
             'mahasiswa' => $this->mahasiswa,
             'konfigurasi' => $this->konfigurasi,
             'mataKuliah' => $this->mataKuliah,
             'tahunAjaran' => $this->tahunAjaran,
-            'isExcel' => true
+            'isExcel' => true,
         ]);
     }
 }

@@ -10,7 +10,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -46,9 +46,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    public function getProfileImageURL()
-{
-    return $this->avatar ? asset('storage/' . $this->avatar) : null;
-}
 
+    public function getProfileImageURL()
+    {
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
+    }
 }

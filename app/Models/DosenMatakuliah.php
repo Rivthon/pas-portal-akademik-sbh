@@ -2,11 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Dosen;
-use App\Models\Kurikulum;
-use App\Models\Matakuliah;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class DosenMatakuliah extends Model
 {
@@ -18,7 +15,7 @@ class DosenMatakuliah extends Model
 
     public $incrementing = true; // Set true jika primary key auto increment
 
-    protected $fillable = ['dosen_id', 'kurikulum_id','jenis_dosen','jenis_kelas'];
+    protected $fillable = ['dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas'];
 
     public function dosen()
     {
@@ -27,12 +24,11 @@ class DosenMatakuliah extends Model
 
     public function matakuliah()
     {
-        return $this->belongsTo(Matakuliah::class,'matakuliah_id');
+        return $this->belongsTo(Matakuliah::class, 'matakuliah_id');
     }
+
     public function kurikulum()
     {
         return $this->belongsTo(Kurikulum::class, 'kurikulum_id');
     }
-
-
 }

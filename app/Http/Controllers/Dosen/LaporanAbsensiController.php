@@ -2,343 +2,216 @@
 
 namespace App\Http\Controllers\Dosen;
 
-use PDF;
-use Carbon\Carbon;
-use App\Models\Jadwal;
-use App\Models\Setting;
-use Illuminate\Http\Request;
-use App\Models\JadwalPraktik;
-use App\Models\TahunAkademik;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Jadwal;
+use App\Models\JadwalPraktik;
+use App\Models\Setting;
+use App\Models\TahunAkademik;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Storage;
 
 class LaporanAbsensiController extends Controller
 {
-     public function index()
+    public function index()
     {
-         // Ambil dosen yang sedang login dari guard 'dosen'
         $dosen = auth('dosen')->user();
+        $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
-        // Pastikan ada dosen yang login
-        if (!$dosen) {
-            return redirect()->route('login')->with('error', 'Silakan login sebagai dosen!');
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
-         $activeTA = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
-        if (!$activeTA) {
-            return redirect()->back()->with('error', 'Tidak ada Tahun Akademik aktif.');
-        }
-        // Ambil jadwal kuliah berdasarkan kurikulum yang diajar oleh dosen
-       $dosen = auth('dosen')->user();
-        $jadwalList = Jadwal::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
-            $query->where('ta_id', $activeTA->ta_id)
-              ->where('jurusan_id', $dosen->jurusan_id);
-        })
-        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-            $query->where('dosen_id', $dosen->dosen_id);
-        })
-        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
-        ->get()
-        ->groupBy(function ($jadwal) {
-            return $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak Ada Semester';
-        })
-        ->map(function ($jadwalPerSemester) {
-            return $jadwalPerSemester->map(function ($jadwal) {
-            return [
-                'jadwal_id' => $jadwal->id,
-                'hari' => $jadwal->hari ?? 'Tidak ada data',
-                'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
-                'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
-                'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
-                'semester' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak Ada Semester',
-                'kode_matakuliah' => $jadwal->kurikulum->mataKuliah->matakuliah_id ?? null,
-                'nama_matakuliah' => $jadwal->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
-                'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
-                'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
-                return [
-                    'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
-                    'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
-                    'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
-                    'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
-                ];
-                             })->filter(function ($dosen) {
-                            return $dosen['jenis_dosen'] === 'teori'; // Hanya ambil dosen praktik
 
-                        })->unique('id')->values(),
-            ];
-            });
-        });
+        $jadwalTeori = $this->queryJadwalTeori($dosen->dosen_id)
+            ->where('ta_id', $activeTA->ta_id)
+            ->with(['kurikulum.mataKuliah', 'kurikulum.programStudi', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
+            ->orderBy('hari')->orderBy('jam_mulai')->get();
 
-        $jadwalListPraktik = JadwalPraktik::whereHas('kurikulum', function ($query) use ($activeTA, $dosen) {
-            $query->where('ta_id', $activeTA->ta_id)
-              ->where('jurusan_id', $dosen->jurusan_id);
-        })
-        ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-            $query->where('dosen_id', $dosen->dosen_id)
-              ->where('jenis_dosen', 'praktik'); // Periksa jenis_dosen praktik
-        })
-        ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
-        ->get()
-        ->groupBy(function ($jadwal) {
-            return $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak Ada Semester';
-        })
-        ->map(function ($jadwalPerSemester) {
-            return $jadwalPerSemester->map(function ($jadwal) {
-            return [
-                'jadwal_praktik_id' => $jadwal->id,
-                'hari' => $jadwal->hari ?? 'Tidak ada data',
-                'jam_mulai' => $jadwal->jam_mulai ?? 'Tidak ada data',
-                'jam_selesai' => $jadwal->jam_selesai ?? 'Tidak ada data',
-                'kode_matakuliah' => $jadwal->kurikulum->mataKuliah->matakuliah_id ?? null,
-                'nama_matakuliah' => $jadwal->kurikulum->mataKuliah->nama ?? 'Tidak ada data',
-                'semester_matkul' => $jadwal->kurikulum->mataKuliah->smt ?? 'Tidak ada data',
-                'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
-                'ruangan' => $jadwal->ruangan->nama ?? 'Tidak ada data',
-                'dosen' => $jadwal->kurikulum->dosenToMatakuliah->map(function ($dosenToMatakuliah) {
-                return [
-                    'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
-                    'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
-                    'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
-                    'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
-                ];
-                })->filter(function ($dosen) {
-                return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
-                })->unique('id')->values(),
-            ];
-            });
-        });
+        $jadwalPraktik = $this->queryJadwalPraktik($dosen->dosen_id)
+            ->where('ta_id', $activeTA->ta_id)
+            ->with(['kurikulum.mataKuliah', 'kurikulum.programStudi', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
+            ->orderBy('hari')->orderBy('jam_mulai')->get();
 
-        return view('dosen.absensi.cetak', compact('jadwalList','activeTA','jadwalListPraktik'));
+        $jadwalList = $this->formatJadwal($jadwalTeori, false);
+        $jadwalListPraktik = $this->formatJadwal($jadwalPraktik, true);
+
+        return view('dosen.absensi.cetak', compact('jadwalList', 'jadwalListPraktik', 'activeTA'));
     }
 
     public function generatePDF(Request $request)
     {
-        // Validasi input
-        $this->validate($request, [
-            'jadwal_id' => 'required|exists:jadwal,id',
-        ]);
+        $request->validate(['jadwal_id' => ['required', 'integer', 'exists:jadwal,id']]);
+        $jadwal = $this->jadwalTeoriMilikDosen((int) $request->jadwal_id);
+        [$mahasiswa, $rekapAbsensi, $totalPertemuan] = $this->rekapJadwal($jadwal);
 
-        // Ambil jadwal dengan relasi
-        $jadwal = Jadwal::with([
-            'kurikulum.mataKuliah',
-            'kurikulum.dosenToMatakuliah.dosen', // Tambahkan ini
-            'pertemuan.absensi'
-        ])->findOrFail($request->jadwal_id);
-
-        // Total pertemuan terkait jadwal
-        $totalPertemuan = $jadwal->pertemuan->count();
-
-        // Rekap absensi berdasarkan pertemuan
-        $rekapAbsensi = $jadwal->pertemuan->map(function ($pertemuan) {
-            return [
-                'topik' => $pertemuan->topik, // Topik pertemuan
-                'tanggal' => $pertemuan->tanggal_pertemuan, // Tanggal pertemuan
-                'absensi' => $pertemuan->absensi->groupBy('mahasiswa_id')->mapWithKeys(function ($absensiRecords, $mahasiswaId) {
-                    // Ambil status pertama dari absensi mahasiswa untuk pertemuan ini
-                    $status = $absensiRecords->first()->status ?? '-';
-                    return [$mahasiswaId => $this->mapAbsensiStatus($status)];
-                }),
-            ];
-        });
-
-        // Ambil mahasiswa unik berdasarkan absensi
-        $mahasiswa = $jadwal->pertemuan->flatMap(function ($pertemuan) {
-            return $pertemuan->absensi->map(function ($absensi) {
-                return $absensi->mahasiswa; // Ambil mahasiswa terkait absensi
-            });
-        })->unique('mahasiswa_id')->values(); // Hapus duplikat berdasarkan mahasiswa_id
-
-
-        // Cek ketersediaan data
-        if ($rekapAbsensi->isEmpty() || $mahasiswa->isEmpty()) {
-            return back()->with('error', 'Data absensi tidak tersedia untuk jadwal ini.');
+        if ($totalPertemuan === 0 || $mahasiswa->isEmpty()) {
+            return back()->with('error', 'Data absensi belum tersedia untuk jadwal ini.');
         }
 
-        // Generate PDF
-        return $this->generatePDFDocument($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan);
+        return $this->rekapPdf($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan, false);
     }
 
-    private function mapAbsensiStatus($status)
-    {
-        // Map attendance status to a concise format
-        $statusMapping = [
-            'hadir' => 'H',
-            'tidak hadir' => 'T',
-            'izin' => 'I',
-            // Add more mappings if needed
-        ];
-
-        return $statusMapping[$status] ?? null; // Return null for unknown statuses
-    }
-
-    public function generatePDFDocument($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan)
-    {
-        $settings = Setting::first();
-        $websiteUrl = $settings->website_url ?? 'https://example.com';
-            $dosenMatakuliah = DB::table('dosen_mata_kuliah')
-            ->join('dosen', 'dosen_mata_kuliah.dosen_id', '=', 'dosen.dosen_id')
-            ->join('kurikulum', 'dosen_mata_kuliah.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->where('dosen_mata_kuliah.jenis_dosen', 'teori')
-            ->where('dosen_mata_kuliah.jenis_kelas', $jadwal->jenis_kelas)
-            ->where('kurikulum.kurikulum_id', $jadwal->kurikulum->kurikulum_id)
-            ->select('dosen.nama')
-            ->get();
-        // Generate QR code
-        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($websiteUrl);
-        $qrTempDir = storage_path('app/temp');
-        if (!file_exists($qrTempDir)) {
-            mkdir($qrTempDir, 0755, true);
-        }
-        $qrFilePath = $qrTempDir . '/qr_' . md5($websiteUrl) . '.svg';
-        file_put_contents($qrFilePath, $qrCodeSvg);
-
-        // Ambil logo dalam base64
-        $logoBase64 = null;
-        if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
-            if (file_exists($logoPath)) {
-                $logoBase64 = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        // Generate PDF
-        $pdf = PDF::loadView('pages-dosen.absensi.pdf', [
-            'jadwal' => $jadwal,
-            'mahasiswa' => $mahasiswa,
-            'rekapAbsensi' => $rekapAbsensi,
-            'totalPertemuan' => $totalPertemuan,
-            'settings' => $settings,
-            'logoBase64' => $logoBase64,
-            'qrFilePath' => $qrFilePath,
-            'dosenMatakuliah' => $dosenMatakuliah,
-        ])->setPaper('a4', 'landscape');
-
-        $filename = 'rekap-absensi-' . $jadwal->kurikulum->mataKuliah->nama  . '-' . now()->format('YmdHis') . '.pdf';
-        return $pdf->stream($filename);
-
-    }
     public function generatePertemuan(Request $request)
     {
-        // Validasi input
-        $request->validate([
-            'jadwal_id' => 'required|exists:jadwal,id',
-        ]);
+        $request->validate(['jadwal_id' => ['required', 'integer', 'exists:jadwal,id']]);
+        $jadwal = $this->jadwalTeoriMilikDosen((int) $request->jadwal_id);
 
-        // Ambil jadwal dengan relasi ke pertemuan dan absensi
-        $jadwal = Jadwal::with(['kurikulum.mataKuliah', 'pertemuan.absensi'])
-                        ->findOrFail($request->jadwal_id);
-
-        // Load view dengan data jadwal
-        $pdf = Pdf::loadView('pages-dosen.absensi.laporan-pdf', compact('jadwal'))
-                ->setPaper('a4', 'landscape');
-
-        return $pdf->stream('Laporan-Absensi-Dosen' . $jadwal->kurikulum->mataKuliah->nama . '.pdf');
+        return Pdf::loadView('dosen.absensi.laporan-pdf', compact('jadwal'))
+            ->setPaper('a4', 'landscape')
+            ->stream('BAP-Teori-'.$this->namaFile($jadwal).'.pdf');
     }
-     public function generatePraktikPDF(Request $request)
+
+    public function generatePraktikPDF(Request $request)
     {
-        // Validasi input
-        $this->validate($request, [
-            'jadwal_praktik_id' => 'required|exists:jadwal_praktik,id',
-        ]);
-        $jadwal = JadwalPraktik::with([
-            'kurikulum.mataKuliah',
-            'kurikulum.dosenToMatakuliah.dosen', // Tambahkan ini
-            'pertemuan.absensi'
-        ])->findOrFail($request->jadwal_praktik_id);
+        $request->validate(['jadwal_praktik_id' => ['required', 'integer', 'exists:jadwal_praktik,id']]);
+        $jadwal = $this->jadwalPraktikMilikDosen((int) $request->jadwal_praktik_id);
+        [$mahasiswa, $rekapAbsensi, $totalPertemuan] = $this->rekapJadwal($jadwal);
 
-        // Total pertemuan terkait jadwal
-        $totalPertemuan = $jadwal->pertemuan->count();
-
-        // Rekap absensi berdasarkan pertemuan
-        $rekapAbsensi = $jadwal->pertemuan->map(function ($pertemuan) {
-            return [
-                'topik' => $pertemuan->topik, // Topik pertemuan
-                'tanggal' => $pertemuan->tanggal_pertemuan, // Tanggal pertemuan
-                'absensi' => $pertemuan->absensi->groupBy('mahasiswa_id')->mapWithKeys(function ($absensiRecords, $mahasiswaId) {
-                    // Ambil status pertama dari absensi mahasiswa untuk pertemuan ini
-                    $status = $absensiRecords->first()->status ?? '-';
-                    return [$mahasiswaId => $this->mapAbsensiStatus($status)];
-                }),
-            ];
-        });
-
-
-
-        // Ambil mahasiswa unik berdasarkan absensi
-        $mahasiswa = $jadwal->pertemuan->flatMap(function ($pertemuan) {
-            return $pertemuan->absensi->map(function ($absensi) {
-                return $absensi->mahasiswa; // Ambil mahasiswa terkait absensi
-            });
-        })->unique('mahasiswa_id')->values(); // Hapus duplikat berdasarkan mahasiswa_id
-
-        // Cek ketersediaan data
-        if ($rekapAbsensi->isEmpty() || $mahasiswa->isEmpty()) {
-            return back()->with('error', 'Data absensi tidak tersedia untuk jadwal ini.');
+        if ($totalPertemuan === 0 || $mahasiswa->isEmpty()) {
+            return back()->with('error', 'Data absensi praktik belum tersedia untuk jadwal ini.');
         }
 
-        // Generate PDF
-        return $this->generatePraktikPDFDocument($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan);
+        return $this->rekapPdf($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan, true);
     }
-     public function generatePraktikPDFDocument($jadwal, $mahasiswa, $rekapAbsensi, $totalPertemuan)
-    {
-        $settings = Setting::first();
-        $websiteUrl = $settings->website_url ?? 'https://example.com';
-         $dosenMatakuliah = DB::table('dosen_mata_kuliah')
-            ->join('dosen', 'dosen_mata_kuliah.dosen_id', '=', 'dosen.dosen_id')
-            ->join('kurikulum', 'dosen_mata_kuliah.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-            ->where('dosen_mata_kuliah.jenis_dosen', 'praktik')
-            ->where('dosen_mata_kuliah.jenis_kelas', $jadwal->jenis_kelas)
-            ->where('kurikulum.kurikulum_id', $jadwal->kurikulum->kurikulum_id)
-            ->select('dosen.nama')
-            ->get();
-        // Generate QR code
-        $qrCodeSvg = (string) QrCode::size(200)->margin(1)->generate($websiteUrl);
-        $qrTempDir = storage_path('app/temp');
-        if (!file_exists($qrTempDir)) {
-            mkdir($qrTempDir, 0755, true);
-        }
-        $qrFilePath = $qrTempDir . '/qr_' . md5($websiteUrl) . '.svg';
-        file_put_contents($qrFilePath, $qrCodeSvg);
 
-        // Ambil logo dalam base64
-        $logoBase64 = null;
-        if ($settings && $settings->logo) {
-            $logoPath = public_path('storage/' . $settings->logo);
-            if (file_exists($logoPath)) {
-                $logoBase64 = base64_encode(file_get_contents($logoPath));
-            }
-        }
-        // Generate PDF
-        $pdf = PDF::loadView('pages-dosen.absensi.pdf-praktik', [
-            'jadwal' => $jadwal,
-            'mahasiswa' => $mahasiswa,
-            'rekapAbsensi' => $rekapAbsensi,
-            'totalPertemuan' => $totalPertemuan,
-            'settings' => $settings,
-            'logoBase64' => $logoBase64,
-            'qrFilePath' => $qrFilePath,
-            'dosenMatakuliah' => $dosenMatakuliah,
-        ])->setPaper('a4', 'landscape');
-
-        $filename = 'rekap-absensi-' . $jadwal->kurikulum->mataKuliah->nama  . '-' . now()->format('YmdHis') . '.pdf';
-        return $pdf->stream($filename);
-
-    }
     public function generatePraktikPertemuan(Request $request)
     {
-        // Validasi input
-        $request->validate([
-            'jadwal_praktik_id' => 'required|exists:jadwal_praktik,id',
+        $request->validate(['jadwal_praktik_id' => ['required', 'integer', 'exists:jadwal_praktik,id']]);
+        $jadwal = $this->jadwalPraktikMilikDosen((int) $request->jadwal_praktik_id);
+
+        return Pdf::loadView('dosen.absensi.laporan-praktik-pdf', compact('jadwal'))
+            ->setPaper('a4', 'landscape')
+            ->stream('BAP-Praktik-'.$this->namaFile($jadwal).'.pdf');
+    }
+
+    private function queryJadwalTeori($dosenId)
+    {
+        return Jadwal::query()->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosenId) {
+            $query->where('dosen_id', $dosenId)->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
+        });
+    }
+
+    private function queryJadwalPraktik($dosenId)
+    {
+        return JadwalPraktik::query()->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosenId) {
+            $query->where('dosen_id', $dosenId)->whereRaw('LOWER(jenis_dosen) = ?', ['praktik']);
+        });
+    }
+
+    private function jadwalTeoriMilikDosen(int $jadwalId): Jadwal
+    {
+        return $this->queryJadwalTeori(auth('dosen')->id())
+            ->with([
+                'kurikulum.mataKuliah',
+                'kurikulum.programStudi',
+                'kurikulum.dosenToMatakuliah.dosen',
+                'pertemuan' => fn ($query) => $query
+                    ->with('absensi.mahasiswa')->orderBy('tanggal_pertemuan')->orderBy('jam_mulai'),
+            ])->findOrFail($jadwalId);
+    }
+
+    private function jadwalPraktikMilikDosen(int $jadwalId): JadwalPraktik
+    {
+        return $this->queryJadwalPraktik(auth('dosen')->id())
+            ->with([
+                'kurikulum.mataKuliah',
+                'kurikulum.programStudi',
+                'kurikulum.dosenToMatakuliah.dosen',
+                'pertemuan' => fn ($query) => $query
+                    ->with('absensi.mahasiswa')->orderBy('tanggal_pertemuan')->orderBy('jam_mulai'),
+            ])->findOrFail($jadwalId);
+    }
+
+    private function formatJadwal($jadwal, bool $praktik)
+    {
+        return $jadwal
+            ->groupBy(fn ($item) => $item->kurikulum?->mataKuliah?->smt ?? 'Tidak Ada Semester')
+            ->map(fn ($items) => $items->map(fn ($item) => [
+                $praktik ? 'jadwal_praktik_id' : 'jadwal_id' => $item->id,
+                'hari' => $item->hari ?? '-',
+                'jam_mulai' => $item->jam_mulai ?? '-',
+                'jam_selesai' => $item->jam_selesai ?? '-',
+                'jenis_kelas' => strtolower((string) $item->jenis_kelas),
+                'kode_matakuliah' => $item->kurikulum?->mataKuliah?->matakuliah_id,
+                'nama_matakuliah' => $item->kurikulum?->mataKuliah?->nama ?? '-',
+                'nama_prodi' => $item->kurikulum?->programStudi?->nama ?? '-',
+                'ruangan' => $item->ruangan?->nama ?? '-',
+            ]));
+    }
+
+    private function rekapJadwal($jadwal): array
+    {
+        $rekapAbsensi = $jadwal->pertemuan->map(fn ($pertemuan) => [
+            'topik' => $pertemuan->topik,
+            'tanggal' => $pertemuan->tanggal_pertemuan,
+            'absensi' => $pertemuan->absensi->mapWithKeys(fn ($absensi) => [
+                $absensi->mahasiswa_id => $this->mapStatus($absensi->status),
+            ]),
         ]);
 
-        // Ambil jadwal dengan relasi ke pertemuan dan absensi
-        $jadwal = JadwalPraktik::with(['kurikulum.mataKuliah', 'pertemuan.absensi'])
-                        ->findOrFail($request->jadwal_praktik_id);
+        $mahasiswa = $jadwal->pertemuan
+            ->flatMap(fn ($pertemuan) => $pertemuan->absensi->pluck('mahasiswa'))
+            ->filter()->unique('mahasiswa_id')->sortBy('nama')->values();
 
-        // Load view dengan data jadwal
-        $pdf = Pdf::loadView('pages-dosen.absensi.laporan-praktik-pdf', compact('jadwal'))
-                ->setPaper('a4', 'landscape');
+        return [$mahasiswa, $rekapAbsensi, $jadwal->pertemuan->count()];
+    }
 
-        return $pdf->stream('Laporan-Absensi-Dosen' . $jadwal->kurikulum->mataKuliah->nama . '.pdf');
+    private function rekapPdf($jadwal, $mahasiswa, $rekapAbsensi, int $totalPertemuan, bool $praktik)
+    {
+        $settings = Setting::first();
+        $qrTarget = $settings?->website_url ?: config('app.url');
+        $qrFilePath = 'data:image/svg+xml;base64,'.base64_encode(
+            (string) QrCode::size(160)->margin(1)->generate($qrTarget)
+        );
+        $jenis = $praktik ? 'praktik' : 'teori';
+        $dosenMatakuliah = $jadwal->kurikulum->dosenToMatakuliah
+            ->filter(fn ($item) => strtolower((string) $item->jenis_dosen) === $jenis
+                && strtolower((string) $item->jenis_kelas) === strtolower((string) $jadwal->jenis_kelas))
+            ->pluck('dosen')->filter()->unique('dosen_id')->values();
+        if ($dosenMatakuliah->isEmpty() && auth('dosen')->user()) {
+            $dosenMatakuliah = collect([auth('dosen')->user()]);
+        }
+        $kaprodiSignature = $this->signatureData(
+            $jadwal->kurikulum?->programStudi?->ttd
+        );
+        $view = $praktik ? 'dosen.absensi.pdf-praktik' : 'dosen.absensi.pdf';
+
+        return Pdf::loadView($view, compact(
+            'jadwal', 'mahasiswa', 'rekapAbsensi', 'totalPertemuan',
+            'settings', 'qrFilePath', 'dosenMatakuliah', 'kaprodiSignature'
+        ))->setPaper('a4', 'landscape')
+            ->stream('rekap-absensi-'.$jenis.'-'.$this->namaFile($jadwal).'.pdf');
+    }
+
+    private function mapStatus(?string $status): string
+    {
+        return match (strtolower((string) $status)) {
+            'hadir' => 'H',
+            'izin' => 'I',
+            'sakit' => 'S',
+            'tidak hadir', 'alpha', 'alpa', 'alfa' => 'A',
+            default => '-',
+        };
+    }
+
+    private function namaFile($jadwal): string
+    {
+        return str($jadwal->kurikulum?->mataKuliah?->nama ?? 'mata-kuliah')->slug()->toString();
+    }
+
+    private function signatureData(?string $relativePath): ?string
+    {
+        if (! filled($relativePath)) {
+            return null;
+        }
+
+        $path = storage_path('app/public/'.$relativePath);
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path));
     }
 }

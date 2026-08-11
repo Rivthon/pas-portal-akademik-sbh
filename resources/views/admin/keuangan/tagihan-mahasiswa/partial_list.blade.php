@@ -31,8 +31,8 @@
                     @endif
                 </td>
                 <td>
-                    <a href="{{ route('admin.tagihan-mahasiswa.edit', $item->id) }}" class="btn btn-sm btn-warning">
-                        <i class="bx bxs-edit"></i> Edit
+                    <a href="{{ route('admin.tagihan.detail', $item->id) }}" class="btn btn-sm btn-warning">
+                        <i class="bx bx-detail"></i> Detail
                     </a>
                     <form action="{{ route('admin.tagihan-mahasiswa.destroy', $item->id) }}" method="POST"
                         class="d-inline">

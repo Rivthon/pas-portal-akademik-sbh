@@ -2,9 +2,8 @@
 
 namespace App\Policies;
 
-use App\Models\User;
 use App\Models\ppsm;
-use Illuminate\Auth\Access\Response;
+use App\Models\User;
 
 class PpsmPolicy
 {

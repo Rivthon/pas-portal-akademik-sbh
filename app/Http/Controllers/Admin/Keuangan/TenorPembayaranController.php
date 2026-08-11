@@ -3,24 +3,17 @@
 namespace App\Http\Controllers\Admin\Keuangan;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Gelombang;
 use App\Models\ProgramStudi;
 use App\Models\TenorPembayaran;
-use Illuminate\Http\Request;
-use App\Models\TahunAkademik;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use RealRashid\SweetAlert\Facades\Alert;
 use Carbon\Carbon;
-
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class TenorPembayaranController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware('permission:tenor-list|tenor-create|tenor-edit|tenor-delete', ['only' => ['index', 'show']]);
@@ -29,10 +22,10 @@ class TenorPembayaranController extends Controller
         $this->middleware('permission:tenor-delete', ['only' => ['destroy']]);
     }
 
-   public function index(Request $request)
+    public function index(Request $request)
     {
-        $gelombangsList = \App\Models\Gelombang::all();
-        
+        $gelombangsList = Gelombang::all();
+
         // Generate list 5 tahun terakhir untuk tahun masuk
         $tahunMasukList = [];
         $currentYear = date('Y') + 1;
@@ -43,18 +36,19 @@ class TenorPembayaranController extends Controller
         $tahun_masuk = $request->input('tahun_masuk');
         $gelombang_id = $request->input('gelombang_id');
 
-        if (!$request->has('tahun_masuk') && !$request->has('gelombang_id')) {
+        if (! $request->has('tahun_masuk') && ! $request->has('gelombang_id')) {
             $tenor = collect(); // Kosong
             if ($request->ajax()) {
                 return response()->json([
                     'html' => view('admin.keuangan.tenor-pembayaran.partial_list', compact('tenor'))->render(),
                 ]);
             }
+
             return view('admin.keuangan.tenor-pembayaran.index', compact('tenor', 'gelombangsList', 'tahunMasukList'));
         }
 
         // Start building the query
-        $query = \App\Models\TenorPembayaran::query()->with('gelombang');
+        $query = TenorPembayaran::query()->with('gelombang');
 
         if ($tahun_masuk) {
             $query->where('tahun_masuk', $tahun_masuk);
@@ -87,8 +81,7 @@ class TenorPembayaranController extends Controller
         return view('admin.keuangan.tenor-pembayaran.form', compact('programStudi', 'gelombang'));
     }
 
-
-   public function edit($id)
+    public function edit($id)
     {
         $tenor = TenorPembayaran::findOrFail($id);
 
@@ -105,7 +98,7 @@ class TenorPembayaranController extends Controller
         return view('admin.keuangan.tenor-pembayaran.form', compact('tenor', 'gelombang'));
     }
 
-   public function store(Request $request)
+    public function store(Request $request)
     {
         $rules = [
             'semester' => 'required|integer',
@@ -134,7 +127,7 @@ class TenorPembayaranController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        TenorPembayaran::create($request->only([
+        $newTenor = TenorPembayaran::create($request->only([
             'semester',
             'tenor',
             'persentase',
@@ -143,6 +136,8 @@ class TenorPembayaranController extends Controller
             'gelombang_id',
         ]));
 
+        activity_log('tambah_tenor', 'Admin menambah tenor pembayaran: '.$request->tenor.' (Semester '.$request->semester.')');
+
         Alert::toast('Tenor berhasil ditambahkan.', 'success')
             ->position('bottom-end')
             ->autoClose(3000);
@@ -150,7 +145,7 @@ class TenorPembayaranController extends Controller
         return redirect()->route('admin.tenor-pembayaran.index');
     }
 
-   public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         // Temukan data berdasarkan ID
         $tenor = TenorPembayaran::findOrFail($id);
@@ -180,6 +175,13 @@ class TenorPembayaranController extends Controller
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
+
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
@@ -192,6 +194,15 @@ class TenorPembayaranController extends Controller
             'gelombang_id',
         ]));
 
+        activity_log('update_tenor', 'Admin memperbarui tenor pembayaran ID: '.$tenor->id);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tenor berhasil diperbarui.',
+            ]);
+        }
+
         Alert::toast('Tenor berhasil diperbarui.', 'success')
             ->position('bottom-end')
             ->autoClose(3000);
@@ -199,14 +210,65 @@ class TenorPembayaranController extends Controller
         return redirect()->route('admin.tenor-pembayaran.index');
     }
 
-
-    public function destroy($id): RedirectResponse
+    public function destroy($id)
     {
         $tenor = TenorPembayaran::findOrFail($id);
+        activity_log('hapus_tenor', 'Admin menghapus tenor pembayaran ID: '.$id);
         $tenor->delete();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tenor berhasil dihapus.',
+            ]);
+        }
+
         Alert::toast('Tenor berhasil dihapus.', 'info')
-        ->position('bottom-end')
-        ->autoClose(3000);
+            ->position('bottom-end')
+            ->autoClose(3000);
+
+        return redirect()->route('admin.tenor-pembayaran.index');
+    }
+
+    public function storeBulk(Request $request)
+    {
+        $request->validate([
+            'tenor_data' => 'required|array',
+            'tenor_data.*.semester' => 'required|integer',
+            'tenor_data.*.tenor' => 'required|string',
+            'tenor_data.*.persentase' => 'required|numeric|min:0|max:100',
+            'tenor_data.*.batas_waktu' => 'required|date',
+            'tenor_data.*.tahun_masuk' => 'required',
+            'tenor_data.*.gelombang_id' => 'required|exists:gelombang,id',
+        ], [
+            'tenor_data.required' => 'Data tenor tidak boleh kosong.',
+            'tenor_data.*.semester.required' => 'Semester wajib diisi pada setiap baris.',
+            'tenor_data.*.tenor.required' => 'Nama Cicilan wajib diisi.',
+            'tenor_data.*.persentase.required' => 'Persentase wajib diisi.',
+            'tenor_data.*.batas_waktu.required' => 'Batas waktu wajib diisi.',
+            'tenor_data.*.tahun_masuk.required' => 'Tahun masuk wajib diisi.',
+            'tenor_data.*.gelombang_id.required' => 'Gelombang wajib dipilih.',
+        ]);
+
+        $count = 0;
+        foreach ($request->tenor_data as $data) {
+            TenorPembayaran::create([
+                'semester' => $data['semester'],
+                'tenor' => $data['tenor'],
+                'persentase' => $data['persentase'],
+                'batas_waktu' => $data['batas_waktu'],
+                'tahun_masuk' => $data['tahun_masuk'],
+                'gelombang_id' => $data['gelombang_id'],
+            ]);
+            $count++;
+        }
+
+        activity_log('tambah_bulk_tenor', 'Admin menambah '.$count.' data tenor pembayaran secara masal.');
+
+        Alert::toast($count.' data Tenor berhasil ditambahkan.', 'success')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
         return redirect()->route('admin.tenor-pembayaran.index');
     }
 }

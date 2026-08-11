@@ -14,15 +14,16 @@ class Evaluasi extends Model
     protected $primaryKey = 'eval_id'; // Kolom primary key
 
     public $incrementing = true; // Set true jika primary key auto increment
+
     protected $keyType = 'int'; // Tipe data primary key
 
     protected $fillable = [
         'eval_id',
         'nama',
     ];
-        public function penilaian()
+
+    public function penilaian()
     {
         return $this->hasMany(Penilaian::class, 'evaluasi_id');
     }
-
-    }
+}

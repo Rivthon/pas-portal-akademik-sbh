@@ -3,16 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-
 use App\Models\Dosen;
 use App\Models\Jadwal;
-use App\Models\Absensi;
 use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
-use Illuminate\Http\Request;
-
+use Carbon\Carbon;
+use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
@@ -30,7 +28,7 @@ class HomeController extends Controller
     /**
      * Show the application dashboard.
      *
-     * @return \Illuminate\Contracts\Support\Renderable
+     * @return Renderable
      */
     public function index()
     {
@@ -48,10 +46,10 @@ class HomeController extends Controller
         $programStudiData = ProgramStudi::whereHas('mahasiswa', function ($query) {
             $query->where('status_mhs', 'aktif');
         })->withCount([
-                    'mahasiswa' => function ($query) {
-                        $query->where('status_mhs', 'aktif');
-                    }
-                ])->get();
+            'mahasiswa' => function ($query) {
+                $query->where('status_mhs', 'aktif');
+            },
+        ])->get();
 
         $programStudiLabels = $programStudiData->pluck('nama')->toArray();
         $programStudiCounts = $programStudiData->pluck('mahasiswa_count')->toArray();
@@ -67,14 +65,14 @@ class HomeController extends Controller
         // Tahun Akademik Aktif
         $tahunAkademikAktif = TahunAkademik::where('status_ta', 'aktif')->first();
 
-        // Total dosen  
+        // Total dosen
         $totalDosen = Dosen::count();
 
         // Total mata kuliah
         $totalMatakuliah = Matakuliah::count();
 
         // Jadwal hari ini
-        $hariIni = strtolower(\Carbon\Carbon::now()->translatedFormat('l'));
+        $hariIni = strtolower(Carbon::now()->translatedFormat('l'));
         $jadwalHariIni = collect();
         if ($tahunAkademikAktif) {
             $jadwalHariIni = Jadwal::with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'programStudi', 'ruangan'])
@@ -84,6 +82,8 @@ class HomeController extends Controller
                 ->limit(5)
                 ->get();
         }
+
+        activity_log('akses_dashboard', 'Admin mengakses dashboard');
 
         return view('admin.home', [
             'totalMahasiswa' => $totalMahasiswa,
@@ -102,5 +102,4 @@ class HomeController extends Controller
             'jadwalHariIni' => $jadwalHariIni,
         ]);
     }
-
 }
