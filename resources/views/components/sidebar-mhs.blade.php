@@ -199,6 +199,12 @@ $user = Auth::guard('mahasiswa')->user();
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Informasi & Akun</span>
         </li>
+        <li class="menu-item @if(Route::is('mahasiswa.pedoman-akademik.*')) active @endif">
+            <a href="{{ route('mahasiswa.pedoman-akademik.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-book-open text-primary"></i>
+                <div class="fw-medium">Pedoman Akademik</div>
+            </a>
+        </li>
         <li class="menu-item @if(Route::is('mahasiswa.permintaan.*') || Route::is('mahasiswa.index.berita') || Route::is('mahasiswa.administrasi.*') || Route::is('mahasiswa.profile.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-cog text-secondary"></i>

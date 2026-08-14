@@ -23,11 +23,11 @@
             </a>
         </li>
 
-        @canany(['lms-list', 'rps-list', 'absensi-list'])
+        @canany(['lms-list', 'rps-list', 'absensi-list', 'pedoman-akademik-list'])
             <li class="menu-header small text-uppercase">
                 <span class="menu-header-text">Portal Pembelajaran</span>
             </li>
-            <li class="menu-item @if(Route::is('admin.lms.*') || Route::is('admin.rps.*') || Route::is('admin.absensi.*')) active open @endif">
+            <li class="menu-item @if(Route::is('admin.lms.*') || Route::is('admin.rps.*') || Route::is('admin.absensi.*') || Route::is('admin.pedoman-akademik.*')) active open @endif">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-book-reader"></i>
                     <div>Monitoring Perkuliahan</div>
@@ -46,6 +46,11 @@
                     @can('absensi-list')
                         <li class="menu-item @if(Route::is('admin.absensi.*')) active @endif">
                             <a href="{{ route('admin.absensi.index') }}" class="menu-link"><div>Absensi Semua Matkul</div></a>
+                        </li>
+                    @endcan
+                    @can('pedoman-akademik-list')
+                        <li class="menu-item @if(Route::is('admin.pedoman-akademik.*')) active @endif">
+                            <a href="{{ route('admin.pedoman-akademik.index') }}" class="menu-link"><div>Pedoman Akademik</div></a>
                         </li>
                     @endcan
                 </ul>

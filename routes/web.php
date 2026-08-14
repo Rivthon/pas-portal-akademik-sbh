@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\Akademik\KurikulumController;
 use App\Http\Controllers\Admin\Akademik\LmsController as AdminLmsController;
 use App\Http\Controllers\Admin\Akademik\MatakuliahController;
 use App\Http\Controllers\Admin\Akademik\PertemuanController;
+use App\Http\Controllers\Admin\Akademik\PedomanAkademikController as AdminPedomanAkademikController;
 use App\Http\Controllers\Admin\Akademik\RpsController as AdminRpsController;
 use App\Http\Controllers\Admin\Akademik\RuanganController;
 use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
@@ -69,6 +70,7 @@ use App\Http\Controllers\Mahasiswa\EdomController;
 use App\Http\Controllers\Mahasiswa\JadwalKuliahController;
 use App\Http\Controllers\Mahasiswa\LmsMahasiswaController;
 use App\Http\Controllers\Mahasiswa\PerkuliahanController;
+use App\Http\Controllers\Mahasiswa\PedomanAkademikController as MahasiswaPedomanAkademikController;
 use App\Http\Controllers\Mahasiswa\PermintaanController as MhsPermintaanController;
 use App\Http\Controllers\Mahasiswa\ProfileUserController;
 use App\Http\Controllers\Mahasiswa\QuizMahasiswaController;
@@ -115,6 +117,12 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/kalender-akademik/{calendar}/file', [CalendarAkademikFileController::class, 'show'])
             ->name('calendar-akademik.file');
+        Route::get('/pedoman-akademik', [MahasiswaPedomanAkademikController::class, 'index'])
+            ->name('pedoman-akademik.index');
+        Route::get('/pedoman-akademik/{pedoman}/lihat', [MahasiswaPedomanAkademikController::class, 'preview'])
+            ->name('pedoman-akademik.preview');
+        Route::get('/pedoman-akademik/{pedoman}/download', [MahasiswaPedomanAkademikController::class, 'download'])
+            ->name('pedoman-akademik.download');
         // Profil mahasiswa
         Route::get('profile', [ProfileUserController::class, 'index'])->name('profile.index');
         Route::post('profile', [ProfileUserController::class, 'update'])->name('profile.update');
@@ -299,6 +307,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('permission:rps-list')->group(function () {
             Route::get('/rps', [AdminRpsController::class, 'index'])->name('rps.index');
             Route::get('/rps/{rps}', [AdminRpsController::class, 'show'])->name('rps.show');
+        });
+
+        Route::prefix('pedoman-akademik')->name('pedoman-akademik.')->group(function () {
+            Route::get('/', [AdminPedomanAkademikController::class, 'index'])
+                ->middleware('permission:pedoman-akademik-list')->name('index');
+            Route::post('/', [AdminPedomanAkademikController::class, 'store'])
+                ->middleware('permission:pedoman-akademik-create')->name('store');
+            Route::get('/{pedoman}/edit', [AdminPedomanAkademikController::class, 'edit'])
+                ->middleware('permission:pedoman-akademik-edit')->name('edit');
+            Route::put('/{pedoman}', [AdminPedomanAkademikController::class, 'update'])
+                ->middleware('permission:pedoman-akademik-edit')->name('update');
+            Route::delete('/{pedoman}', [AdminPedomanAkademikController::class, 'destroy'])
+                ->middleware('permission:pedoman-akademik-delete')->name('destroy');
+            Route::get('/{pedoman}/lihat', [AdminPedomanAkademikController::class, 'preview'])
+                ->middleware('permission:pedoman-akademik-list')->name('preview');
+            Route::get('/{pedoman}/download', [AdminPedomanAkademikController::class, 'download'])
+                ->middleware('permission:pedoman-akademik-list')->name('download');
         });
 
         Route::get('/settings', [SettingController::class, 'edit'])->middleware('permission:settings-edit')->name('settings.edit');

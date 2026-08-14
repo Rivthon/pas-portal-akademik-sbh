@@ -66,6 +66,7 @@ class RoleAndPermissionSeeder extends Seeder
             'absensi-list', 'absensi-edit', 'absensi-export',
             'lms-list', 'rps-list',
             'bap-pengajaran-list',
+            'pedoman-akademik-list', 'pedoman-akademik-create', 'pedoman-akademik-edit', 'pedoman-akademik-delete',
         ];
     }
 
@@ -182,6 +183,7 @@ class RoleAndPermissionSeeder extends Seeder
             'krs-archive-list', 'krs-archive-export',
             'absensi-list', 'absensi-edit', 'absensi-export',
             'lms-list', 'rps-list',
+            'pedoman-akademik-list', 'pedoman-akademik-create', 'pedoman-akademik-edit', 'pedoman-akademik-delete',
             'evaluasi-list',
             'input-nilai', 'list-nilai', 'nilai-export',
             'input-uap', 'list-uap',

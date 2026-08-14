@@ -22,6 +22,10 @@ class AdminRolePermissionCatalogTest extends TestCase
             'krs-archive-list',
             'krs-archive-export',
             'mahasiswa-impersonate',
+            'pedoman-akademik-list',
+            'pedoman-akademik-create',
+            'pedoman-akademik-edit',
+            'pedoman-akademik-delete',
         ];
 
         foreach ($permissionNames as $permissionName) {
@@ -68,6 +72,10 @@ class AdminRolePermissionCatalogTest extends TestCase
             'admin.rps.index' => 'permission:rps-list',
             'admin.bap-pengajaran.index' => 'permission:bap-pengajaran-list',
             'admin.bap-pengajaran.pdf' => 'permission:bap-pengajaran-list',
+            'admin.pedoman-akademik.index' => 'permission:pedoman-akademik-list',
+            'admin.pedoman-akademik.store' => 'permission:pedoman-akademik-create',
+            'admin.pedoman-akademik.update' => 'permission:pedoman-akademik-edit',
+            'admin.pedoman-akademik.destroy' => 'permission:pedoman-akademik-delete',
             'admin.krs-archive.index' => 'permission:krs-archive-list',
             'admin.krs-archive.download-semester' => 'permission:krs-archive-export',
             'admin.settings.edit' => 'permission:settings-edit',
@@ -107,6 +115,7 @@ class AdminRolePermissionCatalogTest extends TestCase
     {
         $this->assertTrue(Role::findByName('baak')->hasPermissionTo('lms-list'));
         $this->assertTrue(Role::findByName('baak')->hasPermissionTo('krs-archive-list'));
+        $this->assertTrue(Role::findByName('baak')->hasPermissionTo('pedoman-akademik-create'));
         $this->assertTrue(Role::findByName('bauk')->hasPermissionTo('bap-pengajaran-list'));
         $this->assertTrue(Role::findByName('upmi')->hasPermissionTo('rps-list'));
     }
