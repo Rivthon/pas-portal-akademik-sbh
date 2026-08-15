@@ -49,15 +49,5 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->view('errors.invalid_order', ['message' => $e->getMessage()], 500);
         });
 
-        // Menangani error umum lainnya
-        $exceptions->render(function (Throwable $e, $request) {
-            if (app()->environment('production')) {
-                // Tampilkan halaman error umum di environment production
-                return response()->view('errors.general', ['message' => 'Terjadi kesalahan pada server.'], 500);
-            }
-
-            // Untuk environment non-production, gunakan default Laravel
-            return null;
-        });
     })
     ->create();
