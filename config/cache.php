@@ -15,7 +15,9 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    // CACHE_DRIVER dipertahankan sebagai fallback untuk instalasi lama.
+    // Tanpa fallback ini, .env lama diam-diam beralih ke cache database.
+    'default' => env('CACHE_STORE', env('CACHE_DRIVER', 'database')),
 
     /*
     |--------------------------------------------------------------------------

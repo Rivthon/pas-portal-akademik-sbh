@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\LoginAttemptService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -14,11 +15,20 @@ class MahasiswaLoginController extends Controller
 {
     public function showLoginForm()
     {
-        $settings = Cache::remember('app_settings', 3600, function () {
-            return DB::table('settings')->first();
-        });
         if (Auth::guard('mahasiswa')->check()) {
             return redirect()->route('mahasiswa.dashboard');
+        }
+
+        try {
+            $settings = Cache::remember('app_settings', 3600, function () {
+                return DB::table('settings')->first();
+            });
+        } catch (QueryException $e) {
+            report($e);
+
+            return response()->view('errors.mysql', [
+                'message' => 'Database sedang mengalami gangguan. Silakan coba beberapa saat lagi.',
+            ], 500);
         }
 
         return view('auth.mahasiswa-login', compact('settings'));
