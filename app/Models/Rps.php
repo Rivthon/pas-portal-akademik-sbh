@@ -16,7 +16,6 @@ class Rps extends Model
         'jenis_kelas',
         'nama_file',
         'file',
-        'status',
     ];
 
     public function kurikulum()

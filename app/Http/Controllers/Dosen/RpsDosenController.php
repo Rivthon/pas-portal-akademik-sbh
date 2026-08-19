@@ -105,7 +105,6 @@ class RpsDosenController extends Controller
                         'dosen_id' => $dosen->dosen_id,
                         'nama_file' => $namaAsli,
                         'file' => $path,
-                        'status' => 1,
                     ]
                 );
             });
