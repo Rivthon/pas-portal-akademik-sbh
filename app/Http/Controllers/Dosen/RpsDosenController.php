@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
-use App\Models\DosenMataKuliah;
+use App\Models\DosenMatakuliah;
 use App\Models\Rps;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
@@ -23,7 +23,7 @@ class RpsDosenController extends Controller
             return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
 
-        $mataKuliah = DosenMataKuliah::with([
+        $mataKuliah = DosenMatakuliah::with([
             'kurikulum.mataKuliah',
             'kurikulum.programStudi',
         ])
@@ -66,7 +66,7 @@ class RpsDosenController extends Controller
         $dosen = Auth::guard('dosen')->user();
         $activeTA = TahunAkademik::where('status_ta', 1)->firstOrFail();
 
-        $isAssigned = DosenMataKuliah::where('dosen_id', $dosen->dosen_id)
+        $isAssigned = DosenMatakuliah::where('dosen_id', $dosen->dosen_id)
             ->where('kurikulum_id', $request->kurikulum_id)
             ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
             ->whereRaw('LOWER(jenis_kelas) = ?', [strtolower($request->jenis_kelas)])
@@ -132,7 +132,7 @@ class RpsDosenController extends Controller
     public function show(Rps $rps)
     {
         $dosen = Auth::guard('dosen')->user();
-        $isAssigned = DosenMataKuliah::where('dosen_id', $dosen->dosen_id)
+        $isAssigned = DosenMatakuliah::where('dosen_id', $dosen->dosen_id)
             ->where('kurikulum_id', $rps->kurikulum_id)
             ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
             ->whereRaw('LOWER(jenis_kelas) = ?', [strtolower((string) $rps->jenis_kelas)])

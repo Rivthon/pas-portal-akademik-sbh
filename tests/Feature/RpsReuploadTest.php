@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Dosen;
-use App\Models\DosenMataKuliah;
+use App\Models\DosenMatakuliah;
 use App\Models\Rps;
 use App\Models\TahunAkademik;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -20,7 +20,7 @@ class RpsReuploadTest extends TestCase
         Storage::fake('public');
 
         $activeTA = TahunAkademik::where('status_ta', 1)->firstOrFail();
-        $assignment = DosenMataKuliah::whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+        $assignment = DosenMatakuliah::whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
             ->whereIn('jenis_kelas', ['reguler', 'karyawan'])
             ->whereHas('kurikulum', fn ($query) => $query->where('ta_id', $activeTA->ta_id))
             ->firstOrFail();
