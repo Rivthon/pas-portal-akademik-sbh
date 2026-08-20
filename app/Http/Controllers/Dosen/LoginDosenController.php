@@ -28,13 +28,17 @@ class LoginDosenController extends Controller
         $request->validate([
             'email' => 'required|string',
             'password' => 'required|string|min:6',
+            'remember' => 'nullable|boolean',
         ]);
 
         // Tentukan apakah input adalah email atau NIDN
         $fieldType = filter_var($request->email, FILTER_VALIDATE_EMAIL) ? 'email' : 'nidn';
 
         // Coba login dengan kredensial yang diberikan
-        if (Auth::guard('dosen')->attempt([$fieldType => $request->email, 'password' => $request->password])) {
+        if (Auth::guard('dosen')->attempt(
+            [$fieldType => $request->email, 'password' => $request->password],
+            $request->boolean('remember')
+        )) {
             $loginAttempts->clear($request, 'dosen');
             $request->session()->regenerate();
             $dosen = Auth::guard('dosen')->user();
@@ -44,7 +48,7 @@ class LoginDosenController extends Controller
             // Redirect ke dashboard dosen dengan alert toast berhasil login
             Alert::success('Login Berhasil', 'Selamat datang '.$dosen->nama)->showConfirmButton('OK', '#3085d6');
 
-            return redirect()->route('dosen.dashboard');
+            return redirect()->intended(route('dosen.dashboard'));
         }
 
         // Debugging: Log jika password salah

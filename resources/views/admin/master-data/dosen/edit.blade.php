@@ -108,7 +108,7 @@
                         <!-- No Telp -->
                         <div class="col-md-6 mb-3">
                             <label for="no_telp" class="form-label"><strong>Nomor Telepon:</strong></label>
-                            <input type="number" name="no_telp" id="no_telp" class="form-control @error('no_telp') is-invalid @enderror" value="{{ old('no_telp', $dosen->no_telp) }}">
+                            <input type="tel" name="no_telp" id="no_telp" maxlength="13" inputmode="tel" class="form-control @error('no_telp') is-invalid @enderror" value="{{ old('no_telp', $dosen->no_telp) }}">
                             @error('no_telp')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

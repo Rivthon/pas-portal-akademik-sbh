@@ -40,13 +40,17 @@ class MahasiswaLoginController extends Controller
         $request->validate([
             'email' => 'required|string',
             'password' => 'required|string|min:6',
+            'remember' => 'nullable|boolean',
         ]);
 
         // Determine if the input is an email or NIM
         $fieldType = $this->getFieldType($request->email);
 
         // Attempt to log in based on the determined field type
-        if (Auth::guard('mahasiswa')->attempt([$fieldType => $request->email, 'password' => $request->password])) {
+        if (Auth::guard('mahasiswa')->attempt(
+            [$fieldType => $request->email, 'password' => $request->password],
+            $request->boolean('remember')
+        )) {
             $loginAttempts->clear($request, 'mahasiswa');
             $request->session()->regenerate();
             // Get the authenticated user
@@ -61,7 +65,7 @@ class MahasiswaLoginController extends Controller
             // Redirect to mahasiswa dashboard with a success alert
             Alert::success('Login Berhasil', 'Selamat datang '.$mahasiswa->nama)->showConfirmButton('OK', '#3085d6');
 
-            return redirect()->route('mahasiswa.dashboard');
+            return redirect()->intended(route('mahasiswa.dashboard'));
         }
 
         // Debugging: Log the failed credentials

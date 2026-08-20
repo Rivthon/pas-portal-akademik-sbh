@@ -100,7 +100,7 @@
                         <div class="mb-3">
                             <label for="tanggal_lahir" class="form-label">Tanggal Lahir</label>
                             <input type="date" name="tanggal_lahir" id="tanggal_lahir" class="form-control"
-                                value="{{ old('tanggal_lahir', isset($dosen) ? \Carbon\Carbon::parse($dosen->tanggal_lahir)->format('Y-m-d') : '') }}">
+                                value="{{ old('tanggal_lahir', isset($dosen) && $dosen->tanggal_lahir ? \Carbon\Carbon::parse($dosen->tanggal_lahir)->format('Y-m-d') : '') }}">
                         </div>
 
                         <!-- Alamat -->
@@ -113,7 +113,7 @@
                         <!-- No Telp -->
                         <div class="mb-3">
                             <label for="no_telp" class="form-label">Nomor Telepon</label>
-                            <input type="number" name="no_telp" id="no_telp" class="form-control"
+                            <input type="tel" name="no_telp" id="no_telp" maxlength="13" inputmode="tel" class="form-control"
                                 value="{{ old('no_telp', $dosen->no_telp ?? '') }}">
                         </div>
 

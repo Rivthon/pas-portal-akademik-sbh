@@ -49,10 +49,11 @@ class LoginController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|min:6',
+            'remember' => 'nullable|boolean',
         ]);
 
         // Autentikasi dengan guard web
-        if (Auth::attempt($request->only('email', 'password'), $request->filled('remember'))) {
+        if (Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             $loginAttempts->clear($request, 'web');
             $request->session()->regenerate();
             // Log aktivitas login admin

@@ -69,6 +69,10 @@ class DosenController extends Controller
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'email' => 'required|email|unique:dosen,email',
             'password' => 'required|string|min:8', // Validasi tanpa konfirmasi
+            'tempat' => 'nullable|string|max:50',
+            'tanggal_lahir' => 'nullable|date',
+            'no_telp' => 'nullable|string|max:13',
+            'alamat' => 'nullable|string|max:120',
         ]);
 
         $dosen = new Dosen;
@@ -97,6 +101,10 @@ class DosenController extends Controller
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'email' => 'required|email|unique:dosen,email,'.$id.',dosen_id',
             'password' => 'nullable|string|min:8', // Password opsional tanpa konfirmasi
+            'tempat' => 'nullable|string|max:50',
+            'tanggal_lahir' => 'nullable|date',
+            'no_telp' => 'nullable|string|max:13',
+            'alamat' => 'nullable|string|max:120',
         ]);
 
         $dosen = Dosen::findOrFail($id);

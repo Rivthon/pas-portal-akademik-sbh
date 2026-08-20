@@ -5,9 +5,11 @@ use App\Http\Middleware\CheckMahasiswaStatus;
 use App\Http\Middleware\LogActivity;
 use App\Http\Middleware\ProgressiveLoginThrottle;
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -34,6 +36,25 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return null;
+            }
+
+            $loginRoute = match (true) {
+                $request->is('dosen', 'dosen/*') => 'dosen.login',
+                $request->is('mahasiswa', 'mahasiswa/*') => 'mahasiswa.login',
+                default => 'admin.login',
+            };
+
+            return redirect()
+                ->guest(route($loginRoute))
+                ->with(
+                    'auth_notice',
+                    'Sesi Anda telah berakhir atau Anda telah logout. Silakan login kembali.'
+                );
+        });
+
         // Menangani pelaporan exception tertentu
         $exceptions->report(function (InvalidOrderException $e) {
             Log::error('Invalid Order Exception: '.$e->getMessage());

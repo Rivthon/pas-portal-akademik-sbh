@@ -102,6 +102,8 @@
                 </div>
                 @endif
 
+                @include('auth.partials.session-notice')
+
                 <form method="POST" action="{{ route('admin.login') }}" class="w-100">
                     @csrf
                     <!-- Email Input -->
@@ -145,11 +147,12 @@
 
                     <!-- Remember Me -->
                     <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember')
+                        <input class="form-check-input" type="checkbox" name="remember" id="remember" value="1" {{ old('remember')
                             ? 'checked' : '' }}>
                         <label class="form-check-label" for="remember">
-                            Remember Me
+                            Tetap masuk sampai logout manual
                         </label>
+                        <div class="form-text">Gunakan hanya pada perangkat pribadi.</div>
                     </div>
 
                     <!-- Submit Button -->

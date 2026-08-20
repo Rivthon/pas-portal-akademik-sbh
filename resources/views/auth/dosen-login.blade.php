@@ -82,6 +82,8 @@
                     <p class="font-body-md text-body-md text-on-surface-variant">Silakan login dengan NIDN atau Email serta Password Anda.</p>
                 </div>
 
+                @include('auth.partials.session-notice')
+
                 <form method="POST" action="{{ route('dosen.login') }}" class="space-y-lg">
                     @csrf
 
@@ -131,11 +133,13 @@
                                 type="checkbox"
                                 name="remember"
                                 id="remember"
+                                value="1"
                                 {{ old('remember') ? 'checked' : '' }}/>
-                            <span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Remember Me</span>
+                            <span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Tetap masuk sampai logout manual</span>
                         </label>
                         <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Lupa Password?</a>
                     </div>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant -mt-md">Gunakan hanya pada perangkat pribadi.</p>
 
                     <button id="dosen-login-submit" class="w-full py-md bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-on-primary-fixed-variant focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface transition-all active:scale-[0.98] shadow-[0_1px_3px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_6px_rgba(0,0,0,0.15)] flex justify-center items-center gap-xs" type="submit">
                         <span data-login-label>Login</span>
