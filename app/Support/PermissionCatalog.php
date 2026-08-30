@@ -23,7 +23,7 @@ class PermissionCatalog
             'services' => ['label' => 'Helpdesk & Transkrip', 'icon' => 'bx-support', 'prefixes' => ['permintaan-', 'pengajuan-transkrip-']],
             'student_affairs' => ['label' => 'Kemahasiswaan & SKPI', 'icon' => 'bx-award', 'prefixes' => ['aktivasi-', 'skpi-', 'berita-'], 'exact' => ['list-aktivasi']],
             'reports' => ['label' => 'Laporan', 'icon' => 'bx-file', 'prefixes' => ['laporan-', 'mutu-laporan-']],
-            'system' => ['label' => 'Sistem & Audit', 'icon' => 'bx-cog', 'prefixes' => ['settings-', 'activity-log-', 'product-']],
+            'system' => ['label' => 'Sistem & Audit', 'icon' => 'bx-cog', 'prefixes' => ['settings-', 'activity-log-', 'system-', 'product-']],
         ];
 
         $groups = [];
@@ -83,6 +83,11 @@ class PermissionCatalog
             'krs-archive-export' => 'Unduh arsip KRS',
             'mahasiswa-impersonate' => 'Login sebagai mahasiswa',
             'settings-edit' => 'Ubah pengaturan portal',
+            'system-health-list' => 'Lihat kesehatan sistem',
+            'system-error-log-list' => 'Lihat error production',
+            'system-backup-list' => 'Lihat daftar backup',
+            'system-backup-create' => 'Buat backup manual',
+            'system-backup-download' => 'Unduh backup sistem',
         ];
 
         if (isset($overrides[$permission])) {

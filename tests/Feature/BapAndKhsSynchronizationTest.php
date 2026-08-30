@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BapPengajaranController;
 use App\Models\Dosen;
 use App\Models\Jadwal;
 use App\Models\TahunAkademik;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Tests\TestCase;
 
@@ -39,18 +40,29 @@ class BapAndKhsSynchronizationTest extends TestCase
     public function test_bap_does_not_count_future_meetings(): void
     {
         $jadwal = $this->tikFarmasiKaryawan();
-        $view = app(BapPengajaranController::class)->show(
-            Request::create('/admin/bap-pengajaran/dosen/22', 'GET', [
-                'ta_id' => $this->activeTa()->ta_id,
-            ]),
-            $this->dendy()
-        );
+        $firstMeetingDate = $jadwal->pertemuan()
+            ->where('dosen_id', $this->dendy()->dosen_id)
+            ->min('tanggal_pertemuan');
+        $this->assertNotNull($firstMeetingDate);
 
-        $bapJadwal = $view->getData()['jadwalTeori']->firstWhere('id', $jadwal->id);
+        $this->travelTo(Carbon::parse($firstMeetingDate)->subDay());
 
-        $this->assertNotNull($bapJadwal);
-        $this->assertSame(0, (int) $bapJadwal->jumlah_pertemuan);
-        $this->assertCount(0, $bapJadwal->pertemuan);
+        try {
+            $view = app(BapPengajaranController::class)->show(
+                Request::create('/admin/bap-pengajaran/dosen/22', 'GET', [
+                    'ta_id' => $this->activeTa()->ta_id,
+                ]),
+                $this->dendy()
+            );
+
+            $bapJadwal = $view->getData()['jadwalTeori']->firstWhere('id', $jadwal->id);
+
+            $this->assertNotNull($bapJadwal);
+            $this->assertSame(0, (int) $bapJadwal->jumlah_pertemuan);
+            $this->assertCount(0, $bapJadwal->pertemuan);
+        } finally {
+            $this->travelBack();
+        }
     }
 
     public function test_dendy_sees_eight_separate_active_schedule_cards_for_grading(): void

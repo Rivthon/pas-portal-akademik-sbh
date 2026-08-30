@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Throwable;
 
 class ActivityLogService
 {
@@ -109,16 +110,22 @@ class ActivityLogService
     /**
      * Buat record log di database.
      */
-    protected function createLog(string $userId, string $userType, string $aktivitas, ?string $deskripsi): ActivityLog
+    protected function createLog(string $userId, string $userType, string $aktivitas, ?string $deskripsi): ?ActivityLog
     {
-        return ActivityLog::create([
-            'user_id' => $userId,
-            'user_type' => $userType,
-            'aktivitas' => $aktivitas,
-            'deskripsi' => $deskripsi,
-            'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
-            'created_at' => now(),
-        ]);
+        try {
+            return ActivityLog::create([
+                'user_id' => $userId,
+                'user_type' => $userType,
+                'aktivitas' => $aktivitas,
+                'deskripsi' => $deskripsi,
+                'ip_address' => Request::ip(),
+                'user_agent' => Request::userAgent(),
+                'created_at' => now(),
+            ]);
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 }

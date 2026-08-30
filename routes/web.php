@@ -13,8 +13,8 @@ use App\Http\Controllers\Admin\Akademik\KrsArchiveController;
 use App\Http\Controllers\Admin\Akademik\KurikulumController;
 use App\Http\Controllers\Admin\Akademik\LmsController as AdminLmsController;
 use App\Http\Controllers\Admin\Akademik\MatakuliahController;
-use App\Http\Controllers\Admin\Akademik\PertemuanController;
 use App\Http\Controllers\Admin\Akademik\PedomanAkademikController as AdminPedomanAkademikController;
+use App\Http\Controllers\Admin\Akademik\PertemuanController;
 use App\Http\Controllers\Admin\Akademik\RpsController as AdminRpsController;
 use App\Http\Controllers\Admin\Akademik\RuanganController;
 use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
@@ -45,6 +45,7 @@ use App\Http\Controllers\Admin\Penilaian\UapNilaiController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\ValidatorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
@@ -69,8 +70,8 @@ use App\Http\Controllers\Mahasiswa\DashboardController;
 use App\Http\Controllers\Mahasiswa\EdomController;
 use App\Http\Controllers\Mahasiswa\JadwalKuliahController;
 use App\Http\Controllers\Mahasiswa\LmsMahasiswaController;
-use App\Http\Controllers\Mahasiswa\PerkuliahanController;
 use App\Http\Controllers\Mahasiswa\PedomanAkademikController as MahasiswaPedomanAkademikController;
+use App\Http\Controllers\Mahasiswa\PerkuliahanController;
 use App\Http\Controllers\Mahasiswa\PermintaanController as MhsPermintaanController;
 use App\Http\Controllers\Mahasiswa\ProfileUserController;
 use App\Http\Controllers\Mahasiswa\QuizMahasiswaController;
@@ -337,6 +338,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('permission:activity-log-list')->name('activity-logs.index');
         Route::get('/activity-logs/pdf', [ActivityLogController::class, 'exportPdf'])
             ->middleware('permission:activity-log-export')->name('activity-logs.pdf');
+        Route::prefix('system')->name('system.')->group(function () {
+            Route::get('/health', [SystemHealthController::class, 'index'])
+                ->middleware('permission:system-health-list')->name('health');
+            Route::post('/backups', [SystemHealthController::class, 'createBackup'])
+                ->middleware('permission:system-backup-create')->name('backups.create');
+            Route::get('/backups/{filename}', [SystemHealthController::class, 'downloadBackup'])
+                ->middleware('permission:system-backup-download')
+                ->where('filename', '[A-Za-z0-9_.-]+')
+                ->name('backups.download');
+        });
         Route::resource('roles', RoleController::class);
         Route::resource('users', UserController::class);
         Route::resource('products', ProductController::class);

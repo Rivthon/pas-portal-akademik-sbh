@@ -2,13 +2,12 @@
 
 namespace Tests\Feature;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SessionExpirationRedirectTest extends TestCase
 {
-    /**
-     * @dataProvider protectedRouteProvider
-     */
+    #[DataProvider('protectedRouteProvider')]
     public function test_expired_session_redirects_to_the_correct_login(
         string $protectedRoute,
         string $loginRoute

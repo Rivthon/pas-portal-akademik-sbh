@@ -382,6 +382,15 @@
             </li>
         @endcan
 
+        @can('system-health-list')
+            <li class="menu-item @if(Route::is('admin.system.*')) active @endif">
+                <a href="{{ route('admin.system.health') }}" class="menu-link">
+                    <i class="menu-icon bx bx-pulse"></i>
+                    <span class="menu-text">Kesehatan Sistem</span>
+                </a>
+            </li>
+        @endcan
+
         @canany(['tahun-ajaran-list', 'permintaan-list', 'settings-edit'])
             <li
                 class="menu-item @if(Route::is('admin.tahun-ajaran.index') || Route::is('admin.settings.edit') || Route::is('admin.helpdesk.index')) active open @endif">

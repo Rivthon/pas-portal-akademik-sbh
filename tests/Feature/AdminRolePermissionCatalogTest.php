@@ -26,6 +26,11 @@ class AdminRolePermissionCatalogTest extends TestCase
             'pedoman-akademik-create',
             'pedoman-akademik-edit',
             'pedoman-akademik-delete',
+            'system-health-list',
+            'system-error-log-list',
+            'system-backup-list',
+            'system-backup-create',
+            'system-backup-download',
         ];
 
         foreach ($permissionNames as $permissionName) {
@@ -91,6 +96,9 @@ class AdminRolePermissionCatalogTest extends TestCase
             'admin.simpanPembayaran' => 'permission:pembayaran-update',
             'admin.skpi.sertifikasi' => 'permission:skpi-sertifikasi-list',
             'admin.sertifikasi.catatan' => 'permission:skpi-sertifikasi-edit',
+            'admin.system.health' => 'permission:system-health-list',
+            'admin.system.backups.create' => 'permission:system-backup-create',
+            'admin.system.backups.download' => 'permission:system-backup-download',
         ];
 
         foreach ($expectedMiddleware as $routeName => $middleware) {
