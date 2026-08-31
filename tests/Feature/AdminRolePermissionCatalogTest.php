@@ -93,6 +93,7 @@ class AdminRolePermissionCatalogTest extends TestCase
             'admin.nilai.export' => 'permission:nilai-export',
             'admin.tahun-ajaran.updateStatus' => 'permission:tahun-ajaran-status',
             'admin.resetPassword' => 'permission:mahasiswa-reset-password',
+            'admin.dosen.reset-password' => 'permission:dosen-reset-password',
             'admin.simpanPembayaran' => 'permission:pembayaran-update',
             'admin.skpi.sertifikasi' => 'permission:skpi-sertifikasi-list',
             'admin.sertifikasi.catatan' => 'permission:skpi-sertifikasi-edit',

@@ -41,7 +41,7 @@ class RoleAndPermissionSeeder extends Seeder
             'role-list', 'role-create', 'role-edit', 'role-delete',
             'users-list', 'users-create', 'users-edit', 'users-delete',
             'program-studi-list', 'program-studi-create', 'program-studi-edit', 'program-studi-delete',
-            'dosen-list', 'dosen-create', 'dosen-edit', 'dosen-delete',
+            'dosen-list', 'dosen-create', 'dosen-edit', 'dosen-delete', 'dosen-reset-password',
             'mahasiswa-list', 'mahasiswa-create', 'mahasiswa-edit', 'mahasiswa-delete',
             'mahasiswa-import', 'mahasiswa-export', 'mahasiswa-reset-password',
             'matakuliah-list', 'matakuliah-create', 'matakuliah-edit', 'matakuliah-delete',
@@ -166,7 +166,7 @@ class RoleAndPermissionSeeder extends Seeder
     {
         return [
             'program-studi-list', 'program-studi-create', 'program-studi-edit', 'program-studi-delete',
-            'dosen-list', 'dosen-create', 'dosen-edit', 'dosen-delete',
+            'dosen-list', 'dosen-create', 'dosen-edit', 'dosen-delete', 'dosen-reset-password',
             'mahasiswa-list', 'mahasiswa-edit',
             'matakuliah-list', 'matakuliah-create', 'matakuliah-edit', 'matakuliah-delete',
             'ruangan-list', 'ruangan-create', 'ruangan-edit', 'ruangan-delete',

@@ -366,6 +366,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/export', [MahasiswaController::class, 'exportExcel'])->middleware('permission:mahasiswa-export')->name('export');
 
         Route::resource('matakuliah', MatakuliahController::class);
+        Route::post('/dosen/{dosen}/reset-password', [DosenController::class, 'resetPassword'])
+            ->middleware('permission:dosen-reset-password')
+            ->name('dosen.reset-password');
         Route::resource('dosen', DosenController::class);
         Route::resource('tahun-ajaran', TahunAkademikController::class);
         Route::resource('evaluasi', EvaluasiController::class);

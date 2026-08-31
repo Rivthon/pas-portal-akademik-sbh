@@ -34,6 +34,20 @@
     </div>
 </div>
 
+@if (session('reset_password_result'))
+<div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <i class="bx bx-check-shield fs-3"></i>
+        <div class="flex-grow-1">
+            Password baru untuk <strong>{{ session('reset_password_result.nama') }}</strong>:
+            <code class="fs-6 user-select-all">{{ session('reset_password_result.password') }}</code>
+            <div class="small mt-1">Salin password ini sekarang. Password hanya ditampilkan satu kali.</div>
+        </div>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+</div>
+@endif
+
 <div class="card">
     <div class="d-flex align-items-center justify-content-between pe-4">
         <h5 class="card-header mb-0">List Dosen</h5>
@@ -96,6 +110,18 @@
                             </button>
                             @endcan
                         </form>
+
+                        @can('dosen-reset-password')
+                        <form action="{{ route('admin.dosen.reset-password', $r->dosen_id) }}" method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Reset password dosen ini dengan password acak?')">
+                            @csrf
+                            <button type="submit" class="btn btn-warning btn-sm"
+                                data-bs-toggle="tooltip" data-bs-original-title="Reset Password">
+                                <i class="bx bx-reset"></i> Reset Password
+                            </button>
+                        </form>
+                        @endcan
                     </td>
                 </tr>
                 @empty

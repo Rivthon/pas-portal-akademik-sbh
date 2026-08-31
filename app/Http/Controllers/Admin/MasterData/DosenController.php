@@ -8,6 +8,7 @@ use App\Models\ProgramStudi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -19,6 +20,7 @@ class DosenController extends Controller
         $this->middleware('permission:dosen-create', ['only' => ['create', 'store']]);
         $this->middleware('permission:dosen-edit', ['only' => ['edit', 'update']]);
         $this->middleware('permission:dosen-delete', ['only' => ['destroy']]);
+        $this->middleware('permission:dosen-reset-password', ['only' => ['resetPassword']]);
     }
 
     public function index(Request $request)
@@ -142,5 +144,27 @@ class DosenController extends Controller
             ->autoClose(3000);
 
         return redirect()->route('admin.dosen.index');
+    }
+
+    public function resetPassword(Dosen $dosen): RedirectResponse
+    {
+        $newPassword = Str::password(12, letters: true, numbers: true, symbols: false);
+
+        $dosen->forceFill([
+            'password' => Hash::make($newPassword),
+        ])->save();
+
+        activity_log('reset_password_dosen', 'Admin mereset password dosen: '.$dosen->nama);
+
+        Alert::toast('Password dosen berhasil direset.', 'success')
+            ->position('bottom-end')
+            ->autoClose(3000);
+
+        return redirect()
+            ->route('admin.dosen.index')
+            ->with('reset_password_result', [
+                'nama' => $dosen->nama,
+                'password' => $newPassword,
+            ]);
     }
 }
