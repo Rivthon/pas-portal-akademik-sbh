@@ -854,8 +854,11 @@ $(document).ready(function () {
             const absen = parseFloat(mhs.absen) || 0;
             const praktik = parseFloat(mhs.praktik) || 0;
 
-            // Pre-calculate nilai akhir jika nilai_akhir dari DB belum ada
-            let nilaiAkhir = mhs.nilai_akhir ? parseFloat(mhs.nilai_akhir).toFixed(2) : (
+            // Gunakan Absolute tersimpan; hitung otomatis hanya jika belum pernah disimpan.
+            const nilaiAkhirTersimpan = mhs.nilai_akhir ?? mhs.akhir;
+            let nilaiAkhir = nilaiAkhirTersimpan !== null && nilaiAkhirTersimpan !== ''
+                ? parseFloat(nilaiAkhirTersimpan).toFixed(2)
+                : (
                 (uts * currentBobot.uts / 100) +
                 (uas * currentBobot.uas / 100) +
                 (tugas * currentBobot.tugas / 100) +

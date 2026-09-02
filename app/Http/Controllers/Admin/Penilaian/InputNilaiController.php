@@ -297,11 +297,29 @@ class InputNilaiController extends Controller
      */
     public function saveNilai(Request $request)
     {
+        $request->validate([
+            'krs_id' => ['required', 'array'],
+            'krs_id.*' => ['required', 'integer', 'exists:krs,krs_id'],
+            'uts' => ['nullable', 'array'],
+            'uts.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'uas' => ['nullable', 'array'],
+            'uas.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tugas' => ['nullable', 'array'],
+            'tugas.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'absensi' => ['nullable', 'array'],
+            'absensi.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'praktik' => ['nullable', 'array'],
+            'praktik.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'nilai_akhir' => ['nullable', 'array'],
+            'nilai_akhir.*' => ['nullable', 'numeric', 'min:0', 'max:100'],
+        ]);
+
         $uts = $request->input('uts', []);
         $uas = $request->input('uas', []);
         $tugas = $request->input('tugas', []);
         $absensi = $request->input('absensi', []);
         $praktik = $request->input('praktik', []);
+        $nilaiAkhirInput = $request->input('nilai_akhir', []);
         $krsIds = $request->input('krs_id', []);
 
         // Fungsi konversi angka ke mutu
@@ -370,8 +388,8 @@ class InputNilaiController extends Controller
                 $nilaiAbsensi = floatval($absensi[$mahasiswaId] ?? 0);
                 $nilaiPraktik = floatval($praktik[$mahasiswaId] ?? 0);
 
-                // AUTO-CALCULATE nilai akhir
-                $nilaiAkhir = round(
+                // Nilai hasil bobot tetap dihitung sebagai nilai bawaan.
+                $nilaiAkhirOtomatis = round(
                     ($nilaiUTS * $bobotUTS / 100) +
                     ($nilaiUAS * $bobotUAS / 100) +
                     ($nilaiTugas * $bobotTugas / 100) +
@@ -379,6 +397,13 @@ class InputNilaiController extends Controller
                     ($nilaiPraktik * $bobotPraktik / 100),
                     2
                 );
+
+                // Jika Absolute diedit, simpan nilai manual tersebut.
+                // Pemeriksaan eksplisit diperlukan agar angka 0 tetap dianggap input yang sah.
+                $nilaiAkhirManual = $nilaiAkhirInput[$mahasiswaId] ?? null;
+                $nilaiAkhir = $nilaiAkhirManual !== null && $nilaiAkhirManual !== ''
+                    ? round((float) $nilaiAkhirManual, 2)
+                    : $nilaiAkhirOtomatis;
 
                 // Konversi ke huruf mutu
                 $nilaiKhs = $getMutu($nilaiAkhir);
