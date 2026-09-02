@@ -32,8 +32,8 @@
 
                         <!-- NIDN -->
                         <div class="col-md-6 mb-3">
-                            <label for="nidn" class="form-label"><strong>NIDN: <span class="text-danger">*</span></strong></label>
-                            <input type="text" name="nidn" id="nidn" class="form-control @error('nidn') is-invalid @enderror" value="{{ old('nidn') }}" required>
+                            <label for="nidn" class="form-label"><strong>NIDN:</strong></label>
+                            <input type="text" name="nidn" id="nidn" class="form-control @error('nidn') is-invalid @enderror" value="{{ old('nidn') }}" placeholder="Opsional jika belum memiliki NIDN">
                             @error('nidn')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -66,6 +66,7 @@
                             @error('jurusan_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <div class="form-text">Kode dosen dibuat otomatis berdasarkan jurusan setelah data disimpan.</div>
                         </div>
 
                         <!-- Email -->

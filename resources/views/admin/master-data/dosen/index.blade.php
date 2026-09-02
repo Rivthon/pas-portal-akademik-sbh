@@ -41,6 +41,7 @@
         <div class="flex-grow-1">
             Password baru untuk <strong>{{ session('reset_password_result.nama') }}</strong>:
             <code class="fs-6 user-select-all">{{ session('reset_password_result.password') }}</code>
+            <span class="badge bg-label-primary">{{ session('reset_password_result.source', 'password acak') }}</span>
             <div class="small mt-1">Salin password ini sekarang. Password hanya ditampilkan satu kali.</div>
         </div>
     </div>

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin\MasterData;
 use App\Http\Controllers\Controller;
 use App\Models\Dosen;
 use App\Models\ProgramStudi;
+use App\Services\DosenCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -14,7 +16,7 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class DosenController extends Controller
 {
-    public function __construct()
+    public function __construct(private readonly DosenCodeService $dosenCodeService)
     {
         $this->middleware('permission:dosen-list|dosen-create|dosen-edit|dosen-delete', ['only' => ['index', 'show']]);
         $this->middleware('permission:dosen-create', ['only' => ['create', 'store']]);
@@ -69,6 +71,7 @@ class DosenController extends Controller
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'required|string',
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
+            'nidn' => 'nullable|string|max:20',
             'email' => 'required|email|unique:dosen,email',
             'password' => 'required|string|min:8', // Validasi tanpa konfirmasi
             'tempat' => 'nullable|string|max:50',
@@ -77,16 +80,33 @@ class DosenController extends Controller
             'alamat' => 'nullable|string|max:120',
         ]);
 
-        $dosen = new Dosen;
-        $dosen->fill($request->except('password')); // Kecualikan password dari mass assignment
-        $dosen->password = bcrypt($request->password); // Hash password
-
-        if ($request->hasFile('avatar')) {
-            $filePath = $request->file('avatar')->store('avatars', 'public');
-            $dosen->avatar = $filePath;
+        if (! $this->dosenCodeService->formatForJurusan($request->jurusan_id)) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'jurusan_id' => 'Format kode dosen untuk program studi ini belum dikonfigurasi.',
+                ]);
         }
 
-        $dosen->save();
+        $dosen = DB::transaction(function () use ($request): Dosen {
+            Dosen::query()
+                ->where('jurusan_id', $request->jurusan_id)
+                ->lockForUpdate()
+                ->get(['dosen_id']);
+
+            $dosen = new Dosen;
+            $dosen->fill($request->except(['password', 'kd_dosen']));
+            $dosen->kd_dosen = $this->dosenCodeService->nextCode($request->jurusan_id);
+            $dosen->password = bcrypt($request->password);
+
+            if ($request->hasFile('avatar')) {
+                $dosen->avatar = $request->file('avatar')->store('avatars', 'public');
+            }
+
+            $dosen->save();
+
+            return $dosen;
+        });
         activity_log('tambah_dosen', 'Admin menambah dosen baru: '.$dosen->nama);
         Alert::toast('Dosen berhasil ditambahkan.', 'success')
             ->position('bottom-end')
@@ -101,6 +121,7 @@ class DosenController extends Controller
             'nama' => 'required|string|max:255',
             'jenis_kelamin' => 'required|string',
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
+            'nidn' => 'nullable|string|max:20',
             'email' => 'required|email|unique:dosen,email,'.$id.',dosen_id',
             'password' => 'nullable|string|min:8', // Password opsional tanpa konfirmasi
             'tempat' => 'nullable|string|max:50',
@@ -148,7 +169,19 @@ class DosenController extends Controller
 
     public function resetPassword(Dosen $dosen): RedirectResponse
     {
-        $newPassword = Str::password(12, letters: true, numbers: true, symbols: false);
+        $nidn = trim((string) $dosen->nidn);
+        $code = trim((string) $dosen->kd_dosen);
+
+        if ($this->isUsableResetValue($nidn)) {
+            $newPassword = $nidn;
+            $source = 'NIDN';
+        } elseif ($this->isUsableResetValue($code)) {
+            $newPassword = $code;
+            $source = 'kode dosen';
+        } else {
+            $newPassword = Str::password(12, letters: true, numbers: true, symbols: false);
+            $source = 'password acak';
+        }
 
         $dosen->forceFill([
             'password' => Hash::make($newPassword),
@@ -165,6 +198,13 @@ class DosenController extends Controller
             ->with('reset_password_result', [
                 'nama' => $dosen->nama,
                 'password' => $newPassword,
+                'source' => $source,
             ]);
+    }
+
+    private function isUsableResetValue(string $value): bool
+    {
+        return $value !== ''
+            && ! in_array(strtolower($value), ['null', '0', '-'], true);
     }
 }
