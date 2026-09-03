@@ -116,7 +116,7 @@
                 <li class="menu-item @if(Route::is('dosen.nilai-dosen.input')) active @endif">
                     <a href="{{ route('dosen.nilai-dosen.input') }}" class="menu-link">
                         <i class="menu-icon bx bx-edit"></i>
-                        <div data-i18n="Input KHS Mahasiswa">Input KHS Mahasiswa</div>
+                        <div data-i18n="Input KHS Mahasiswa">Input Nilai Mahasiswa</div>
                     </a>
                 </li>
                 <li class="menu-item @if(Route::is('dosen.edom.hasil')) active @endif">
