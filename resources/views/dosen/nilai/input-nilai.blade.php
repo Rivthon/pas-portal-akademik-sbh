@@ -60,7 +60,7 @@
 @endif
 
 <!-- ARSIP & FILTER MANUAL (ACCORDION) -->
-<div class="accordion mb-4 shadow-sm" id="accordionArsip">
+<!-- <div class="accordion mb-4 shadow-sm" id="accordionArsip">
   <div class="accordion-item border-0">
     <h2 class="accordion-header" id="headingArsip">
       <button class="accordion-button collapsed fw-bold text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseArsip" aria-expanded="false" aria-controls="collapseArsip" style="background-color: #f8f9fa;">
@@ -104,7 +104,7 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->
 
 <!-- TABEL PENGISIAN NILAI -->
 <div class="card p-4 shadow-sm" id="panel-penilaian" style="display: none;">
