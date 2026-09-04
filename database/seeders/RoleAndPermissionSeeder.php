@@ -74,7 +74,7 @@ class RoleAndPermissionSeeder extends Seeder
     {
         return [
             'evaluasi-list', 'evaluasi-create', 'evaluasi-edit', 'evaluasi-delete',
-            'input-nilai', 'list-nilai', 'nilai-export',
+            'input-nilai', 'list-nilai', 'nilai-export', 'nilai-publish',
             'input-uap', 'list-uap',
             'edom-list', 'edom-detail', 'edom-export', 'edom-reset',
             'penilaian-reset-edom',
@@ -185,7 +185,7 @@ class RoleAndPermissionSeeder extends Seeder
             'lms-list', 'rps-list',
             'pedoman-akademik-list', 'pedoman-akademik-create', 'pedoman-akademik-edit', 'pedoman-akademik-delete',
             'evaluasi-list',
-            'input-nilai', 'list-nilai', 'nilai-export',
+            'input-nilai', 'list-nilai', 'nilai-export', 'nilai-publish',
             'input-uap', 'list-uap',
             'laporan-list', 'laporan-export',
             'pengajuan-transkrip-list',

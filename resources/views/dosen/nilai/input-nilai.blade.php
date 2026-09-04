@@ -38,7 +38,7 @@
     <div class="col-lg-4 col-md-6 mb-3">
         <div class="card shadow-sm h-100 border-0 hover-scale mk-card" style="cursor:pointer; transition: all 0.2s ease-in-out;"
             data-jadwal-id="{{ $mk->id }}"
-            data-mk-nama="{{ $mataKuliah?->nama }} - {{ $programStudiAktif?->nama }} ({{ strtoupper($mk->jenis_kelas) }})">
+            data-mk-nama="{{ $mataKuliah?->nama }} - {{ $programStudiAktif?->nama }} ({{ jenis_kelas_label($mk->jenis_kelas) }})">
             <div class="card-body d-flex flex-column">
                 <h6 class="fw-bold text-primary mb-2 border-start border-primary border-3 ps-2">{{ $mataKuliah?->nama }}</h6>
                 <small class="text-muted mb-2"><i class="bx bx-buildings me-1"></i>{{ $programStudiAktif?->nama ?? '-' }}</small>
@@ -46,7 +46,7 @@
                     <span class="badge bg-label-primary rounded-pill">{{ $mataKuliah?->matakuliah_id }}</span>
                     <span class="badge bg-label-info rounded-pill ms-1">SMT {{ $mataKuliah?->smt ?? $mataKuliah?->semester }}</span>
                     <span class="badge bg-label-{{ strtolower((string) $mk->jenis_kelas) === 'karyawan' ? 'warning' : 'success' }} rounded-pill ms-1">
-                        {{ strtoupper($mk->jenis_kelas) }}
+                        {{ jenis_kelas_label($mk->jenis_kelas) }}
                     </span>
                 </div>
                 <div class="mt-auto text-end">

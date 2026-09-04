@@ -105,8 +105,8 @@
                             <label class="form-label fw-semibold">Jenis Kelas</label>
                             <select name="jenis_kelas" id="jenis_kelas" class="form-control select2" required>
                                 <option value="" disabled selected>Pilih Kelas</option>
-                                <option value="reguler">Reguler</option>
-                                <option value="karyawan">Karyawan</option>
+                                <option value="reguler">Reguler A</option>
+                                <option value="karyawan">Reguler B</option>
                             </select>
                         </div>
                     </div>
@@ -148,8 +148,8 @@
                         <th>Mata Kuliah</th>
                         <th>Kode</th>
                         <th>Semester</th>
-                        <th>Dosen Reguler</th>
-                        <th>Dosen Karywan</th>
+                        <th>Dosen Reguler A</th>
+                        <th>Dosen Reguler B</th>
                     </tr>
                 </thead>
                 <tbody></tbody>

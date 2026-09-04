@@ -8,7 +8,7 @@
 @endphp
 <div class="mb-3"><a href="{{ route('admin.lms.index') }}" class="btn btn-sm btn-label-secondary"><i class="bx bx-arrow-back me-1"></i>Semua Kelas</a></div>
 <div class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
-    <div class="d-flex flex-wrap justify-content-between gap-3"><div><span class="badge bg-label-primary mb-2">MONITORING LMS</span><h3 class="fw-bold mb-1">{{ $mk?->nama ?? '-' }}</h3><p class="text-muted mb-1">{{ $mk?->matakuliah_id }} &bull; {{ $prodi?->nama ?? '-' }} &bull; {{ strtoupper($jadwal->jenis_kelas ?: '-') }}</p><small><i class="bx bx-user me-1"></i>{{ $dosen ?: 'Dosen belum ditentukan' }}</small></div>
+    <div class="d-flex flex-wrap justify-content-between gap-3"><div><span class="badge bg-label-primary mb-2">MONITORING LMS</span><h3 class="fw-bold mb-1">{{ $mk?->nama ?? '-' }}</h3><p class="text-muted mb-1">{{ $mk?->matakuliah_id }} &bull; {{ $prodi?->nama ?? '-' }} &bull; {{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</p><small><i class="bx bx-user me-1"></i>{{ $dosen ?: 'Dosen belum ditentukan' }}</small></div>
     <div class="d-flex flex-wrap gap-2 align-content-start"><span class="badge bg-label-secondary p-2">{{ $totalPeserta }} Mahasiswa</span><span class="badge bg-label-info p-2">{{ $materiList->count() }} Materi</span><span class="badge bg-label-warning p-2">{{ $tugasList->count() }} Tugas</span><span class="badge bg-label-primary p-2">{{ $quizList->count() }} Quiz</span></div></div>
 </div></div>
 

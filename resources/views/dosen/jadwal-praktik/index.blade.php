@@ -37,8 +37,8 @@
                     <div class="col-md-6">
                         <select id="filterJenisKelas" class="form-select shadow-sm rounded-pill cursor-pointer border">
                             <option value="semua">-- Tampilkan Semua Jenis Kelas Praktik --</option>
-                            <option value="reguler">Kelas Reguler (Pagi/Siang)</option>
-                            <option value="karyawan">Kelas Karyawan (Malam/Eksekutif)</option>
+                            <option value="reguler">Kelas Reguler A (Pagi/Siang)</option>
+                            <option value="karyawan">Kelas Reguler B (Malam/Eksekutif)</option>
                         </select>
                     </div>
                 </div>

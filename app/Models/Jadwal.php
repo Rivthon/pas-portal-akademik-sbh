@@ -87,4 +87,19 @@ class Jadwal extends Model
         return $this->hasMany(LmsQuiz::class, 'jadwal_id', 'id');
     }
 
+    public function nilaiSubmission()
+    {
+        return $this->hasOne(NilaiSubmission::class, 'jadwal_id');
+    }
+
+    public function scopeAccessibleInLmsByDosen($query, $dosenId)
+    {
+        return $query->where(function ($access) use ($dosenId) {
+            $access->whereHas('kurikulum.dosenToMatakuliah', function ($assignment) use ($dosenId) {
+                $assignment->where('dosen_id', $dosenId)
+                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+                    ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal.jenis_kelas)');
+            })->orWhereHas('pertemuan', fn ($pertemuan) => $pertemuan->where('dosen_id', $dosenId));
+        });
+    }
 }

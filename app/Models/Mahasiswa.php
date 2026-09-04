@@ -145,6 +145,11 @@ class Mahasiswa extends Authenticatable
         return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');
     }
 
+    public function guidanceMessages()
+    {
+        return $this->hasMany(KrsGuidanceMessage::class, 'mahasiswa_id', 'mahasiswa_id');
+    }
+
     public function gelombang()
     {
         return $this->belongsTo(Gelombang::class, 'gelombang_id', 'id');

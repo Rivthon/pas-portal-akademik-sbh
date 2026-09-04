@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
+use App\Models\Absensi;
 use App\Models\Jadwal;
 use App\Models\JadwalPraktik;
+use App\Models\KaprodiAbsensiVerification;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -174,11 +176,19 @@ class LaporanAbsensiController extends Controller
         $kaprodiSignature = $this->signatureData(
             $jadwal->kurikulum?->programStudi?->ttd
         );
+        $kaprodiVerification = null;
+        if (! $praktik) {
+            $verification = KaprodiAbsensiVerification::with('verifier')->where('jadwal_id', $jadwal->id)->first();
+            $latestAttendanceUpdate = Absensi::where('jadwal_id', $jadwal->id)->max('updated_at');
+            if ($verification && (! $latestAttendanceUpdate || $verification->verified_at->greaterThanOrEqualTo($latestAttendanceUpdate))) {
+                $kaprodiVerification = $verification;
+            }
+        }
         $view = $praktik ? 'dosen.absensi.pdf-praktik' : 'dosen.absensi.pdf';
 
         return Pdf::loadView($view, compact(
             'jadwal', 'mahasiswa', 'rekapAbsensi', 'totalPertemuan',
-            'settings', 'qrFilePath', 'dosenMatakuliah', 'kaprodiSignature'
+            'settings', 'qrFilePath', 'dosenMatakuliah', 'kaprodiSignature', 'kaprodiVerification'
         ))->setPaper('a4', 'landscape')
             ->stream('rekap-absensi-'.$jenis.'-'.$this->namaFile($jadwal).'.pdf');
     }

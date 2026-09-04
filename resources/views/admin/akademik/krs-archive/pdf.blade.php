@@ -51,7 +51,7 @@
         </tr>
         <tr>
             <td class="label">NIM</td><td>: {{ $mahasiswa->nim }}</td>
-            <td class="label">Kelas</td><td>: {{ $mahasiswa->kelas ?? '-' }}</td>
+            <td class="label">Kelas</td><td>: {{ jenis_kelas_label($mahasiswa->kelas) }}</td>
         </tr>
         <tr>
             <td class="label">Program Studi</td><td>: {{ $mahasiswa->programStudi?->nama ?? '-' }}</td>

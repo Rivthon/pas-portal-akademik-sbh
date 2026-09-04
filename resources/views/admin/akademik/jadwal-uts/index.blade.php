@@ -101,8 +101,8 @@
                         class="form-select"
                         required
                     >
-                        <option value="Reguler">Reguler</option>
-                        <option value="Karyawan">Karyawan</option>
+                        <option value="Reguler">Reguler A</option>
+                        <option value="Karyawan">Reguler B</option>
                     </select>
                 </div>
 
@@ -174,8 +174,8 @@
                 </label>
 
                 <select id="jenis_kelas_cari" class="form-select">
-                    <option value="Reguler">Reguler</option>
-                    <option value="Karyawan">Karyawan</option>
+                    <option value="Reguler">Reguler A</option>
+                    <option value="Karyawan">Reguler B</option>
                 </select>
             </div>
         </div>
@@ -467,7 +467,7 @@
 
                         <td class="text-center">
                             <span class="badge bg-label-warning">
-                                ${escapeHtml(jadwal.jenis_kelas)}
+                                ${escapeHtml(String(jadwal.jenis_kelas).toLowerCase() === 'karyawan' ? 'Reguler B' : 'Reguler A')}
                             </span>
                         </td>
 

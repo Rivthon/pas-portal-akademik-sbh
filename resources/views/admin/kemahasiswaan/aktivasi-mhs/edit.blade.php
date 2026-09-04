@@ -167,8 +167,8 @@
                             <span class="input-group-text"><i class="bx bx-user-check"></i></span>
                             <select class="form-select" id="kelas" name="kelas" required>
                                 <option value="">Pilih Status</option>
-                                <option value="karyawan" {{ old('kelas', $mahasiswa->kelas) == 'karyawan' ? 'selected' : '' }}>karyawan</option>
-                                <option value="pagi" {{ old('kelas', $mahasiswa->kelas) == 'pagi' ? 'selected' : '' }}>pagi</option>
+                                <option value="karyawan" {{ old('kelas', $mahasiswa->kelas) == 'karyawan' ? 'selected' : '' }}>Reguler B</option>
+                                <option value="pagi" {{ old('kelas', $mahasiswa->kelas) == 'pagi' ? 'selected' : '' }}>Reguler A</option>
                             </select>
                         </div>
                     </div>

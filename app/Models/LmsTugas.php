@@ -16,6 +16,7 @@ class LmsTugas extends Model
         'dosen_id',
         'judul',
         'deskripsi',
+        'tipe',
         'deadline',
         'nilai_maksimal',
         'lampiran',
@@ -38,6 +39,13 @@ class LmsTugas extends Model
             'tugas_id',
             'tugas_id'
         );
+    }
+
+    public function soal()
+    {
+        return $this->hasMany(LmsTugasSoal::class, 'tugas_id', 'tugas_id')
+            ->orderBy('urutan')
+            ->orderBy('soal_id');
     }
 
     public function pertemuan()

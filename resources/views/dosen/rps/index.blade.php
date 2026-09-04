@@ -75,9 +75,9 @@
                                     </td>
                                     <td class="text-center">
                                         @if($item->jenis_kelas == 'reguler')
-                                            <span class="badge bg-label-primary rounded-pill px-3">REGULER</span>
+                                            <span class="badge bg-label-primary rounded-pill px-3">REGULER A</span>
                                         @else
-                                            <span class="badge bg-label-warning text-dark rounded-pill px-3">KARYAWAN</span>
+                                            <span class="badge bg-label-warning text-dark rounded-pill px-3">REGULER B</span>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -85,6 +85,13 @@
                                             <span class="badge bg-success rounded-pill px-3">
                                                 <i class="bx bx-check-circle me-1"></i> SUDAH UPLOAD
                                             </span>
+                                            @if($item->rps->latestReplacement && (int) $item->rps->latestReplacement->uploaded_by_dosen_id !== (int) auth('dosen')->id())
+                                                <small class="d-block text-warning text-wrap mt-1" style="min-width: 190px;">
+                                                    <i class="bx bx-info-circle"></i>
+                                                    Diganti oleh {{ $item->rps->latestReplacement->uploader?->nama ?? 'rekan dosen' }}
+                                                    {{ $item->rps->latestReplacement->created_at?->diffForHumans() }}
+                                                </small>
+                                            @endif
                                         @else
                                             <span class="badge bg-danger rounded-pill px-3">
                                                 <i class="bx bx-x-circle me-1"></i> BELUM UPLOAD

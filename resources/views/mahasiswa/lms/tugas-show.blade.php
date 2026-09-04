@@ -47,7 +47,7 @@
                 <div class="row align-items-center">
                     <div class="col-md-9">
                         <span class="badge bg-white text-primary rounded-pill px-3 py-1 mb-2 fw-semibold">
-                            <i class="bx bx-task me-1"></i>Tugas Perkuliahan
+                            <i class="bx bx-task me-1"></i>{{ $tugas->tipe === 'pilihan_ganda' ? 'Tugas Pilihan Ganda A-E' : 'Tugas Perkuliahan' }}
                         </span>
                         <h3 class="text-white fw-bold mt-1 mb-2">{{ $tugas->judul }}</h3>
                         <div class="d-flex flex-wrap gap-2 mt-3">
@@ -74,6 +74,39 @@
                         <h5 class="fw-bold text-dark mb-0"><i class="bx bx-detail text-primary me-2"></i>Deskripsi & Lampiran</h5>
                     </div>
                     <div class="card-body pt-4">
+                        @if($tugas->tipe === 'pilihan_ganda')
+                            @if($tugas->deskripsi)
+                                <div class="alert alert-light border mb-4">{!! nl2br(e($tugas->deskripsi)) !!}</div>
+                            @endif
+                            @php($bolehIsiPg = $bolehMengumpulkan && $bolehUploadUlang && !$sudahDinilai)
+                            @if($bolehIsiPg && $tugas->soal->isNotEmpty())
+                                <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas) }}" method="POST">@csrf
+                            @endif
+                            @forelse($tugas->soal as $soal)
+                                @php($jawabanSaatIni = old('jawaban_pg.'.$soal->soal_id, data_get($pengumpulan?->jawaban_pg, (string) $soal->soal_id)))
+                                <div class="border rounded-3 p-3 mb-3">
+                                    <div class="d-flex justify-content-between gap-2 mb-3">
+                                        <h6 class="fw-bold mb-0">{{ $loop->iteration }}. {!! nl2br(e($soal->pertanyaan)) !!}</h6>
+                                        <span class="badge bg-label-secondary">Bobot {{ $soal->bobot }}</span>
+                                    </div>
+                                    @foreach($soal->opsi as $i => $opsi)
+                                        <label class="d-flex align-items-center border rounded p-2 mb-2 task-option">
+                                            <input type="radio" name="jawaban_pg[{{ $soal->soal_id }}]" value="{{ $i }}"
+                                                class="form-check-input me-3" @checked((string) $jawabanSaatIni === (string) $i)
+                                                {{ $bolehIsiPg ? '' : 'disabled' }} required>
+                                            <span><strong class="me-2">{{ chr(65 + $i) }}.</strong>{{ $opsi }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @empty
+                                <div class="alert alert-warning"><i class="bx bx-info-circle me-1"></i>Tugas pilihan ganda belum memiliki soal.</div>
+                            @endforelse
+                            @if($bolehIsiPg && $tugas->soal->isNotEmpty())
+                                <div class="mb-3"><label class="form-label fw-semibold">Catatan (Opsional)</label><textarea name="catatan" class="form-control" rows="2">{{ old('catatan', $pengumpulan?->catatan) }}</textarea></div>
+                                <button class="btn btn-primary w-100"><i class="bx bx-send me-1"></i>{{ $pengumpulan ? 'Simpan Perubahan Jawaban' : 'Kumpulkan Jawaban' }}</button>
+                                </form>
+                            @endif
+                        @else
                         <div class="mb-4">
                             <label class="fw-bold text-muted small text-uppercase d-block mb-2">Instruksi Tugas</label>
                             <div class="p-3 bg-light rounded-3 text-dark style-description" style="line-height: 1.7;">
@@ -88,6 +121,7 @@
                                     <i class="bx bx-paperclip me-1"></i> lihat / Download Lampiran Tugas
                                 </a>
                             </div>
+                        @endif
                         @endif
                     </div>
                 </div>
@@ -141,9 +175,11 @@
                                 @endif
                             </div>
 
-                            <a href="{{ route('mahasiswa.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}" class="btn btn-success rounded-pill btn-sm w-100 mb-3 shadow-sm">
-                                <i class="bx bx-download me-1"></i> Download Berkas Jawaban Saya
-                            </a>
+                            @if($pengumpulan->file)
+                                <a href="{{ route('mahasiswa.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}" class="btn btn-success rounded-pill btn-sm w-100 mb-3 shadow-sm">
+                                    <i class="bx bx-download me-1"></i> Download Berkas Jawaban Saya
+                                </a>
+                            @endif
                         @else
                             <div class="alert alert-warning border-0 shadow-sm rounded-3 mb-3">
                                 <div class="d-flex align-items-center">
@@ -177,7 +213,12 @@
                                     </div>
                                 </div>
                             </div>
-                        @elseif($bolehMengumpulkan && $bolehUploadUlang)
+                        @elseif($pengumpulan && $deadlineTerlewat)
+                            <div class="alert alert-danger border-0 shadow-sm rounded-3 mb-0">
+                                <i class="bx bx-lock-alt me-1 fs-5 align-middle"></i>
+                                Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.
+                            </div>
+                        @elseif($tugas->tipe !== 'pilihan_ganda' && $bolehMengumpulkan && $bolehUploadUlang)
                             <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas->tugas_id) }}" method="POST" enctype="multipart/form-data" class="pt-2 border-top">
                                 @csrf
 
@@ -204,7 +245,7 @@
                         @elseif($pengumpulan && !$bolehUploadUlang)
                             <div class="alert alert-info border-0 shadow-sm rounded-3 mb-0">
                                 <i class="bx bx-info-circle me-1 fs-5 align-middle"></i>
-                                Jawaban sudah dikumpulkan. Dosen tidak mengizinkan penggantian file jawaban.
+                                Jawaban sudah dikumpulkan. Dosen tidak mengizinkan penggantian jawaban.
                             </div>
                         @endif
 
@@ -223,5 +264,7 @@
     .style-small {
         font-size: 0.8rem;
     }
+    .task-option { cursor: pointer; transition: .15s; }
+    .task-option:hover { border-color: #696cff !important; background: rgba(105, 108, 255, .04); }
 </style>
 @endsection

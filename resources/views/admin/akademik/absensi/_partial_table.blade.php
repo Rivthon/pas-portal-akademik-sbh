@@ -73,7 +73,7 @@
 
                         <span
                             class="badge bg-label-{{ strtolower($item->jenis_kelas) == 'reguler' ? 'success' : 'warning' }} mt-1">
-                            {{ ucfirst($item->jenis_kelas) }}
+                            {{ jenis_kelas_label($item->jenis_kelas) }}
                         </span>
                     </td>
 

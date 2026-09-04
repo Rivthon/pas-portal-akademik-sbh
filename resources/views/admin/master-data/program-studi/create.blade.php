@@ -44,16 +44,24 @@
                             @enderror
                         </div>
 
-                        <!-- Input untuk Kaprodi -->
+                        <!-- Pemilihan akun Kaprodi -->
                         <div class="col-md-6 mb-3">
-                            <label for="kaprod" class="form-label"><strong>Kaprodi:</strong></label>
-                            <input type="text" name="kaprod" id="kaprod"
-                                class="form-control @error('kaprod') is-invalid @enderror"
-                                placeholder="Nama Ketua Program Studi"
-                                value="{{ old('kaprod', $programStudi->kaprod) }}">
-                            @error('kaprod')
+                            <label for="kaprodi_dosen_id" class="form-label"><strong>Kaprodi:</strong></label>
+                            <select name="kaprodi_dosen_id" id="kaprodi_dosen_id"
+                                class="form-select @error('kaprodi_dosen_id') is-invalid @enderror" required>
+                                <option value="">-- Pilih akun dosen --</option>
+                                @foreach ($dosen as $item)
+                                <option value="{{ $item->dosen_id }}"
+                                    {{ (string) old('kaprodi_dosen_id') === (string) $item->dosen_id ? 'selected' : '' }}>
+                                    {{ $item->nama }} — {{ $item->kd_dosen ?: 'Tanpa kode' }}
+                                    ({{ $item->programStudi?->nama ?: 'Prodi belum tersedia' }})
+                                </option>
+                                @endforeach
+                            </select>
+                            @error('kaprodi_dosen_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <div class="form-text">Akun ini akan menjadi identitas Kaprodi untuk proses verifikasi.</div>
                         </div>
 
                         <!-- Input untuk Jenjang -->

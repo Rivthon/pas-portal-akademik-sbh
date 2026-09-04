@@ -150,7 +150,7 @@
                             </td>
                             <td>
                                 <div class="fw-medium">{{ $archive->prodi_nama ?? '-' }}</div>
-                                <small class="text-muted">{{ $archive->kelas ?: '-' }}</small>
+                                <small class="text-muted">{{ jenis_kelas_label($archive->kelas) }}</small>
                             </td>
                             <td class="text-center">{{ $archive->tahun_masuk ?: '-' }}</td>
                             <td>

@@ -8,13 +8,17 @@
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center flex-wrap">
                             <div>
-                                <h4 class="text-white mb-2 fw-bold">Rata-rata Nilai Evaluasi Keseluruhan</h4>
-                                <p class="text-white-50 mb-0">Berdasarkan penilaian mahasiswa dari seluruh mata kuliah yang
-                                    Anda ampu.</p>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    <h4 class="text-white mb-0 fw-bold">Rata-rata Nilai Evaluasi Keseluruhan</h4>
+                                    @if($tahunAkademikAktif)
+                                        <span class="badge bg-white text-primary">{{ $tahunAkademikAktif->nama }} - {{ $tahunAkademikAktif->semester }}</span>
+                                    @endif
+                                </div>
+                                <p class="text-white-50 mb-0">Hanya berdasarkan EDOM pada tahun ajaran yang sedang aktif.</p>
                             </div>
                             <div class="text-end mt-3 mt-md-0">
                                 <div class="display-4 text-white fw-bold mb-0">
-                                    {{ $rataRataKeseluruhan }}<span class="fs-4 text-white-50">5.00</span>
+                                    {{ $rataRataKeseluruhan }}<span class="fs-4 text-white-50"> / 5.00</span>
                                 </div>
                             </div>
                         </div>
@@ -29,6 +33,10 @@
                             Mata Kuliah</h5>
                     </div>
                     <div class="card-body">
+                        <div class="alert alert-primary d-flex align-items-center mb-4">
+                            <i class="bx bx-shield-quarter fs-4 me-2"></i>
+                            <span>Komentar ditampilkan secara anonim. Identitas mahasiswa tidak ditampilkan kepada dosen.</span>
+                        </div>
                         @if($hasilEdom->isEmpty())
                             <div class="alert alert-info text-center py-4">
                                 <i class="bx bx-info-circle fs-2 mb-2"></i><br>
@@ -45,6 +53,7 @@
                                             <th>Semester</th>
                                             <th class="text-center">Jumlah Responden</th>
                                             <th class="text-center">Rata-rata Nilai</th>
+                                            <th class="text-center">Komentar</th>
                                         </tr>
                                     </thead>
                                     <tbody class="table-border-bottom-0">
@@ -64,7 +73,34 @@
                                                         <span class="fw-bold">{{ round($item->rata_rata_nilai, 2) }}</span>
                                                     </div>
                                                 </td>
+                                                <td class="text-center">
+                                                    @if($item->komentar->isNotEmpty())
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#komentar-edom-{{ $index }}" aria-expanded="false">
+                                                            <i class="bx bx-message-rounded-dots me-1"></i>{{ $item->komentar->count() }} Komentar
+                                                        </button>
+                                                    @else
+                                                        <span class="text-muted small">Belum ada</span>
+                                                    @endif
+                                                </td>
                                             </tr>
+                                            @if($item->komentar->isNotEmpty())
+                                                <tr>
+                                                    <td colspan="7" class="p-0 border-0">
+                                                        <div class="collapse bg-light p-3" id="komentar-edom-{{ $index }}">
+                                                            <h6 class="fw-bold mb-3"><i class="bx bx-message-square-detail text-primary me-1"></i>Komentar Mahasiswa</h6>
+                                                            <div class="row g-2">
+                                                                @foreach($item->komentar as $komentar)
+                                                                    <div class="col-md-6">
+                                                                        <div class="bg-white border rounded p-3 h-100 text-wrap">
+                                                                            <i class="bx bxs-quote-alt-left text-primary me-1"></i>{{ $komentar }}
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endif
                                         @endforeach
                                     </tbody>
                                 </table>

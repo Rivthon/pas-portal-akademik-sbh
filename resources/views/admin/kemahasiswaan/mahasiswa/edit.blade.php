@@ -189,9 +189,9 @@
                             <select class="form-select" id="kelas" name="kelas" required>
                                 <option value="">Pilih Status</option>
                                 <option value="karyawan" {{ old('kelas', $mahasiswa->kelas) == 'karyawan' ? 'selected' :
-                                    '' }}>karyawan</option>
+                                    '' }}>Reguler B</option>
                                 <option value="pagi" {{ old('kelas', $mahasiswa->kelas) == 'pagi' ? 'selected' : ''
-                                    }}>pagi</option>
+                                    }}>Reguler A</option>
                             </select>
                         </div>
                     </div>

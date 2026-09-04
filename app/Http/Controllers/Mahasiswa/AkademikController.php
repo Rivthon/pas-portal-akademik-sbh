@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
+use App\Models\KhsPublication;
 use App\Models\Krs;
+use App\Models\KrsGuidanceMessage;
 use App\Models\Kurikulum;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
-use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -222,12 +224,49 @@ class AkademikController extends Controller
 
             // Redirect ke view baru dengan data KRS
             $krsDisetujui = $krs->isNotEmpty() && $krs->every(fn (Krs $item) => $item->disetujui_pada !== null);
+            $guidanceMessages = KrsGuidanceMessage::where('mahasiswa_id', $mahasiswaId)
+                ->where('dosen_id', $mahasiswa->dosen_id)
+                ->where('ta_id', $activeTA->ta_id)
+                ->oldest()
+                ->get();
 
-            return view('mahasiswa.krs.status-krs', compact('mahasiswa', 'krs', 'krsDisetujui', 'activeTA'));
+            return view('mahasiswa.krs.status-krs', compact('mahasiswa', 'krs', 'krsDisetujui', 'activeTA', 'guidanceMessages'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: '.$e->getMessage());
         }
+    }
+
+    public function storeKrsGuidanceReply(Request $request)
+    {
+        $mahasiswa = $this->getMahasiswa();
+        $activeTA = $this->getActiveTA();
+
+        if (! $mahasiswa || ! $mahasiswa->dosen_id) {
+            return back()->with('error', 'Dosen Pembimbing Akademik belum ditentukan.');
+        }
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        }
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ], [
+            'message.required' => 'Umpan balik tidak boleh kosong.',
+            'message.max' => 'Umpan balik maksimal 2.000 karakter.',
+        ]);
+
+        KrsGuidanceMessage::create([
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'dosen_id' => $mahasiswa->dosen_id,
+            'ta_id' => $activeTA->ta_id,
+            'sender_type' => 'mahasiswa',
+            'message' => trim($validated['message']),
+        ]);
+
+        activity_log('balas_bimbingan_krs', 'Mahasiswa mengirim umpan balik KRS kepada Dosen Pembimbing');
+
+        return back()->with('success', 'Umpan balik berhasil dikirim kepada Dosen Pembimbing.');
     }
 
     public function hapusKrs($id)
@@ -478,7 +517,7 @@ class AkademikController extends Controller
         }
     }
 
-    public function tampilanKartuHasil()
+    public function tampilanKartuHasil(Request $request)
     {
         $mahasiswa = $this->getMahasiswa();
 
@@ -486,46 +525,60 @@ class AkademikController extends Controller
             return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
         }
 
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        $activeTa = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
         try {
-            // Ambil KHS semester aktif
-            $khs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
+            $allPublishedKhs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', $mahasiswa->semester);
-                })
+                ->whereNotNull('khs')
+                ->whereHas('kurikulum.mataKuliah')
                 ->get()
-                ->filter(function ($item) {
-                    return $item->kurikulum && $item->kurikulum->mataKuliah;
-                });
+                ->filter(fn ($item) => $item->kurikulum && $item->kurikulum->mataKuliah);
+            $allPublishedKhs = KhsPublication::filterPublishedKrs($allPublishedKhs, $mahasiswa);
+            $availableTaIds = $allPublishedKhs->pluck('ta_id')->map(fn ($id) => (int) $id)->unique();
+            $tahunAjaranOptions = TahunAkademik::whereIn('ta_id', $availableTaIds)
+                ->orderByDesc('ta_id')
+                ->get(['ta_id', 'nama', 'semester']);
 
-            // Ambil tahun ajaran dari data KRS yang sebenarnya
-            $krsTA = $khs->first()?->kurikulum?->tahunAjaran;
-            if ($krsTA) {
-                $ta = $krsTA;
+            if ($tahunAjaranOptions->isEmpty()) {
+                return view('mahasiswa.khs.belum-terbit');
             }
+
+            $requestedTaId = $request->integer('ta_id');
+            abort_if($request->filled('ta_id') && ! $availableTaIds->contains($requestedTaId), 404, 'Riwayat KHS tidak ditemukan.');
+            $selectedTaId = $requestedTaId
+                ?: ($activeTa && $availableTaIds->contains((int) $activeTa->ta_id)
+                    ? (int) $activeTa->ta_id
+                    : (int) $tahunAjaranOptions->first()->ta_id);
+            $ta = $tahunAjaranOptions->firstWhere('ta_id', $selectedTaId);
+            $khs = $allPublishedKhs->where('ta_id', $selectedTaId)->values();
+            $khsPublished = true;
+            $isHistorical = ! $activeTa || (int) $selectedTaId !== (int) $activeTa->ta_id;
+            $semesterKhs = $khs->pluck('kurikulum.mataKuliah.smt')->filter()->unique()->sort()->implode(', ');
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
             $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
 
-            // Ambil seluruh KHS untuk IPK hingga semester ini
-            $allKhs = Krs::with(['kurikulum.mataKuliah'])
-                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', '<=', $mahasiswa->semester);
-                })
-                ->get()
-                ->filter(function ($item) {
-                    return $item->kurikulum && $item->kurikulum->mataKuliah && ! is_null($item->khs);
-                });
+            // IPK pada arsip hanya menghitung nilai yang telah terbit sampai tahun yang dipilih.
+            $allKhs = $allPublishedKhs->where('ta_id', '<=', $selectedTaId)->values();
 
             [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
             $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
 
             activity_log('lihat_khs', 'Mahasiswa melihat Kartu Hasil Studi (KHS)');
 
-            return view('mahasiswa.khs.index', compact('khs', 'mahasiswa', 'ta', 'ips', 'ipk'));
+            return view('mahasiswa.khs.index', compact(
+                'khs',
+                'mahasiswa',
+                'ta',
+                'ips',
+                'ipk',
+                'khsPublished',
+                'tahunAjaranOptions',
+                'selectedTaId',
+                'isHistorical',
+                'semesterKhs'
+            ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: '.$e->getMessage());
         }
@@ -576,7 +629,7 @@ class AkademikController extends Controller
         };
     }
 
-    public function cetakKhs()
+    public function cetakKhs(Request $request)
     {
         $settings = $this->getSettings();
         $mahasiswa = $this->getMahasiswa();
@@ -585,7 +638,16 @@ class AkademikController extends Controller
         }
 
         $mahasiswaId = $mahasiswa->mahasiswa_id;
-        $ta = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
+        $selectedTaId = $request->integer('ta_id') ?: $activeTaId;
+        abort_unless($selectedTaId, 403, 'Tahun akademik tidak ditemukan.');
+        abort_unless((int) $mahasiswa->status_akhir === 1, 403, 'Akses KHS masih dikunci oleh sistem administrasi.');
+        abort_if(
+            (int) $selectedTaId === (int) $activeTaId && (int) $mahasiswa->status_edom !== 1,
+            403,
+            'Silakan selesaikan EDOM sebelum mencetak KHS semester berjalan.'
+        );
+        $ta = TahunAkademik::findOrFail($selectedTaId);
 
         // Logo base64
         $logoBase64 = null;
@@ -612,36 +674,35 @@ class AkademikController extends Controller
         };
 
         try {
-            // Ambil KHS Semester Aktif
+            // Ambil KHS pada tahun akademik yang dipilih.
             $khs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', $mahasiswa->semester);
-                })
+                ->where('ta_id', $selectedTaId)
+                ->whereNotNull('khs')
+                ->whereHas('kurikulum.mataKuliah')
                 ->get()
                 ->filter(function ($item) {
                     return $item->kurikulum && $item->kurikulum->mataKuliah;
                 });
+            $khs = KhsPublication::filterPublishedKrs($khs, $mahasiswa);
+            abort_if($khs->isEmpty(), 403, 'KHS belum diterbitkan oleh BAAK.');
 
-            // Ambil tahun ajaran dari data KRS yang sebenarnya
-            $krsTA = $khs->first()?->kurikulum?->tahunAjaran;
-            if ($krsTA) {
-                $ta = $krsTA;
-            }
+            $semesterKhs = $khs->pluck('kurikulum.mataKuliah.smt')->filter()->unique()->sort()->implode(', ');
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
             $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
 
-            // Ambil Semua KHS untuk Hitung IPK hingga semester ini
+            // Ambil semua KHS terbit sampai tahun akademik yang dipilih.
             $allKhs = Krs::with(['kurikulum.mataKuliah'])
                 ->where('mahasiswa_id', $mahasiswaId)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', '<=', $mahasiswa->semester);
-                })
+                ->where('ta_id', '<=', $selectedTaId)
+                ->whereNotNull('khs')
+                ->whereHas('kurikulum.mataKuliah')
                 ->get()
                 ->filter(function ($item) {
                     return $item->kurikulum && $item->kurikulum->mataKuliah && ! is_null($item->khs);
                 });
+            $allKhs = KhsPublication::filterPublishedKrs($allKhs, $mahasiswa);
 
             [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
             $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
@@ -659,12 +720,13 @@ class AkademikController extends Controller
                 'textColor',
                 'ips',
                 'ipk',
-                'predikat'
+                'predikat',
+                'semesterKhs'
             ))->setPaper('a4', 'portrait');
 
             activity_log('cetak_khs', 'Mahasiswa mencetak KHS');
 
-            return $pdf->download('khs-'.$mahasiswa->nama.'.pdf');
+            return $pdf->download('khs-'.$mahasiswa->nama.'-'.$ta->nama.'-'.$ta->semester.'.pdf');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: '.$e->getMessage());
         }

@@ -58,7 +58,16 @@
                     <td>{{ ++$i }}</td>
                     <td>{{ $r->jurusan_id }}</td>
                     <td>{{ $r->jenjang }} - {{ $r->nama }}</td>
-                    <td>{{ $r->kaprod }}</td>
+                    <td>
+                        <div class="fw-semibold">{{ $r->kaprodi?->nama ?? $r->kaprod }}</div>
+                        @if ($r->kaprodi)
+                        <span class="badge bg-label-success mt-1">
+                            <i class="bx bx-link-alt me-1"></i>Akun dosen tertaut
+                        </span>
+                        @else
+                        <span class="badge bg-label-warning mt-1">Data lama</span>
+                        @endif
+                    </td>
                     <td>
                         <form action="{{ route('admin.program-studi.destroy',$r->jurusan_id) }}" method="POST"
                             style="display:inline;">

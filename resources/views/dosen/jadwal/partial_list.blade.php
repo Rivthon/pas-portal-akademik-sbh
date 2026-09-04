@@ -45,11 +45,11 @@
 
                     @if (strtolower($jadwal['jenis_kelas']) == 'karyawan')
                     <div class="alert alert-danger mt-3 py-2 px-3 mb-0" role="alert" style="border-left: 4px solid #dc3545; background-color: #fcf1f1;">
-                        <i class="bx bx-briefcase-alt-2 fs-5 me-1 align-middle text-danger"></i> <span class="align-middle fw-semibold text-danger">Kelas Karyawan</span>
+                        <i class="bx bx-briefcase-alt-2 fs-5 me-1 align-middle text-danger"></i> <span class="align-middle fw-semibold text-danger">Kelas Reguler B</span>
                     </div>
                     @else
                     <div class="alert alert-info mt-3 py-2 px-3 mb-0" role="alert" style="border-left: 4px solid #0dcaf0; background-color: #f1fcfc;">
-                        <i class="bx bx-sun fs-5 me-1 align-middle text-info"></i> <span class="align-middle fw-semibold text-info">Kelas Reguler</span>
+                        <i class="bx bx-sun fs-5 me-1 align-middle text-info"></i> <span class="align-middle fw-semibold text-info">Kelas Reguler A</span>
                     </div>
                     @endif
                 </div>

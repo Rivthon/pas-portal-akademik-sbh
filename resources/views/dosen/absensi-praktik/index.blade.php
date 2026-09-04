@@ -39,7 +39,7 @@
                             <h5 class="mb-1 fw-bold">{{ $item->kurikulum?->mataKuliah?->nama ?? '-' }}</h5>
                             <span class="badge bg-label-primary">{{ $item->kurikulum?->mataKuliah?->matakuliah_id ?? '-' }}</span>
                             <span class="badge bg-label-warning">Semester {{ $item->kurikulum?->mataKuliah?->smt ?? '-' }}</span>
-                            <span class="badge bg-label-info text-capitalize">{{ $item->jenis_kelas }}</span>
+                            <span class="badge bg-label-info">{{ jenis_kelas_label($item->jenis_kelas) }}</span>
                         </div>
                         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}"><i class="bx bx-plus me-1"></i>Pertemuan</button>
                     </div>
@@ -61,7 +61,7 @@
                             <div class="col-sm-6">
                                 <div class="border rounded p-2 h-100 bg-light">
                                     <small class="text-muted d-block"><i class="bx bx-group me-1"></i>Jenis Kelas</small>
-                                    <span class="fw-semibold text-capitalize">{{ $item->jenis_kelas ?? '-' }}</span>
+                                    <span class="fw-semibold">{{ jenis_kelas_label($item->jenis_kelas) }}</span>
                                 </div>
                             </div>
                             <div class="col-sm-6">
@@ -99,7 +99,7 @@
                             <p class="text-muted small">
                                 Semester {{ $item->kurikulum?->mataKuliah?->smt ?? '-' }}
                                 &middot; {{ $item->programStudi?->nama ?? '-' }}
-                                &middot; <span class="text-capitalize">{{ $item->jenis_kelas ?? '-' }}</span>
+                                &middot; <span>{{ jenis_kelas_label($item->jenis_kelas) }}</span>
                             </p>
                             <div class="row g-3">
                                 <div class="col-md-4"><label class="form-label">Tanggal</label><input type="date" name="tanggal_pertemuan" class="form-control" value="{{ old('tanggal_pertemuan', now()->toDateString()) }}" required></div>

@@ -15,7 +15,7 @@
     <h2>GRADEBOOK LMS</h2>
     <div class="meta">
         {{ $jadwal->kurikulum?->mataKuliah?->matakuliah_id }} — {{ $jadwal->kurikulum?->mataKuliah?->nama }}<br>
-        {{ $jadwal->kurikulum?->programStudi?->nama }} | Kelas {{ strtoupper($jadwal->jenis_kelas ?? '-') }}
+        {{ $jadwal->kurikulum?->programStudi?->nama }} | Kelas {{ jenis_kelas_label($jadwal->jenis_kelas ?? '-') }}
     </div>
     <table>
         <thead>

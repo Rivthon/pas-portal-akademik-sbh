@@ -25,6 +25,9 @@
             </a>
         </li>
 
+        @if(auth('dosen')->user()?->programStudiDipimpin()->exists())
+        <li class="menu-item @if(Route::is('dosen.kaprodi.*')) active open @endif"><a href="javascript:void(0);" class="menu-link menu-toggle"><i class="menu-icon bx bx-check-shield"></i><div>Verifikasi Kaprodi</div></a><ul class="menu-sub"><li class="menu-item @if(Route::is('dosen.kaprodi.absensi.*')) active @endif"><a href="{{route('dosen.kaprodi.absensi.index')}}" class="menu-link"><div>Rekap Absensi</div></a></li><li class="menu-item @if(Route::is('dosen.kaprodi.nilai.*')) active @endif"><a href="{{route('dosen.kaprodi.nilai.index')}}" class="menu-link"><div>Pengajuan Nilai</div></a></li></ul></li>
+        @endif
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Perkuliahan</span>
         </li>

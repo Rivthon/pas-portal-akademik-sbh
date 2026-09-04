@@ -221,6 +221,14 @@
                                                     <i class="bx bx-detail text-info me-2"></i>Lihat KRS
                                                 </a>
                                             </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#diskusiKrs{{ $mahasiswa->mahasiswa_id }}">
+                                                    <i class="bx bx-conversation text-primary me-2"></i>Diskusi KRS
+                                                    @if($mahasiswa->guidanceMessages->isNotEmpty())
+                                                        <span class="badge bg-primary ms-1">{{ $mahasiswa->guidanceMessages->count() }}</span>
+                                                    @endif
+                                                </button>
+                                            </li>
                                             @if($menungguAcc)
                                                 <li>
                                                     <form method="POST" action="{{ route('dosen.mahasiswa.krs.approve', $mahasiswa) }}"
@@ -279,6 +287,24 @@
         </div>
     </div>
 </div>
+
+@foreach($mahasiswaList as $guidedStudent)
+    <div class="modal fade" id="diskusiKrs{{ $guidedStudent->mahasiswa_id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header">
+                    <div><h5 class="modal-title">Diskusi KRS</h5><small class="text-muted">{{ $guidedStudent->nama }} &bull; {{ $guidedStudent->nim }}</small></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <x-krs-guidance-thread :messages="$guidedStudent->guidanceMessages"
+                        :action="route('dosen.mahasiswa.guidance.store', $guidedStudent)" viewer="dosen"
+                        title="Riwayat Percakapan" submit-label="Kirim Komentar" />
+                </div>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 @push('script')
 <script>

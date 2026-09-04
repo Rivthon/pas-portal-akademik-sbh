@@ -16,6 +16,7 @@ use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class LmsMahasiswaController extends Controller
 {
@@ -328,6 +329,7 @@ class LmsMahasiswaController extends Controller
 
         abort_unless($mahasiswa, 401);
         abort_unless($tugas->aktif, 404);
+        $tugas->load(['soal', 'jadwal.kurikulum.mataKuliah']);
 
         abort_unless(
             $this->mahasiswaTerdaftarPadaTugas(
@@ -358,9 +360,11 @@ class LmsMahasiswaController extends Controller
 
         $sudahDinilai = $this->pengumpulanSudahDinilai($pengumpulan);
 
-        $bolehUploadUlang =
-            ! $pengumpulan ||
-            (! $sudahDinilai && $tugas->izinkan_upload_ulang);
+        $bolehUploadUlang = ! $pengumpulan || (
+            ! $deadlineTerlewat
+            && ! $sudahDinilai
+            && $tugas->izinkan_upload_ulang
+        );
 
         return view(
             'mahasiswa.lms.tugas-show',
@@ -403,11 +407,34 @@ class LmsMahasiswaController extends Controller
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->first();
 
+        $deadlineTerlewat = now()->greaterThan($tugas->deadline);
+
+        if ($pengumpulan && $deadlineTerlewat) {
+            return back()->with(
+                'error',
+                'Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.'
+            );
+        }
+
         if ($this->pengumpulanSudahDinilai($pengumpulan)) {
             return back()->with(
                 'error',
                 'Jawaban tidak dapat diupload ulang karena tugas ini sudah dinilai oleh dosen.'
             );
+        }
+
+        if (
+            $deadlineTerlewat &&
+            ! $tugas->izinkan_terlambat
+        ) {
+            return back()->with(
+                'error',
+                'Deadline pengumpulan telah berakhir.'
+            );
+        }
+
+        if ($tugas->tipe === 'pilihan_ganda') {
+            return $this->kumpulkanTugasPilihanGanda($request, $tugas, $mahasiswa, $pengumpulan);
         }
 
         $request->validate([
@@ -425,20 +452,6 @@ class LmsMahasiswaController extends Controller
             'file.mimes' => 'Format file jawaban tidak didukung.',
             'catatan.max' => 'Catatan maksimal 2.000 karakter.',
         ]);
-
-        $deadlineTerlewat = now()->greaterThan(
-            $tugas->deadline
-        );
-
-        if (
-            $deadlineTerlewat &&
-            ! $tugas->izinkan_terlambat
-        ) {
-            return back()->with(
-                'error',
-                'Deadline pengumpulan telah berakhir.'
-            );
-        }
 
         if (
             $pengumpulan &&
@@ -486,7 +499,9 @@ class LmsMahasiswaController extends Controller
             [
                 'file' => $path,
                 'catatan' => $request->catatan,
+                'jawaban_pg' => null,
                 'waktu_upload' => now(),
+                'dinilai_otomatis' => false,
             ]
         );
 
@@ -531,7 +546,59 @@ class LmsMahasiswaController extends Controller
     private function pengumpulanSudahDinilai(?LmsPengumpulanTugas $pengumpulan): bool
     {
         return $pengumpulan !== null
+            && ! $pengumpulan->dinilai_otomatis
             && ($pengumpulan->nilai !== null || $pengumpulan->dinilai_pada !== null);
+    }
+
+    private function kumpulkanTugasPilihanGanda(Request $request, LmsTugas $tugas, $mahasiswa, ?LmsPengumpulanTugas $pengumpulan)
+    {
+        $tugas->load('soal');
+        abort_if($tugas->soal->isEmpty(), 422, 'Tugas pilihan ganda belum memiliki soal.');
+
+        $request->validate([
+            'jawaban_pg' => ['required', 'array'],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $jawaban = [];
+        $bobotBenar = 0;
+        $totalBobot = (float) $tugas->soal->sum('bobot');
+        foreach ($tugas->soal as $soal) {
+            $pilihan = $request->input('jawaban_pg.'.$soal->soal_id);
+            if ($pilihan === null || ! array_key_exists((int) $pilihan, $soal->opsi ?? [])) {
+                throw ValidationException::withMessages([
+                    'jawaban_pg.'.$soal->soal_id => 'Semua soal pilihan ganda wajib dijawab.',
+                ]);
+            }
+            $jawaban[(string) $soal->soal_id] = (int) $pilihan;
+            if ((int) $pilihan === (int) $soal->kunci_jawaban) {
+                $bobotBenar += (float) $soal->bobot;
+            }
+        }
+
+        $nilai = $totalBobot > 0
+            ? round(($bobotBenar / $totalBobot) * (float) $tugas->nilai_maksimal, 0)
+            : 0;
+
+        LmsPengumpulanTugas::updateOrCreate([
+            'tugas_id' => $tugas->tugas_id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+        ], [
+            'file' => null,
+            'catatan' => $request->catatan,
+            'jawaban_pg' => $jawaban,
+            'waktu_upload' => now(),
+            'nilai' => $nilai,
+            'dinilai_otomatis' => true,
+            'feedback' => null,
+            'dinilai_pada' => now(),
+            'dinilai_oleh' => null,
+        ]);
+
+        return redirect()->route('mahasiswa.lms.tugas.show', $tugas)
+            ->with('success', $pengumpulan
+                ? 'Jawaban pilihan ganda berhasil diperbarui.'
+                : 'Jawaban pilihan ganda berhasil dikumpulkan dan dinilai otomatis.');
     }
 
     private function mahasiswaTerdaftarPadaTugas(

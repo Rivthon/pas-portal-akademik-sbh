@@ -36,4 +36,14 @@ class Rps extends Model
             'dosen_id'
         );
     }
+
+    public function revisions()
+    {
+        return $this->hasMany(RpsRevision::class, 'rps_id', 'rps_id');
+    }
+
+    public function latestReplacement()
+    {
+        return $this->hasOne(RpsRevision::class, 'rps_id', 'rps_id')->latestOfMany();
+    }
 }

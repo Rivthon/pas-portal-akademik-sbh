@@ -352,8 +352,8 @@
                 <label for="filter-kelas">Kelas</label>
                 <select class="form-select" id="filter-kelas" name="kelas">
                     <option value="">Semua</option>
-                    <option value="pagi" {{ request('kelas') == 'pagi' ? 'selected' : '' }}>Pagi</option>
-                    <option value="karyawan" {{ request('kelas') == 'karyawan' ? 'selected' : '' }}>Karyawan</option>
+                    <option value="pagi" {{ request('kelas') == 'pagi' ? 'selected' : '' }}>Reguler A</option>
+                    <option value="karyawan" {{ request('kelas') == 'karyawan' ? 'selected' : '' }}>Reguler B</option>
                 </select>
             </div>
             <div class="col-md-3">

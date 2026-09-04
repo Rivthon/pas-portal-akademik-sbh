@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\BobotNilai;
 use App\Models\Jadwal;
+use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\LmsQuiz;
 use App\Models\LmsTugas;
+use App\Models\NilaiSubmission;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -19,6 +21,9 @@ class GradebookKhsSyncService
     public function sync(Jadwal $jadwal): array
     {
         $jadwal->loadMissing(['kurikulum.mataKuliah', 'kurikulum.programStudi']);
+        if (KhsPublication::coversJadwal($jadwal)) {
+            return ['synced' => 0, 'total_maksimal' => 0, 'bobot_tugas' => 0, 'reason' => 'KHS sudah diterbitkan BAAK. Batalkan penerbitan sebelum menyinkronkan ulang nilai.'];
+        }
 
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
             ->with('pengumpulan')
@@ -100,6 +105,11 @@ class GradebookKhsSyncService
                 ]);
             }
         });
+
+        $submission = NilaiSubmission::where('jadwal_id', $jadwal->id)->first();
+        if ($submission) {
+            $submission->update(['status' => 'submitted', 'submitted_at' => now(), 'reviewed_by_dosen_id' => null, 'reviewed_at' => null, 'review_note' => null]);
+        }
 
         return [
             'synced' => $pesertaKrs->count(),

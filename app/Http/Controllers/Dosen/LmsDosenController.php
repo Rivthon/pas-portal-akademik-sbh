@@ -10,6 +10,7 @@ use App\Models\LmsMateri;
 use App\Models\LmsPengumpulanTugas;
 use App\Models\LmsQuiz;
 use App\Models\LmsTugas;
+use App\Models\LmsTugasSoal;
 use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
 use App\Services\GradebookKhsSyncService;
@@ -19,7 +20,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
+use Throwable;
 
 class LmsDosenController extends Controller
 {
@@ -36,15 +42,12 @@ class LmsDosenController extends Controller
             'kurikulum.mataKuliah',
             'kurikulum.programStudi',
             'kurikulum.dosenToMatakuliah.dosen',
+            'pertemuan.dosen',
             'ruangan',
         ])
             ->withCount(['pertemuan', 'materi', 'tugas', 'quiz'])
             ->where('ta_id', $activeTA->ta_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($q) use ($dosen) {
-                $q->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
-                    ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal.jenis_kelas)');
-            })
+            ->accessibleInLmsByDosen($dosen->dosen_id)
             ->orderBy('hari')
             ->orderBy('jam_mulai')
             ->get();
@@ -66,7 +69,8 @@ class LmsDosenController extends Controller
 
         $pertemuan = Pertemuan::with([
             'materi',
-            'tugas',
+            'tugas.pengumpulan',
+            'tugas.soal',
         ])
             ->where('jadwal_id', $jadwal->id)
             ->orderBy('pertemuan_id', 'asc')
@@ -233,8 +237,9 @@ class LmsDosenController extends Controller
             return ['path' => null, 'tipe' => null];
         }
 
-        $filename = $request->file('file')->getClientOriginalName();
-        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        $uploadedFile = $request->file('file');
+        $filename = $uploadedFile->getClientOriginalName();
+        $extension = strtolower($uploadedFile->getClientOriginalExtension());
 
         switch ($extension) {
             case 'pdf':
@@ -272,8 +277,14 @@ class LmsDosenController extends Controller
                 break;
         }
 
-        $namaFile = time().'_'.$filename;
-        $path = $request->file('file')->storeAs('lms/materi', $namaFile, 'public');
+        $baseName = Str::slug(pathinfo($filename, PATHINFO_FILENAME));
+        $baseName = Str::limit($baseName ?: 'materi', 100, '');
+        $namaFile = now()->format('YmdHis').'_'.Str::random(8).'_'.$baseName.'.'.$extension;
+        $path = $uploadedFile->storeAs('lms/materi', $namaFile, 'public');
+
+        if (! $path) {
+            throw new RuntimeException('File materi gagal disimpan ke storage.');
+        }
 
         return [
             'path' => $path,
@@ -288,10 +299,16 @@ class LmsDosenController extends Controller
         $request->validate([
             'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
             'jadwal_id' => 'required|exists:jadwal,id',
-            'judul' => 'required|max:255',
-            'deskripsi' => 'nullable',
-            'file' => 'nullable|max:51200',
-            'youtube_url' => 'nullable',
+            'judul' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
+            'file' => 'nullable|required_without:youtube_url|file|mimes:pdf,ppt,pptx,doc,docx,xls,xlsx,zip,rar,jpg,jpeg,png,mp4,avi,mov,mkv|max:51200',
+            'youtube_url' => 'nullable|required_without:file|url|max:255',
+        ], [
+            'file.required_without' => 'Upload file atau isi link materi.',
+            'file.mimes' => 'Format file materi tidak didukung.',
+            'file.max' => 'Ukuran file materi maksimal 50 MB.',
+            'youtube_url.required_without' => 'Upload file atau isi link materi.',
+            'youtube_url.url' => 'Link materi harus berupa URL yang valid.',
         ]);
 
         $jadwal = $this->jadwalMilikDosen($request->jadwal_id);
@@ -302,31 +319,37 @@ class LmsDosenController extends Controller
             'Pertemuan tidak sesuai dengan jadwal mata kuliah.'
         );
 
-        // Memanggil fungsi helper private
-        $fileProcessed = $this->processMateriFile($request);
+        $path = null;
 
-        $path = $fileProcessed['path'];
-        $tipe = $fileProcessed['tipe'];
+        try {
+            $fileProcessed = $this->processMateriFile($request);
+            $path = $fileProcessed['path'];
+            $tipe = $request->filled('youtube_url')
+                ? 'youtube'
+                : ($fileProcessed['tipe'] ?: 'lainnya');
 
-        if ($request->filled('youtube_url')) {
-            $tipe = 'youtube';
+            LmsMateri::create([
+                'pertemuan_id' => $request->pertemuan_id,
+                'jadwal_id' => $request->jadwal_id,
+                'dosen_id' => $dosen->dosen_id,
+                'judul' => $request->judul,
+                'deskripsi' => $request->deskripsi,
+                'tipe' => $tipe,
+                'file' => $path,
+                'youtube_url' => $request->youtube_url,
+                'status' => 1,
+            ]);
+        } catch (Throwable $exception) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+
+            report($exception);
+
+            return back()
+                ->withInput($request->except('file'))
+                ->with('error', 'Materi gagal diunggah. Periksa file dan ruang penyimpanan, lalu coba kembali.');
         }
-
-        if (empty($tipe)) {
-            $tipe = 'lainnya';
-        }
-
-        LmsMateri::create([
-            'pertemuan_id' => $request->pertemuan_id,
-            'jadwal_id' => $request->jadwal_id,
-            'dosen_id' => $dosen->dosen_id,
-            'judul' => $request->judul,
-            'deskripsi' => $request->deskripsi,
-            'tipe' => $tipe,
-            'file' => $path,
-            'youtube_url' => $request->youtube_url,
-            'status' => 1,
-        ]);
 
         return redirect()->route('dosen.lms.kelola', $request->jadwal_id)
             ->with('success', 'Materi berhasil diunggah.');
@@ -420,12 +443,16 @@ class LmsDosenController extends Controller
     public function storeTugas(Request $request)
     {
         $dosen = Auth::guard('dosen')->user();
+        $request->merge([
+            'tipe' => $request->input('tipe') ?: 'file',
+        ]);
 
         $request->validate([
             'jadwal_id' => 'required|exists:jadwal,id',
             'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
+            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|max:51200',
@@ -452,12 +479,13 @@ class LmsDosenController extends Controller
                 );
         }
 
-        LmsTugas::create([
+        $tugas = LmsTugas::create([
             'jadwal_id' => $request->jadwal_id,
             'pertemuan_id' => $request->pertemuan_id,
             'dosen_id' => $dosen->dosen_id,
             'judul' => $request->judul,
             'deskripsi' => $request->deskripsi,
+            'tipe' => $request->tipe,
             'deadline' => $request->deadline,
             'nilai_maksimal' => $request->nilai_maksimal,
             'lampiran' => $lampiran,
@@ -465,6 +493,11 @@ class LmsDosenController extends Controller
             'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
             'aktif' => true,
         ]);
+
+        if ($tugas->tipe === 'pilihan_ganda') {
+            return redirect()->route('dosen.lms.tugas.soal.manage', $tugas)
+                ->with('success', 'Tugas PG berhasil dibuat. Silakan tambahkan soal A-E.');
+        }
 
         return back()->with(
             'success',
@@ -476,11 +509,7 @@ class LmsDosenController extends Controller
     {
         $dosen = Auth::guard('dosen')->user();
 
-        return Jadwal::whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-            $query->where('dosen_id', $dosen->dosen_id)
-                ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
-                ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal.jenis_kelas)');
-        })->findOrFail($jadwalId);
+        return Jadwal::accessibleInLmsByDosen($dosen->dosen_id)->findOrFail($jadwalId);
     }
 
     private function pastikanMateriMilikDosen(LmsMateri $materi): void
@@ -503,6 +532,7 @@ class LmsDosenController extends Controller
 
         $tugas->load([
             'jadwal',
+            'soal',
             'pengumpulan.mahasiswa',
             'pengumpulan.penilai',
         ]);
@@ -693,6 +723,7 @@ class LmsDosenController extends Controller
 
         $pengumpulan->update([
             'nilai' => $request->nilai,
+            'dinilai_otomatis' => false,
             'feedback' => $request->has('feedback')
                 ? $request->feedback
                 : $pengumpulan->feedback,
@@ -724,7 +755,7 @@ class LmsDosenController extends Controller
         }
 
         // 3. Ambil dan hapus seluruh file jawaban yang diunggah mahasiswa untuk tugas ini
-        $pengumpulanList = LmsPengumpulanTugas::where('tugas_id', $tugas->id_tugas ?? $tugas->id)->get();
+        $pengumpulanList = LmsPengumpulanTugas::where('tugas_id', $tugas->tugas_id)->get();
 
         foreach ($pengumpulanList as $pengumpulan) {
             if (StoredUpload::exists($pengumpulan->file)) {
@@ -746,15 +777,25 @@ class LmsDosenController extends Controller
 
         // 1. Otorisasi: Dosen hanya boleh mengubah tugas miliknya sendiri
         abort_unless((int) $tugas->dosen_id === (int) $dosen->dosen_id, 403);
+        $request->merge([
+            'tipe' => $request->input('tipe') ?: ($tugas->tipe ?: 'file'),
+        ]);
 
         // 2. Validasi Input
         $request->validate([
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
+            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|max:51200',
         ]);
+
+        if ($request->tipe !== $tugas->tipe && $tugas->pengumpulan()->exists()) {
+            throw ValidationException::withMessages([
+                'tipe' => 'Tipe tugas tidak dapat diubah karena sudah ada pengumpulan mahasiswa.',
+            ]);
+        }
 
         // 3. Penanganan File Lampiran Baru (jika ada)
         if ($request->hasFile('lampiran')) {
@@ -772,6 +813,7 @@ class LmsDosenController extends Controller
         $tugas->update([
             'judul' => $request->judul,
             'deskripsi' => $request->deskripsi,
+            'tipe' => $request->tipe,
             'deadline' => $request->deadline,
             'nilai_maksimal' => $request->nilai_maksimal,
             'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
@@ -780,5 +822,65 @@ class LmsDosenController extends Controller
         ]);
 
         return back()->with('success', 'Tugas berhasil diperbarui.');
+    }
+
+    public function manageTugasSoal(LmsTugas $tugas)
+    {
+        $this->pastikanTugasMilikDosen($tugas);
+        abort_unless($tugas->tipe === 'pilihan_ganda', 404);
+        $tugas->load(['jadwal.kurikulum.mataKuliah', 'pertemuan', 'soal'])->loadCount('pengumpulan');
+
+        return view('dosen.lms.tugas-soal', compact('tugas'));
+    }
+
+    public function storeTugasSoal(Request $request, LmsTugas $tugas)
+    {
+        $this->pastikanTugasMilikDosen($tugas);
+        abort_unless($tugas->tipe === 'pilihan_ganda', 404);
+        abort_if($tugas->pengumpulan()->exists(), 422, 'Soal tidak dapat ditambah karena tugas sudah dikerjakan mahasiswa.');
+        $data = $this->validateTugasSoal($request);
+        $data['tugas_id'] = $tugas->tugas_id;
+        $data['urutan'] = $request->integer('urutan', ($tugas->soal()->max('urutan') ?? 0) + 1);
+        LmsTugasSoal::create($data);
+
+        return back()->with('success', 'Soal tugas berhasil ditambahkan.');
+    }
+
+    public function updateTugasSoal(Request $request, LmsTugasSoal $soal)
+    {
+        $this->pastikanTugasMilikDosen($soal->tugas);
+        abort_if($soal->tugas->pengumpulan()->exists(), 422, 'Soal tidak dapat diubah karena tugas sudah dikerjakan mahasiswa.');
+        $soal->update($this->validateTugasSoal($request));
+
+        return back()->with('success', 'Soal tugas berhasil diperbarui.');
+    }
+
+    public function destroyTugasSoal(LmsTugasSoal $soal)
+    {
+        $this->pastikanTugasMilikDosen($soal->tugas);
+        abort_if($soal->tugas->pengumpulan()->exists(), 422, 'Soal tidak dapat dihapus karena tugas sudah dikerjakan mahasiswa.');
+        $soal->delete();
+
+        return back()->with('success', 'Soal tugas berhasil dihapus.');
+    }
+
+    private function validateTugasSoal(Request $request): array
+    {
+        $data = $request->validate([
+            'pertanyaan' => ['required', 'string'],
+            'opsi' => ['required', 'array', 'size:5'],
+            'opsi.*' => ['required', 'string', 'max:1000'],
+            'kunci_jawaban' => ['required', 'integer', 'between:0,4'],
+            'bobot' => ['required', 'numeric', 'min:0.01', 'max:1000'],
+            'urutan' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $data['opsi'] = array_values($data['opsi']);
+
+        return $data;
+    }
+
+    private function pastikanTugasMilikDosen(LmsTugas $tugas): void
+    {
+        abort_unless((int) $tugas->dosen_id === (int) Auth::guard('dosen')->id(), 403);
     }
 }

@@ -157,9 +157,9 @@
                 <tr>
                     <td style="padding: 6px 10px; font-weight: bold; color: #333;">Semester</td>
                     <td style="padding: 6px 10px; color: #555;">
-                        : {{ $mahasiswa->semester }} /
+                        : {{ $semesterKhs ?? $mahasiswa->semester }} /
                         @php
-                        $semester = $mahasiswa->semester;
+                        $semester = (int) explode(',', (string) ($semesterKhs ?? $mahasiswa->semester))[0];
                         if ($semester >= 1 && $semester <= 2) { $tingkat=1; } elseif ($semester>= 3 && $semester <= 4) {
                                 $tingkat=2; } elseif ($semester>= 5 && $semester <= 6) { $tingkat=3; } elseif
                                     ($semester>= 7 && $semester <= 8) { $tingkat=4; } else { $tingkat='Tidak Diketahui'

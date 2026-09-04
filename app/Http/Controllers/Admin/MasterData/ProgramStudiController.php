@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\MasterData;
 
 use App\Http\Controllers\Controller;
+use App\Models\Dosen;
 use App\Models\ProgramStudi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class ProgramStudiController extends Controller
 
     public function index(): View
     {
-        $programStudis = ProgramStudi::latest()->paginate(5);
+        $programStudis = ProgramStudi::with('kaprodi')->latest()->paginate(5);
 
         return view('admin.master-data.program-studi.index', compact('programStudis'))
             ->with('i', (request()->input('page', 1) - 1) * 5);
@@ -29,16 +30,19 @@ class ProgramStudiController extends Controller
 
     public function create(): View
     {
-        return view('admin.master-data.program-studi.create');
+        $programStudi = new ProgramStudi;
+        $dosen = $this->dosenOptions();
+
+        return view('admin.master-data.program-studi.create', compact('programStudi', 'dosen'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         // Validasi input
         $request->validate([
-            'jurusan_id' => 'required|integer|exists:program_studi,jurusan_id',
+            'jurusan_id' => 'required|string|max:10|unique:program_studi,jurusan_id',
             'nama' => 'required|string|max:255',
-            'kaprod' => 'required|string|max:255',
+            'kaprodi_dosen_id' => 'required|integer|exists:dosen,dosen_id',
             'jenjang' => 'required|string|in:D3,S1,S2,S3', // Validasi pilihan jenjang
             'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi untuk file TTD
             'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi Header BAAK
@@ -48,6 +52,8 @@ class ProgramStudiController extends Controller
 
         // Simpan file gambar jika ada
         $data = $request->all();
+        $kaprodi = Dosen::findOrFail($data['kaprodi_dosen_id']);
+        $data['kaprod'] = $kaprodi->nama;
         if ($request->hasFile('ttd')) {
             $data['ttd'] = $request->file('ttd')->store('program_studi', 'public');
         }
@@ -69,6 +75,7 @@ class ProgramStudiController extends Controller
             'jurusan_id' => $data['jurusan_id'],
             'nama' => $data['nama'],
             'kaprod' => $data['kaprod'],
+            'kaprodi_dosen_id' => $data['kaprodi_dosen_id'],
             'jenjang' => $data['jenjang'],
             'ttd' => $data['ttd'] ?? null,
             'header_baak' => $data['header_baak'] ?? null,
@@ -93,14 +100,19 @@ class ProgramStudiController extends Controller
 
     public function edit(ProgramStudi $programStudi): View
     {
-        return view('admin.master-data.program-studi.edit', compact('programStudi'));
+        $dosen = $this->dosenOptions();
+
+        return view('admin.master-data.program-studi.edit', compact('programStudi', 'dosen'));
     }
 
     public function update(Request $request, ProgramStudi $programStudi): RedirectResponse
     {
         // Validasi input
         $request->validate([
-            'nama' => 'required',
+            'nama' => 'required|string|max:255',
+            'jurusan_id' => 'required|in:'.$programStudi->jurusan_id,
+            'jenjang' => 'required|string|in:D3,S1,S2,S3',
+            'kaprodi_dosen_id' => 'nullable|integer|exists:dosen,dosen_id',
             'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_kapro' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -110,6 +122,15 @@ class ProgramStudiController extends Controller
 
         // Data untuk di-update
         $data = $request->all();
+
+        if ($request->filled('kaprodi_dosen_id')) {
+            $kaprodi = Dosen::findOrFail($request->kaprodi_dosen_id);
+            $data['kaprod'] = $kaprodi->nama;
+            $data['kaprodi_dosen_id'] = $kaprodi->dosen_id;
+        } else {
+            // Data Kaprodi lama tetap dipertahankan sampai admin memilih akun dosen.
+            unset($data['kaprod'], $data['kaprodi_dosen_id']);
+        }
 
         // Proses upload gambar jika ada
         if ($request->hasFile('ttd')) {
@@ -156,5 +177,12 @@ class ProgramStudiController extends Controller
 
         return redirect()->route('admin.program-studi.index');
 
+    }
+
+    private function dosenOptions()
+    {
+        return Dosen::with('programStudi')
+            ->orderBy('nama')
+            ->get();
     }
 }

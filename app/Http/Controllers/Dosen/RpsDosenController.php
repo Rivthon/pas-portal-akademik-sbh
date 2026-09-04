@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dosen;
 use App\Http\Controllers\Controller;
 use App\Models\DosenMatakuliah;
 use App\Models\Rps;
+use App\Models\RpsRevision;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,8 @@ class RpsDosenController extends Controller
         // Ambil RPS berdasarkan kurikulum + jenis_kelas
         foreach ($mataKuliah as $item) {
 
-            $item->rps = Rps::where('kurikulum_id', $item->kurikulum_id)
+            $item->rps = Rps::with(['dosen', 'latestReplacement.uploader'])
+                ->where('kurikulum_id', $item->kurikulum_id)
                 ->where('jenis_kelas', $item->jenis_kelas)
                 ->first();
         }
@@ -81,6 +83,8 @@ class RpsDosenController extends Controller
 
         $isReplacement = (bool) $rps;
         $oldPath = $rps?->file;
+        $previousDosenId = $rps?->dosen_id;
+        $previousFileName = $rps?->nama_file ?: ($oldPath ? basename($oldPath) : null);
         $namaAsli = $request->file('file')->getClientOriginalName();
         $namaFile = 'RPS_'.
             $request->kurikulum_id.'_'.
@@ -95,8 +99,8 @@ class RpsDosenController extends Controller
         );
 
         try {
-            DB::transaction(function () use ($request, $dosen, $namaAsli, $path) {
-                Rps::updateOrCreate(
+            DB::transaction(function () use ($request, $dosen, $namaAsli, $path, $isReplacement, $previousDosenId, $previousFileName) {
+                $savedRps = Rps::updateOrCreate(
                     [
                         'kurikulum_id' => $request->kurikulum_id,
                         'jenis_kelas' => $request->jenis_kelas,
@@ -108,6 +112,18 @@ class RpsDosenController extends Controller
                         'status' => 1,
                     ]
                 );
+
+                if ($isReplacement && (int) $previousDosenId !== (int) $dosen->dosen_id) {
+                    RpsRevision::create([
+                        'rps_id' => $savedRps->rps_id,
+                        'kurikulum_id' => $savedRps->kurikulum_id,
+                        'jenis_kelas' => $savedRps->jenis_kelas,
+                        'previous_dosen_id' => $previousDosenId,
+                        'uploaded_by_dosen_id' => $dosen->dosen_id,
+                        'previous_file_name' => $previousFileName,
+                        'new_file_name' => $namaAsli,
+                    ]);
+                }
             });
         } catch (\Throwable $exception) {
             Storage::disk('public')->delete($path);
@@ -124,8 +140,12 @@ class RpsDosenController extends Controller
             ' ('.$request->jenis_kelas.')'
         );
 
+        $replacedByColleague = $isReplacement && (int) $previousDosenId !== (int) $dosen->dosen_id;
+
         return back()->with('success', $isReplacement
-            ? 'RPS berhasil diupload ulang dan file lama telah diganti.'
+            ? ($replacedByColleague
+                ? 'RPS berhasil diganti. Rekan dosen pengampu akan mendapatkan pemberitahuan.'
+                : 'RPS berhasil diupload ulang dan file lama telah diganti.')
             : 'RPS berhasil diupload.');
     }
 

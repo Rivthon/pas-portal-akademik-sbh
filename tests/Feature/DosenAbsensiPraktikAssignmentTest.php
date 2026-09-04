@@ -25,8 +25,8 @@ class DosenAbsensiPraktikAssignmentTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Analisis Sediaan Farmasi')
-            ->assertSee('Reguler')
-            ->assertSee('Karyawan')
+            ->assertSee('Reguler A')
+            ->assertSee('Reguler B')
             ->assertSee('Semester Mata Kuliah')
             ->assertSee('Program Studi')
             ->assertSee('Jenis Kelas')

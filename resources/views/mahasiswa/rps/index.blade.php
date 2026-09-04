@@ -63,9 +63,9 @@
                                     <td class="text-center">{{ $item->mataKuliah->semester }}</td>
                                     <td class="text-center">
                                         @if($jenisKelas === 'reguler')
-                                            <span class="badge bg-label-primary rounded-pill px-3">REGULER</span>
+                                            <span class="badge bg-label-primary rounded-pill px-3">REGULER A</span>
                                         @else
-                                            <span class="badge bg-label-warning text-dark rounded-pill px-3">KARYAWAN</span>
+                                            <span class="badge bg-label-warning text-dark rounded-pill px-3">REGULER B</span>
                                         @endif
                                     </td>
                                     <td class="text-center">

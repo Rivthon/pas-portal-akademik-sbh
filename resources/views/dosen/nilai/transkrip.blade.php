@@ -95,6 +95,16 @@
             </div>
         </div>
 
+        @if($isKrsView ?? false)
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body">
+                    <x-krs-guidance-thread :messages="$guidanceMessages ?? collect()"
+                        :action="route('dosen.mahasiswa.guidance.store', $mahasiswa)" viewer="dosen"
+                        title="Diskusi KRS dengan Mahasiswa" submit-label="Kirim Komentar" />
+                </div>
+            </div>
+        @endif
+
         {{-- Transcript Table Card --}}
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white pt-4 pb-3 border-bottom d-flex align-items-center justify-content-between">

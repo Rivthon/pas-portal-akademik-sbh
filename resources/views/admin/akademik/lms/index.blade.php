@@ -28,7 +28,7 @@
             <div class="col-md-3"><label class="form-label">Program Studi</label><select name="prodi_id" class="form-select"><option value="">Semua Program Studi</option>
                 @foreach($programStudi as $prodi)<option value="{{ $prodi->jurusan_id }}" @selected(request('prodi_id') == $prodi->jurusan_id)>{{ $prodi->nama }}</option>@endforeach
             </select></div>
-            <div class="col-md-2"><label class="form-label">Kelas</label><select name="jenis_kelas" class="form-select"><option value="">Semua Kelas</option><option value="reguler" @selected(request('jenis_kelas')==='reguler')>Reguler</option><option value="karyawan" @selected(request('jenis_kelas')==='karyawan')>Karyawan</option></select></div>
+            <div class="col-md-2"><label class="form-label">Kelas</label><select name="jenis_kelas" class="form-select"><option value="">Semua Kelas</option><option value="reguler" @selected(request('jenis_kelas')==='reguler')>Reguler A</option><option value="karyawan" @selected(request('jenis_kelas')==='karyawan')>Reguler B</option></select></div>
             <div class="col-md-3"><label class="form-label">Pencarian</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="Mata kuliah atau dosen"></div>
             <div class="col-md-1"><button class="btn btn-primary w-100"><i class="bx bx-search"></i></button></div>
         </form>
@@ -44,7 +44,7 @@
         <div class="col-md-6 col-xl-4">
             <div class="card border-0 shadow-sm h-100 admin-lms-card">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between mb-3"><span class="avatar-initial rounded bg-label-primary p-3"><i class="bx bx-book-open fs-3"></i></span><span class="badge bg-label-{{ strtolower((string)$jadwal->jenis_kelas)==='karyawan'?'warning':'primary' }}">{{ strtoupper($jadwal->jenis_kelas ?: '-') }}</span></div>
+                    <div class="d-flex justify-content-between mb-3"><span class="avatar-initial rounded bg-label-primary p-3"><i class="bx bx-book-open fs-3"></i></span><span class="badge bg-label-{{ strtolower((string)$jadwal->jenis_kelas)==='karyawan'?'warning':'primary' }}">{{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</span></div>
                     <h5 class="fw-bold mb-1">{{ $mk?->nama ?? '-' }}</h5>
                     <small class="text-muted d-block mb-2">{{ $mk?->matakuliah_id }} &bull; {{ $prodi?->nama ?? '-' }}</small>
                     <p class="small mb-3"><i class="bx bx-user me-1"></i>{{ $dosen ?: 'Dosen belum ditentukan' }}</p>

@@ -120,7 +120,7 @@
                                 <th class="py-3">Nama Mahasiswa</th>
                                 <th class="py-3" style="width: 170px">Status</th>
                                 <th class="py-3" style="width: 170px">Waktu Upload</th>
-                                <th class="text-center py-3" style="width: 120px">File</th>
+                                <th class="text-center py-3" style="width: 120px">Jawaban</th>
                                 <th class="text-center py-3" style="width: 120px">Nilai</th>
                                 <th class="text-center py-3" style="width: 130px">Aksi</th>
                             </tr>
@@ -152,7 +152,9 @@
                                         @endif
                                     </td>
                                     <td class="text-muted small">
-                                        @if($pengumpulan)
+                                        @if($pengumpulan && $tugas->tipe === 'pilihan_ganda')
+                                            <span class="badge bg-label-info">{{ count($pengumpulan->jawaban_pg ?? []) }} pilihan</span>
+                                        @elseif($pengumpulan && $pengumpulan->file)
                                             <i class="bx bx-time-five me-1"></i>{{ $pengumpulan->waktu_upload->format('d M Y H:i') }}
                                         @else
                                             <span>-</span>
@@ -244,12 +246,31 @@
                             </div>
 
                             <!-- Unduh File -->
+                            @if($tugas->tipe === 'pilihan_ganda')
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark">Jawaban Pilihan Ganda</label>
+                                    @foreach($tugas->soal as $soal)
+                                        @php
+                                            $pilihan = data_get($pengumpulan->jawaban_pg, (string) $soal->soal_id);
+                                            $benar = $pilihan !== null && (int) $pilihan === (int) $soal->kunci_jawaban;
+                                        @endphp
+                                        <div class="bg-white border rounded-3 p-2 mb-2">
+                                            <div class="fw-semibold">{{ $loop->iteration }}. {{ $soal->pertanyaan }}</div>
+                                            <small class="{{ $benar ? 'text-success' : 'text-danger' }}">
+                                                Jawaban: {{ $pilihan !== null ? chr(65 + (int) $pilihan).'. '.($soal->opsi[$pilihan] ?? '-') : '-' }}
+                                                &bull; Kunci: {{ chr(65 + (int) $soal->kunci_jawaban) }}
+                                            </small>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @elseif($pengumpulan->file)
                             <div class="mb-3">
                                 <a href="{{ route('dosen.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}"
                                    class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
                                     <i class="bx bx-download me-1"></i> Download File Jawaban
                                 </a>
                             </div>
+                            @endif
 
                             <!-- Preview PDF (Komentar Tetap Dipertahankan) -->
                             <!-- @if(\Illuminate\Support\Str::endsWith(strtolower($pengumpulan->file), '.pdf'))

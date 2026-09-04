@@ -39,7 +39,7 @@
             <h3 class="text-white fw-bold mb-1">{{ $mataKuliah?->nama ?? '-' }}</h3>
             <p class="text-white-50 mb-3">
                 {{ $mataKuliah?->matakuliah_id ?? '-' }} &bull; {{ $programStudi?->nama ?? '-' }}
-                &bull; {{ strtoupper($jadwal->jenis_kelas ?? '-') }}
+                &bull; {{ jenis_kelas_label($jadwal->jenis_kelas ?? '-') }}
             </p>
             <p class="mb-0 text-white-50">Nilai kosong atau tugas yang belum dikumpulkan dihitung 0 pada persentase sementara.</p>
             <p class="mb-0 mt-1 text-white-50"><i class="bx bx-link-alt me-1"></i>Persentase Gradebook otomatis menjadi nilai komponen Tugas KHS; bobot tugas diterapkan saat menghitung nilai akhir.</p>

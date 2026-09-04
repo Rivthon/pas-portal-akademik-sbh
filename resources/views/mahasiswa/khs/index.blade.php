@@ -9,6 +9,37 @@
     $status_akhir = $user->status_akhir;
     @endphp
 
+    @if($status_akhir == 1 && ($tahunAjaranOptions ?? collect())->isNotEmpty())
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <form method="GET" action="{{ route('mahasiswa.kartu-hasil.index') }}" class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label for="ta_id" class="form-label fw-semibold">
+                            <i class="bx bx-history text-primary me-1"></i>Riwayat Tahun Akademik
+                        </label>
+                        <select name="ta_id" id="ta_id" class="form-select" onchange="this.form.submit()">
+                            @foreach($tahunAjaranOptions as $tahunAjaran)
+                                <option value="{{ $tahunAjaran->ta_id }}" @selected((int) $selectedTaId === (int) $tahunAjaran->ta_id)>
+                                    {{ $tahunAjaran->nama }}{{ $tahunAjaran->semester ? ' - '.$tahunAjaran->semester : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-outline-primary w-100">
+                            <i class="bx bx-search-alt me-1"></i>Tampilkan KHS
+                        </button>
+                    </div>
+                </form>
+                @if($isHistorical ?? false)
+                    <div class="alert alert-info py-2 mt-3 mb-0">
+                        <i class="bx bx-archive me-1"></i>Anda sedang melihat arsip KHS tahun akademik sebelumnya.
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     @if($status_akhir != 1)
     <div class="card shadow-sm mb-4 border-top border-5 border-danger">
         <div class="d-flex align-items-center row g-0">
@@ -39,7 +70,7 @@
             </div>
         </div>
     </div>
-    @elseif($edom == 0)
+    @elseif($edom == 0 && !($isHistorical ?? false))
     <div class="card shadow-sm mb-4 border-top border-5 border-warning">
         <div class="d-flex align-items-center row g-0">
             <!-- Image Section -->
@@ -85,7 +116,7 @@
 
         </div>
     </div>
-    @elseif($edom == 1)
+    @elseif($edom == 1 || ($isHistorical ?? false))
     <div class="col-md-12">
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center item g-0">
@@ -98,12 +129,12 @@
                         </h5>
                         <!-- Description -->
                         <p class="mb-4 text-muted" style="line-height: 1.6;">
-                            List Kartu Hasil Studi (Semester {{ $mahasiswa->semester }}) - Tahun Ajaran: {{
+                            List Kartu Hasil Studi (Semester {{ $semesterKhs ?: '-' }}) - Tahun Ajaran: {{
                             $ta->nama }} {{ $ta->semester ? '(' . $ta->semester . ')' : '' }}
                         </p>
                         <!-- CTA Button -->
                         <div class="mb-3">
-                            <a href="{{route('mahasiswa.khs.cetak')}}" class="btn btn-primary">
+                            <a href="{{ route('mahasiswa.khs.cetak', ['ta_id' => $selectedTaId]) }}" class="btn btn-primary">
                                 Cetak Kartu Hasil Studi
                             </a>
                             <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning" aria-disabled="true">

@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Dosen;
 use App\Http\Controllers\Controller;
 use App\Models\BobotNilai;
 use App\Models\Jadwal;
+use App\Models\KhsPublication;
 use App\Models\Krs;
+use App\Models\KrsGuidanceMessage;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
+use App\Models\NilaiSubmission;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ModulAkademikController extends Controller
@@ -257,6 +259,9 @@ class ModulAkademikController extends Controller
         $programStudi = $jadwal->kurikulum?->programStudi;
         $mataKuliah = $jadwal->kurikulum?->mataKuliah;
         abort_unless($programStudi && $mataKuliah, 422, 'Data mata kuliah atau program studi tidak lengkap.');
+        if (KhsPublication::coversJadwal($jadwal)) {
+            return response()->json(['success' => false, 'message' => 'KHS sudah diterbitkan BAAK. Nilai tidak dapat diubah sebelum penerbitan dibatalkan.'], 422);
+        }
 
         $bobotCustom = Schema::hasTable('bobot_nilai')
             ? BobotNilai::where('program_studi_id', $programStudi->jurusan_id)
@@ -359,11 +364,21 @@ class ModulAkademikController extends Controller
                 ]);
             }
 
+            NilaiSubmission::updateOrCreate(['jadwal_id' => $jadwal->id], [
+                'program_studi_id' => $programStudi->jurusan_id,
+                'submitted_by_dosen_id' => $dosen->dosen_id,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+                'reviewed_by_dosen_id' => null,
+                'reviewed_at' => null,
+                'review_note' => null,
+            ]);
+
             activity_log('input_nilai', 'Dosen menyimpan nilai mahasiswa ('.count($krsIds).' mahasiswa)');
 
             return response()->json([
                 'success' => true,
-                'message' => 'Nilai berhasil diperbarui!',
+                'message' => 'Nilai berhasil disimpan dan diajukan kepada Kaprodi.',
             ]);
         } catch (\Exception $e) {
             \Log::error('Error updating nilai:', ['error' => $e->getMessage()]);
@@ -407,6 +422,15 @@ class ModulAkademikController extends Controller
                     fn ($krsQuery) => $krsQuery->where('ta_id', $activeTA->ta_id),
                     fn ($krsQuery) => $krsQuery->whereRaw('1 = 0')
                 )->with(['kurikulum.mataKuliah', 'disetujuiOleh']);
+            },
+            'guidanceMessages' => function ($query) use ($activeTA, $dosenId) {
+                $query->when(
+                    $activeTA,
+                    fn ($messageQuery) => $messageQuery
+                        ->where('ta_id', $activeTA->ta_id)
+                        ->where('dosen_id', $dosenId->dosen_id),
+                    fn ($messageQuery) => $messageQuery->whereRaw('1 = 0')
+                )->oldest();
             },
         ])
             ->withCount([
@@ -532,6 +556,13 @@ class ModulAkademikController extends Controller
         }
 
         $mahasiswa->load('programStudi');
+        $guidanceMessages = $activeTA
+            ? KrsGuidanceMessage::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->where('dosen_id', $dosen->dosen_id)
+                ->where('ta_id', $activeTA->ta_id)
+                ->oldest()
+                ->get()
+            : collect();
         $totalSks = $krs->sum(fn ($item) => (int) ($item->kurikulum?->mataKuliah?->sks ?? 0));
         $sudahDisetujui = $krs->isNotEmpty() && $krs->every(fn ($item) => $item->disetujui_pada !== null);
         $transkrip = $krs;
@@ -548,8 +579,39 @@ class ModulAkademikController extends Controller
             'totalSks',
             'sudahDisetujui',
             'ipk',
-            'isKrsView'
+            'isKrsView',
+            'guidanceMessages'
         ));
+    }
+
+    public function storeGuidanceComment(Request $request, Mahasiswa $mahasiswa)
+    {
+        $dosen = auth('dosen')->user();
+        $this->ensureMahasiswaBimbingan($mahasiswa, (int) $dosen->dosen_id);
+        $activeTA = TahunAkademik::where('status_ta', 1)->first();
+
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
+        }
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ], [
+            'message.required' => 'Komentar tidak boleh kosong.',
+            'message.max' => 'Komentar maksimal 2.000 karakter.',
+        ]);
+
+        KrsGuidanceMessage::create([
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'dosen_id' => $dosen->dosen_id,
+            'ta_id' => $activeTA->ta_id,
+            'sender_type' => 'dosen',
+            'message' => trim($validated['message']),
+        ]);
+
+        activity_log('komentar_bimbingan_krs', 'Dosen mengirim komentar KRS kepada mahasiswa ID '.$mahasiswa->mahasiswa_id);
+
+        return back()->with('success', 'Komentar berhasil dikirim kepada '.$mahasiswa->nama.'.');
     }
 
     public function approveKrs(Mahasiswa $mahasiswa)

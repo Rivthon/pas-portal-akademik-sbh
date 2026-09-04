@@ -44,7 +44,7 @@
                     <div class="card border-0 shadow-sm h-100" style="transition: transform 0.2s;">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block mb-1 fw-semibold">Kelas Reguler</small>
+                                <small class="text-muted d-block mb-1 fw-semibold">Kelas Reguler A</small>
                                 <h3 class="mb-0 fw-bold text-success" id="stat-reguler">0</h3>
                             </div>
                             <i class="bx bx-sun fs-1 text-success opacity-50"></i>
@@ -55,7 +55,7 @@
                     <div class="card border-0 shadow-sm h-100" style="transition: transform 0.2s;">
                         <div class="card-body d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block mb-1 fw-semibold">Kelas Karyawan</small>
+                                <small class="text-muted d-block mb-1 fw-semibold">Kelas Reguler B</small>
                                 <h3 class="mb-0 fw-bold text-warning" id="stat-karyawan">0</h3>
                             </div>
                             <i class="bx bx-moon fs-1 text-warning opacity-50"></i>
@@ -82,8 +82,8 @@
                                 <select id="filterJenisKelas" name="jenis_kelas"
                                     class="form-select shadow-sm rounded-pill cursor-pointer border">
                                     <option value="semua">-- Tampilkan Semua Jenis Kelas --</option>
-                                    <option value="reguler">Kelas Reguler (Pagi/Siang)</option>
-                                    <option value="karyawan">Kelas Karyawan (Malam/Eksekutif)</option>
+                                    <option value="reguler">Kelas Reguler A (Pagi/Siang)</option>
+                                    <option value="karyawan">Kelas Reguler B (Malam/Eksekutif)</option>
                                 </select>
                             </div>
                         </div>

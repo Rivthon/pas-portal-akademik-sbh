@@ -50,7 +50,7 @@
                                     <optgroup label="Semester {{ $semester }}">
                                     @foreach ($jadwalPerSemester as $jadwal)
                                         <option value="{{ $jadwal['jadwal_id'] }}">
-                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ Str::title($jadwal['jenis_kelas']) }})
+                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ jenis_kelas_label($jadwal['jenis_kelas']) }})
                                         </option>
                                     @endforeach
                                     </optgroup>
@@ -82,7 +82,7 @@
                                     <optgroup label="Semester {{ $semester }}">
                                     @foreach ($jadwalPerSemester as $jadwal)
                                         <option value="{{ $jadwal['jadwal_id'] }}">
-                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ Str::title($jadwal['jenis_kelas']) }})
+                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ jenis_kelas_label($jadwal['jenis_kelas']) }})
                                         </option>
                                     @endforeach
                                     </optgroup>
@@ -124,7 +124,7 @@
                                     <optgroup label="Semester {{ $semester }}">
                                     @foreach ($jadwalPerSemester as $jadwal)
                                         <option value="{{ $jadwal['jadwal_praktik_id'] }}">
-                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ Str::title($jadwal['jenis_kelas']) }})
+                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ jenis_kelas_label($jadwal['jenis_kelas']) }})
                                         </option>
                                     @endforeach
                                     </optgroup>
@@ -156,7 +156,7 @@
                                     <optgroup label="Semester {{ $semester }}">
                                     @foreach ($jadwalPerSemester as $jadwal)
                                         <option value="{{ $jadwal['jadwal_praktik_id'] }}">
-                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ Str::title($jadwal['jenis_kelas']) }})
+                                            {{ $jadwal['nama_matakuliah'] }} • {{ $jadwal['nama_prodi'] }} (Kelas {{ jenis_kelas_label($jadwal['jenis_kelas']) }})
                                         </option>
                                     @endforeach
                                     </optgroup>

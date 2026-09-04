@@ -621,7 +621,7 @@
                     if (Array.isArray(data) && data.length > 0) {
                         const options = data.map(mk =>
                             `<option value="${mk.jadwal_id}">
-                                ${mk.nama} (${mk.matakuliah_id}) - ${mk.program_studi} - ${mk.jenis_kelas.toUpperCase()} - Semester ${mk.smt}
+                                ${mk.nama} (${mk.matakuliah_id}) - ${mk.program_studi} - ${String(mk.jenis_kelas).toLowerCase() === 'karyawan' ? 'Reguler B' : 'Reguler A'} - Semester ${mk.smt}
                             </option>`
                         ).join("");
                         mataKuliahSelect.html('<option value=""></option>' + options);

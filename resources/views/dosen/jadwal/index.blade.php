@@ -12,7 +12,7 @@
                         <p class="mb-0 text-white-50" style="line-height: 1.6;">
                             Berikut adalah jadwal perkuliahan yang telah ditetapkan untuk tahun ajaran <br>
                             <strong class="text-white">{{ $activeTA->nama }} - {{ $activeTA->semester }}</strong>.<br>
-                            Gunakan filter di bawah untuk mempermudah pencarian kelas <strong>Reguler</strong> atau <strong>Karyawan</strong>.
+                            Gunakan filter di bawah untuk mempermudah pencarian kelas <strong>Reguler A</strong> atau <strong>Reguler B</strong>.
                         </p>
                     </div>
 
@@ -37,8 +37,8 @@
                     <div class="col-md-6">
                         <select id="filterJenisKelas" class="form-select shadow-sm rounded-pill cursor-pointer border">
                             <option value="semua">-- Tampilkan Semua Jenis Kelas --</option>
-                            <option value="reguler">Kelas Reguler (Pagi/Siang)</option>
-                            <option value="karyawan">Kelas Karyawan (Malam/Eksekutif)</option>
+                            <option value="reguler">Kelas Reguler A (Pagi/Siang)</option>
+                            <option value="karyawan">Kelas Reguler B (Malam/Eksekutif)</option>
                         </select>
                     </div>
                 </div>

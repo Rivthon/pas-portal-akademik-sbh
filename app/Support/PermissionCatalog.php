@@ -69,6 +69,7 @@ class PermissionCatalog
         $overrides = [
             'input-nilai' => 'Input nilai mahasiswa',
             'list-nilai' => 'Lihat nilai mahasiswa',
+            'nilai-publish' => 'Terbitkan KHS mahasiswa',
             'input-uap' => 'Input nilai UAP',
             'list-uap' => 'Lihat nilai UAP',
             'list-aktivasi' => 'Lihat aktivasi mahasiswa',

@@ -71,11 +71,11 @@
                                 <td>
                                     @if($item->jenis_kelas == 'reguler')
                                         <span class="badge bg-primary">
-                                            REGULER
+                                            REGULER A
                                         </span>
                                     @else
                                         <span class="badge bg-warning text-dark">
-                                            KARYAWAN
+                                            REGULER B
                                         </span>
                                     @endif
                                 </td>

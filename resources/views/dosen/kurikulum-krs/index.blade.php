@@ -51,8 +51,8 @@
                     <label for="jenis-kelas" class="form-label fw-semibold">Jenis Kelas</label>
                     <select id="jenis-kelas" name="jenis_kelas" class="form-select">
                         <option value="semua" @selected($jenisKelas === 'semua')>Semua Kelas</option>
-                        <option value="reguler" @selected($jenisKelas === 'reguler')>Reguler</option>
-                        <option value="karyawan" @selected($jenisKelas === 'karyawan')>Karyawan</option>
+                        <option value="reguler" @selected($jenisKelas === 'reguler')>Reguler A</option>
+                        <option value="karyawan" @selected($jenisKelas === 'karyawan')>Reguler B</option>
                     </select>
                 </div>
                 <div class="col-6 col-md-3 col-xl-2">

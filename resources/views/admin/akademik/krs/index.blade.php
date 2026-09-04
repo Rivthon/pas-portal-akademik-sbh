@@ -586,8 +586,8 @@
                     </label>
                     <select id="bulk-kelas" class="form-select">
                         <option value="">Semua Kelas</option>
-                        <option value="pagi">Pagi</option>
-                        <option value="karyawan">Karyawan</option>
+                        <option value="pagi">Reguler A</option>
+                        <option value="karyawan">Reguler B</option>
                     </select>
                 </div>
             </div>

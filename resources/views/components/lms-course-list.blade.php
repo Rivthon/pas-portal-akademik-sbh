@@ -53,7 +53,9 @@
                                 $dosenPengampu = collect($item->kurikulum?->dosenToMatakuliah)
                                     ->filter(fn ($assignment) => strtolower((string) $assignment->jenis_dosen) === 'teori'
                                         && strtolower((string) $assignment->jenis_kelas) === $jenisKelas)
-                                    ->pluck('dosen.nama')->filter()->unique()->values();
+                                    ->pluck('dosen.nama')->filter()
+                                    ->merge(collect($item->pertemuan)->pluck('dosen.nama')->filter())
+                                    ->unique()->values();
                                 $jamMulai = $item->jam_mulai ? substr((string) $item->jam_mulai, 0, 5) : '-';
                                 $jamSelesai = $item->jam_selesai ? substr((string) $item->jam_selesai, 0, 5) : '-';
                                 $progress = min(100, (int) round(((int) $item->pertemuan_count / 14) * 100));
@@ -65,7 +67,7 @@
                                         <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                                             <span class="badge bg-label-primary">{{ $mataKuliah?->matakuliah_id ?? '-' }}</span>
                                             <span class="badge {{ $jenisKelas === 'karyawan' ? 'bg-label-warning' : 'bg-label-success' }} text-capitalize">
-                                                <i class="bx {{ $jenisKelas === 'karyawan' ? 'bx-moon' : 'bx-sun' }} me-1"></i>{{ $item->jenis_kelas ?? '-' }}
+                                                <i class="bx {{ $jenisKelas === 'karyawan' ? 'bx-moon' : 'bx-sun' }} me-1"></i>{{ jenis_kelas_label($item->jenis_kelas) }}
                                             </span>
                                         </div>
 

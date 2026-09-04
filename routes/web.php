@@ -39,6 +39,7 @@ use App\Http\Controllers\Admin\MasterData\UserController;
 use App\Http\Controllers\Admin\Penilaian\AdminCekNilaiController;
 use App\Http\Controllers\Admin\Penilaian\EvaluasiController;
 use App\Http\Controllers\Admin\Penilaian\InputNilaiController;
+use App\Http\Controllers\Admin\Penilaian\KhsPublicationController;
 use App\Http\Controllers\Admin\Penilaian\NilaiController;
 use App\Http\Controllers\Admin\Penilaian\PenilaianController;
 use App\Http\Controllers\Admin\Penilaian\UapNilaiController;
@@ -52,6 +53,7 @@ use App\Http\Controllers\Auth\MahasiswaLoginController;
 use App\Http\Controllers\CalendarAkademikFileController;
 use App\Http\Controllers\Dosen\AbsensiPraktikController as DosenAbsensiPraktikController;
 use App\Http\Controllers\Dosen\DashboardDosenController;
+use App\Http\Controllers\Dosen\KaprodiVerificationController;
 use App\Http\Controllers\Dosen\KurikulumKrsController;
 use App\Http\Controllers\Dosen\LaporanAbsensiController;
 use App\Http\Controllers\Dosen\LmsDosenController;
@@ -144,6 +146,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::post('/krs/simpan', [AkademikController::class, 'nyimpenKrs'])->name('simpan.krs');
         Route::get('/krs', [AkademikController::class, 'index'])->name('krs.index');
         Route::get('/status-krs', [AkademikController::class, 'tampilkanKrs'])->name('status.krs.index');
+        Route::post('/status-krs/komentar', [AkademikController::class, 'storeKrsGuidanceReply'])->name('status.krs.comment.store');
         Route::delete('/krs/{id}/hapus', [AkademikController::class, 'hapusKrs'])->name('hapus.krs');
 
         Route::get('/kartu-hasil-studi/mhs', [AkademikController::class, 'tampilanKartuHasil'])->name('kartu-hasil.index');
@@ -474,6 +477,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/api/mahasiswa-by-prodi-semester', [NilaiController::class, 'getMahasiswaByProdiSemester'])->name('nilai.mahasiswa-by-prodi-semester');
             Route::get('/api/krs-mahasiswa/{mahasiswaId}', [NilaiController::class, 'getKRSByMahasiswa'])->name('nilai.krs-mahasiswa');
         });
+        Route::middleware('permission:nilai-publish')->prefix('penerbitan-khs')->name('nilai-publish.')->group(function () {
+            Route::get('/', [KhsPublicationController::class, 'index'])->name('index');
+            Route::post('/', [KhsPublicationController::class, 'publish'])->name('store');
+            Route::delete('/{publication}', [KhsPublicationController::class, 'revoke'])->name('destroy');
+        });
 
         Route::get('/aktivasi-mhs', [AktivasiController::class, 'index'])->middleware('permission:aktivasi-list')->name('aktivasi.index');
         Route::post('/aktivasi-mhs/update-status', [AktivasiController::class, 'updateStatus'])->middleware('permission:aktivasi-update')->name('aktivasi-mhs.updateStatus');
@@ -695,6 +703,8 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/kurikulum-krs', [KurikulumKrsController::class, 'index'])->name('kurikulum-krs.index');
             Route::get('/mahasiswa-bimbingan/{mahasiswa}/krs', [ModulAkademikController::class, 'lihatKrsMahasiswa'])
                 ->name('mahasiswa.krs.show');
+            Route::post('/mahasiswa-bimbingan/{mahasiswa}/komentar', [ModulAkademikController::class, 'storeGuidanceComment'])
+                ->name('mahasiswa.guidance.store');
             Route::post('/mahasiswa-bimbingan/{mahasiswa}/krs/acc', [ModulAkademikController::class, 'approveKrs'])
                 ->name('mahasiswa.krs.approve');
             Route::post('/mahasiswa-bimbingan/{mahasiswa}/krs/batalkan-acc', [ModulAkademikController::class, 'cancelKrsApproval'])
@@ -704,6 +714,16 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/mahasiswa-bimbingan/{mahasiswa}/transkrip', [ModulAkademikController::class, 'transkripMahasiswa'])->name('mahasiswa.transkrip');
             // ===== Modul Akademik =====
             Route::get('/edom/hasil', [DashboardDosenController::class, 'hasilEdom'])->name('edom.hasil');
+
+            Route::prefix('kaprodi')->name('kaprodi.')->group(function () {
+                Route::get('/absensi', [KaprodiVerificationController::class, 'absensi'])->name('absensi.index');
+                Route::get('/absensi/{jadwal}', [KaprodiVerificationController::class, 'absensiDetail'])->name('absensi.show');
+                Route::post('/absensi/{jadwal}/verifikasi', [KaprodiVerificationController::class, 'verifyAbsensi'])->name('absensi.verify');
+                Route::get('/nilai', [KaprodiVerificationController::class, 'nilai'])->name('nilai.index');
+                Route::get('/nilai/{submission}', [KaprodiVerificationController::class, 'nilaiDetail'])->name('nilai.show');
+                Route::post('/nilai/{submission}/setujui', [KaprodiVerificationController::class, 'approveNilai'])->name('nilai.approve');
+                Route::post('/nilai/{submission}/revisi', [KaprodiVerificationController::class, 'revisionNilai'])->name('nilai.revision');
+            });
 
             // Materi Kuliah
             Route::get('/materi', [ModulAkademikController::class, 'indexRps'])->name('materi.index');
@@ -760,6 +780,14 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
 
                 Route::put('/tugas/{tugas}', [LmsDosenController::class, 'updateTugas'])
                     ->name('tugas.update');
+                Route::get('/tugas/{tugas}/soal', [LmsDosenController::class, 'manageTugasSoal'])
+                    ->name('tugas.soal.manage');
+                Route::post('/tugas/{tugas}/soal', [LmsDosenController::class, 'storeTugasSoal'])
+                    ->name('tugas.soal.store');
+                Route::put('/tugas-soal/{soal}', [LmsDosenController::class, 'updateTugasSoal'])
+                    ->name('tugas.soal.update');
+                Route::delete('/tugas-soal/{soal}', [LmsDosenController::class, 'destroyTugasSoal'])
+                    ->name('tugas.soal.destroy');
 
                 Route::delete('/tugas/{tugas}', [LmsDosenController::class, 'destroyTugas'])
                     ->name('tugas.destroy');

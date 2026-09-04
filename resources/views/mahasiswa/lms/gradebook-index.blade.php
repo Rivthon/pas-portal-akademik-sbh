@@ -69,7 +69,7 @@
                                             </span>
                                         </div>
                                         <span class="badge bg-label-secondary rounded-pill px-3 text-uppercase fw-semibold">
-                                            {{ strtoupper($item->jenis_kelas ?? '-') }}
+                                            {{ jenis_kelas_label($item->jenis_kelas ?? '-') }}
                                         </span>
                                     </div>
 

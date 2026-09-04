@@ -23,6 +23,7 @@ class ProgramStudi extends Model
         'singkat',
         'jenjang',
         'kaprod',
+        'kaprodi_dosen_id',
         'ttd',
         'header_baak',
         'header_kapro',
@@ -34,5 +35,10 @@ class ProgramStudi extends Model
     public function mahasiswa()
     {
         return $this->hasMany(Mahasiswa::class, 'jurusan_id');
+    }
+
+    public function kaprodi()
+    {
+        return $this->belongsTo(Dosen::class, 'kaprodi_dosen_id', 'dosen_id');
     }
 }

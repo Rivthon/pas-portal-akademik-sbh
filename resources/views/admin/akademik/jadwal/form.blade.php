@@ -57,12 +57,12 @@
                         <option value="" disabled selected>Pilih Jenis Kelas</option>
                         <option value="Reguler" {{ old('jenis_kelas', $jadwalUts->jenis_kelas ?? '') == 'Reguler' ?
                             'selected' : '' }}>
-                            Reguler
+                            Reguler A
                         </option>
                         <option value="Karyawan" {{ old('jenis_kelas', $jadwalUts->jenis_kelas ?? '') == 'Karyawan' ?
                             'selected' : ''
                             }}>
-                            Karyawan
+                            Reguler B
                         </option>
                     </select>
                 </div>

@@ -15,8 +15,10 @@ class LmsPengumpulanTugas extends Model
         'mahasiswa_id',
         'file',
         'catatan',
+        'jawaban_pg',
         'waktu_upload',
         'nilai',
+        'dinilai_otomatis',
         'feedback',
         'dinilai_pada',
         'dinilai_oleh',
@@ -25,6 +27,8 @@ class LmsPengumpulanTugas extends Model
     protected $casts = [
         'waktu_upload' => 'datetime',
         'dinilai_pada' => 'datetime',
+        'jawaban_pg' => 'array',
+        'dinilai_otomatis' => 'boolean',
     ];
 
     public function tugas()

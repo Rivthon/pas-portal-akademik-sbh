@@ -228,14 +228,17 @@
             </li>
 
             {{-- Manajemen Penilaian --}}
-            @canany(['evaluasi-list', 'input-nilai', 'list-nilai', 'list-uap'])
+            @canany(['evaluasi-list', 'input-nilai', 'list-nilai', 'list-uap', 'nilai-publish'])
                 <li
-                    class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.cek-nilai.*') || Route::is('admin.nilai.index') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index') || Route::is('admin.uap.index')) active open @endif">
+                    class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.cek-nilai.*') || Route::is('admin.nilai.index') || Route::is('admin.nilai-publish.*') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index') || Route::is('admin.uap.index')) active open @endif">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon tf-icons bx bxs-file-archive"></i>
                         <div data-i18n="Manajemen Penilaian">Manajemen Penilaian</div>
                     </a>
                     <ul class="menu-sub">
+                        @can('nilai-publish')
+                            <li class="menu-item @if(Route::is('admin.nilai-publish.*')) active @endif"><a href="{{route('admin.nilai-publish.index')}}" class="menu-link"><div>Penerbitan KHS</div></a></li>
+                        @endcan
                         @can('evaluasi-list')
                             <li class="menu-item @if(Route::is('admin.penilaian.index')) active @endif">
                                 <a href="{{ route('admin.penilaian.index') }}" class="menu-link">

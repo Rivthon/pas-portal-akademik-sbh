@@ -89,7 +89,7 @@
                             <td>{{ $jadwal->kurikulum?->programStudi?->nama ?? '-' }}</td>
                             <td>
                                 <span class="badge bg-label-{{ strtolower((string) $jadwal->jenis_kelas) === 'karyawan' ? 'warning' : 'primary' }}">
-                                    {{ ucfirst($jadwal->jenis_kelas ?: '-') }}
+                                    {{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}
                                 </span>
                                 <small class="d-block text-muted mt-1">
                                     {{ $jadwal->hari ?: '-' }},

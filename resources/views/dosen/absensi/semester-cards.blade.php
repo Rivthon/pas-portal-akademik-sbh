@@ -74,7 +74,7 @@
                                             <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
                                                 <span class="badge bg-label-primary">{{ $jadwal['kode_matakuliah'] ?? '-' }}</span>
                                                 <span class="badge {{ $isKaryawan ? 'bg-label-warning' : 'bg-label-success' }} text-capitalize">
-                                                    <i class="bx {{ $isKaryawan ? 'bx-moon' : 'bx-sun' }} me-1"></i>{{ $jadwal['jenis_kelas'] }}
+                                                    <i class="bx {{ $isKaryawan ? 'bx-moon' : 'bx-sun' }} me-1"></i>{{ jenis_kelas_label($jadwal['jenis_kelas']) }}
                                                 </span>
                                             </div>
 

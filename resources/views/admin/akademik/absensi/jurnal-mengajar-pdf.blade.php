@@ -36,7 +36,7 @@
             </tr>
             <tr>
                 <td class="info-label">Kode / SKS</td><td>: {{ $jadwal->kurikulum?->mataKuliah?->matakuliah_id ?? '-' }} / {{ $jadwal->kurikulum?->mataKuliah?->sks ?? '-' }} SKS</td>
-                <td class="info-label">Semester / Kelas</td><td>: {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }} / {{ ucfirst($jadwal->jenis_kelas ?: '-') }}</td>
+                <td class="info-label">Semester / Kelas</td><td>: {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }} / {{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</td>
             </tr>
             <tr>
                 <td class="info-label">Tahun Akademik</td><td>: {{ $jadwal->tahunAjaran?->nama ?? '-' }} {{ $jadwal->tahunAjaran?->semester ? '('.$jadwal->tahunAjaran->semester.')' : '' }}</td>
@@ -122,7 +122,7 @@
                 <td class="info-label">Program Studi</td><td>: {{ $jadwal->kurikulum?->programStudi?->nama ?? '-' }}</td>
             </tr>
             <tr>
-                <td class="info-label">Semester / Kelas</td><td>: {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }} / {{ ucfirst($jadwal->jenis_kelas ?: '-') }}</td>
+                <td class="info-label">Semester / Kelas</td><td>: {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }} / {{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</td>
                 <td class="info-label">Jumlah Pertemuan</td><td>: {{ $totalPertemuan }}</td>
             </tr>
         </table>

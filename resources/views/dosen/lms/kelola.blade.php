@@ -51,7 +51,7 @@
                         </span>
                         <h3 class="text-white fw-bold mt-1 mb-2">{{ $mataKuliah?->nama ?? '-' }}</h3>
                         <p class="text-white-50 mb-3">
-                            <i class="bx bx-buildings me-1"></i>{{ $programStudi?->nama ?? '-' }} &bull; <span class="badge bg-label-warning text-Black rounded-pill px-2">{{ strtoupper($jadwal->jenis_kelas ?? '-') }}</span>
+                            <i class="bx bx-buildings me-1"></i>{{ $programStudi?->nama ?? '-' }} &bull; <span class="badge bg-label-warning text-Black rounded-pill px-2">{{ jenis_kelas_label($jadwal->jenis_kelas ?? '-') }}</span>
                         </p>
                         <div class="d-flex flex-wrap gap-2">
                             <span class="badge bg-white text-primary rounded-pill px-3"><i class="bx bx-layer me-1"></i>{{ $pertemuan->count() }} Pertemuan</span>
@@ -283,6 +283,9 @@
                                         <div class="card-body p-3">
                                             <h6 class="fw-bold text-dark mb-2">
                                                 <i class="fas fa-file-signature text-primary me-2"></i>{{ $tugas->judul }}
+                                                <span class="badge {{ $tugas->tipe === 'pilihan_ganda' ? 'bg-label-info' : 'bg-label-secondary' }} ms-1">
+                                                    {{ $tugas->tipe === 'pilihan_ganda' ? 'Pilihan Ganda A-E' : 'Upload Berkas' }}
+                                                </span>
                                             </h6>
 
                                             <p class="mb-2 text-muted small">
@@ -314,7 +317,7 @@
 
                                                 @if($tugas->izinkan_upload_ulang)
                                                     <span class="badge bg-label-info rounded-pill">
-                                                        Upload ulang diizinkan
+                                                        {{ $tugas->tipe === 'pilihan_ganda' ? 'Perubahan jawaban diizinkan sebelum deadline' : 'Upload ulang diizinkan sebelum deadline' }}
                                                     </span>
                                                 @else
                                                     <span class="badge bg-label-dark rounded-pill">
@@ -324,6 +327,11 @@
                                             </div>
 
                                             <div class="d-flex flex-wrap gap-2">
+                                                @if($tugas->tipe === 'pilihan_ganda')
+                                                    <a href="{{ route('dosen.lms.tugas.soal.manage', $tugas) }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                                        <i class="bx bx-list-plus me-1"></i> Kelola Soal
+                                                    </a>
+                                                @endif
                                                 @if($tugas->lampiran)
                                                     <a href="{{ Storage::url($tugas->lampiran) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3">
                                                         <i class="fas fa-paperclip me-1"></i> Lampiran
@@ -381,6 +389,17 @@
                                                             <textarea name="deskripsi" class="form-control" rows="3">{{ $tugas->deskripsi }}</textarea>
                                                         </div>
 
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Jenis Tugas</label>
+                                                            <select name="tipe" class="form-select" required>
+                                                                <option value="file" @selected($tugas->tipe === 'file')>Upload Berkas</option>
+                                                                <option value="pilihan_ganda" @selected($tugas->tipe === 'pilihan_ganda')>Pilihan Ganda</option>
+                                                            </select>
+                                                            @if($tugas->pengumpulan->isNotEmpty())
+                                                                <small class="text-muted">Jenis tidak dapat diganti karena sudah ada pengumpulan.</small>
+                                                            @endif
+                                                        </div>
+
                                                         <div class="row">
                                                             <div class="col-md-6 mb-3">
                                                                 <label class="form-label">Deadline</label>
@@ -417,7 +436,7 @@
                                                                 id="editIzinkanTerlambat{{ $tugas->tugas_id }}"
                                                                 {{ old('izinkan_terlambat', $tugas->izinkan_terlambat ?? 0) ? 'checked' : '' }}>
                                                             <label class="form-check-label" for="editIzinkanTerlambat{{ $tugas->tugas_id }}">
-                                                                Izinkan pengumpulan setelah deadline
+                                                                Izinkan pengumpulan pertama setelah deadline (upload ulang tetap dikunci)
                                                             </label>
                                                         </div>
 
@@ -426,7 +445,7 @@
                                                                 id="editIzinkanUploadUlang{{ $tugas->tugas_id }}"
                                                                 {{ old('izinkan_upload_ulang', $tugas->izinkan_upload_ulang ?? 1) ? 'checked' : '' }}>
                                                             <label class="form-check-label" for="editIzinkanUploadUlang{{ $tugas->tugas_id }}">
-                                                                Izinkan mahasiswa mengganti jawaban
+                                                                Izinkan mahasiswa mengganti jawaban sebelum deadline
                                                             </label>
                                                         </div>
                                                     </div>
@@ -476,7 +495,7 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT, Word, Excel, Gambar, Video, Zip</small></label>
+                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT, Word, Excel, Gambar, Video, Zip Max 10Mb</small></label>
                                     <input type="file" name="file" class="form-control">
                                 </div>
 
@@ -519,6 +538,15 @@
                                     <textarea name="deskripsi" class="form-control" rows="3"></textarea>
                                 </div>
 
+                                <div class="mb-3">
+                                    <label class="form-label">Jenis Tugas</label>
+                                    <select name="tipe" class="form-select" required>
+                                        <option value="file">Upload Berkas</option>
+                                        <option value="pilihan_ganda">Pilihan Ganda</option>
+                                    </select>
+                                    <small class="text-muted">Untuk pilihan ganda, soal disusun setelah tugas disimpan.</small>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Deadline</label>
@@ -540,14 +568,14 @@
                                 <div class="form-check mt-3">
                                     <input class="form-check-input" type="checkbox" name="izinkan_terlambat" value="1" id="addIzinkanTerlambat{{ $item->pertemuan_id }}">
                                     <label class="form-check-label" for="addIzinkanTerlambat{{ $item->pertemuan_id }}">
-                                        Izinkan pengumpulan setelah deadline
+                                        Izinkan pengumpulan pertama setelah deadline (upload ulang tetap dikunci)
                                     </label>
                                 </div>
 
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="checkbox" name="izinkan_upload_ulang" value="1" id="addIzinkanUploadUlang{{ $item->pertemuan_id }}" checked>
                                     <label class="form-check-label" for="addIzinkanUploadUlang{{ $item->pertemuan_id }}">
-                                        Izinkan mahasiswa mengganti jawaban
+                                        Izinkan mahasiswa mengganti jawaban sebelum deadline
                                     </label>
                                 </div>
                             </div>

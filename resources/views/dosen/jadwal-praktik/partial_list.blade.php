@@ -45,7 +45,7 @@
                     </ul>
                     @if ($jadwal['jenis_kelas'] == 'karyawan')
                     <div class="alert alert-warning mt-2 p-2" role="alert">
-                        <i class="bi bi-exclamation-triangle"></i> Kelas Karyawan
+                        <i class="bi bi-exclamation-triangle"></i> Kelas Reguler B
                     </div>
                     @endif
                 </div>

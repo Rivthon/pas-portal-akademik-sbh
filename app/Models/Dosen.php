@@ -77,6 +77,16 @@ class Dosen extends Authenticatable
         return $this->hasMany(Mahasiswa::class, 'dosen_id');
     }
 
+    public function guidanceMessages()
+    {
+        return $this->hasMany(KrsGuidanceMessage::class, 'dosen_id', 'dosen_id');
+    }
+
+    public function programStudiDipimpin()
+    {
+        return $this->hasMany(ProgramStudi::class, 'kaprodi_dosen_id', 'dosen_id');
+    }
+
     public function rps()
     {
         return $this->hasMany(

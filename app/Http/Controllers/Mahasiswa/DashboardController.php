@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\CalendarAkademik;
 use App\Models\Jadwal;
+use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\LmsMateri;
 use App\Models\LmsQuiz;
@@ -42,9 +43,12 @@ class DashboardController extends Controller
         });
 
         // **3. Hitung Total SKS dan IPK (Hanya Jika KHS Sudah Dinilai)**
-        $khs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+        $khs = Krs::with('kurikulum.mataKuliah')
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereHas('kurikulum.mataKuliah') // Pastikan ada relasi ke mata kuliah
             ->get();
+        $khs = KhsPublication::filterPublishedKrs($khs, $mahasiswa);
+        $isKhsPublished = $khs->isNotEmpty();
 
         // Filter hanya KHS yang memiliki nilai
         $filteredKhs = $khs->filter(fn ($item) => ! empty($item->khs));

@@ -45,6 +45,12 @@
         @if(session('error'))
             <div class="alert alert-danger shadow-sm border-0"><i class="bx bx-error-circle me-2"></i>{{ session('error') }}</div>
         @endif
+        @if(session('success'))
+            <div class="alert alert-success shadow-sm border-0"><i class="bx bx-check-circle me-2"></i>{{ session('success') }}</div>
+        @endif
+        @if($errors->any())
+            <div class="alert alert-danger shadow-sm border-0"><i class="bx bx-error-circle me-2"></i>{{ $errors->first() }}</div>
+        @endif
         <div class="card shadow-sm mb-4">
             <div class="d-flex align-items-center row g-0">
                 <!-- Content Section -->
@@ -122,6 +128,13 @@
                             alt="Illustration of a schedule" style="max-height: 200px;">
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <x-krs-guidance-thread :messages="$guidanceMessages ?? collect()"
+                    :action="route('mahasiswa.status.krs.comment.store')" viewer="mahasiswa"
+                    title="Diskusi dengan Dosen Pembimbing" submit-label="Kirim Umpan Balik" />
             </div>
         </div>
         <div class="card bg-light">

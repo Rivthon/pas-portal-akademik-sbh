@@ -54,8 +54,8 @@
                             </label>
 
                             <select id="jenis_kelas_cari" class="form-select">
-                                <option value="Reguler">Reguler</option>
-                                <option value="Karyawan">Karyawan</option>
+                                <option value="Reguler">Reguler A</option>
+                                <option value="Karyawan">Reguler B</option>
                             </select>
                         </div>
                         <div class="col-md-2 mt-3 mt-md-0 d-grid">
@@ -99,8 +99,8 @@
                     <label for="jenis_kelas_cari" class="form-label fw-bold">Pilih Jenis Kelas <span
                             class="text-danger">*</span></label>
                     <select id="jenis_kelas_cari" class="form-select">
-                        <option value="reguler">Reguler</option>
-                        <option value="karyawan">Karyawan</option>
+                        <option value="reguler">Reguler A</option>
+                        <option value="karyawan">Reguler B</option>
                     </select>
                 </div>
             </div>
@@ -241,7 +241,7 @@
                                 </td>
 
                                 <td class="text-center">
-                                    <span class="badge bg-label-danger">${jadwal.jenis_kelas}</span>
+                                    <span class="badge bg-label-danger">${String(jadwal.jenis_kelas).toLowerCase() === 'karyawan' ? 'Reguler B' : 'Reguler A'}</span>
                                 </td>
                                 <td class="text-center">
                                     <button class="btn btn-outline-danger btn-sm delete-btn" data-id="${jadwal.id}" title="Hapus">

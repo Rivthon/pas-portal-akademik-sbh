@@ -33,3 +33,19 @@ if (! function_exists('activity_log_for')) {
         return app(ActivityLogService::class)->logFor($user, $userType, $aktivitas, $deskripsi);
     }
 }
+
+if (! function_exists('jenis_kelas_label')) {
+    /**
+     * Nama kelas untuk tampilan. Nilai internal tetap reguler/karyawan/pagi
+     * agar filter dan relasi data lama tidak berubah.
+     */
+    function jenis_kelas_label(?string $jenisKelas, string $fallback = '-'): string
+    {
+        return match (strtolower(trim((string) $jenisKelas))) {
+            'reguler', 'regular', 'pagi' => 'Reguler A',
+            'karyawan' => 'Reguler B',
+            '' => $fallback,
+            default => ucfirst((string) $jenisKelas),
+        };
+    }
+}

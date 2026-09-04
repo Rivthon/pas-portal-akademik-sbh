@@ -151,6 +151,47 @@
         </div>
         @endif
 
+        @if($rpsReplacementNotifications->isNotEmpty())
+        <div class="card border-0 shadow-sm mb-4 rps-notification-card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center gap-2 px-3 py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="announcement-icon announcement-icon-sm bg-label-info"><i class="bx bx-file"></i></span>
+                    <div>
+                        <h6 class="fw-bold mb-0">Pembaruan RPS oleh Rekan Dosen</h6>
+                        <small class="text-muted">{{ $rpsReplacementNotifications->count() }} pembaruan terbaru</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{{ route('dosen.rps.index') }}" class="btn btn-sm btn-label-info">Buka RPS</a>
+                    <button class="btn btn-sm btn-icon btn-label-secondary announcement-toggle" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#dosenRpsNotifications"
+                        aria-expanded="false" aria-controls="dosenRpsNotifications" title="Buka atau tutup pemberitahuan RPS">
+                        <i class="bx bx-chevron-down fs-4"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="collapse" id="dosenRpsNotifications">
+                <div class="card-body px-3 pt-0 pb-3">
+                    @foreach($rpsReplacementNotifications as $notification)
+                        <a href="{{ route('dosen.rps.index') }}" class="rps-notification-item d-flex align-items-center gap-2 text-decoration-none p-2 rounded-3">
+                            <span class="announcement-icon announcement-icon-sm bg-label-info"><i class="bx bx-refresh"></i></span>
+                            <span class="flex-grow-1 overflow-hidden">
+                                <strong class="text-body d-block">
+                                    RPS {{ $notification->kurikulum?->mataKuliah?->nama ?? 'mata kuliah' }} telah diganti oleh {{ $notification->uploader?->nama ?? 'rekan dosen' }}
+                                </strong>
+                                <span class="d-block text-muted small">
+                                    {{ $notification->kurikulum?->programStudi?->nama ?? '-' }} &bull;
+                                    {{ jenis_kelas_label($notification->jenis_kelas) }}
+                                </span>
+                            </span>
+                            <small class="text-muted text-nowrap">{{ $notification->created_at?->diffForHumans() }}</small>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+
         @php
             $ringkasLmsAnnouncements = $lmsAnnouncements->take(4);
             $lmsPendingCount = $lmsAnnouncements->where('pending', true)->count();
@@ -223,6 +264,10 @@
             .teaching-reminder-item { border: 1px solid rgba(255,171,0,.16); transition: .2s ease; }
             .teaching-reminder-item + .teaching-reminder-item { margin-top: .4rem; }
             .teaching-reminder-item:hover { background: rgba(255,171,0,.06); border-color: rgba(255,171,0,.28); }
+            .rps-notification-card { border-left: 4px solid #03c3ec !important; border-radius: 1rem; }
+            .rps-notification-item { border: 1px solid rgba(3,195,236,.16); transition: .2s ease; }
+            .rps-notification-item + .rps-notification-item { margin-top: .4rem; }
+            .rps-notification-item:hover { background: rgba(3,195,236,.06); border-color: rgba(3,195,236,.28); }
             .announcement-icon { width: 42px; height: 42px; border-radius: .75rem; display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; font-size: 1.3rem; }
             .announcement-icon-sm { width: 34px; height: 34px; border-radius: .65rem; font-size: 1.05rem; }
             .announcement-toggle .bx-chevron-down { transition: transform .2s ease; }

@@ -46,16 +46,31 @@
                             @enderror
                         </div>
 
-                        <!-- Input untuk Kaprodi -->
+                        <!-- Pemilihan akun Kaprodi -->
                         <div class="col-md-6 mb-3">
-                            <label for="kaprod" class="form-label"><strong>Kaprodi:</strong></label>
-                            <input type="text" name="kaprod" id="kaprod"
-                                class="form-control @error('kaprod') is-invalid @enderror"
-                                placeholder="Nama Ketua Program Studi"
-                                value="{{ old('kaprod', $programStudi->kaprod) }}">
-                            @error('kaprod')
+                            <label for="kaprodi_dosen_id" class="form-label"><strong>Kaprodi:</strong></label>
+                            <select name="kaprodi_dosen_id" id="kaprodi_dosen_id"
+                                class="form-select @error('kaprodi_dosen_id') is-invalid @enderror">
+                                <option value="">-- Pertahankan data Kaprodi lama --</option>
+                                @foreach ($dosen as $item)
+                                <option value="{{ $item->dosen_id }}"
+                                    {{ (string) old('kaprodi_dosen_id', $programStudi->kaprodi_dosen_id) === (string) $item->dosen_id ? 'selected' : '' }}>
+                                    {{ $item->nama }} — {{ $item->kd_dosen ?: 'Tanpa kode' }}
+                                    ({{ $item->programStudi?->nama ?: 'Prodi belum tersedia' }})
+                                </option>
+                                @endforeach
+                            </select>
+                            @error('kaprodi_dosen_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            @if (! $programStudi->kaprodi_dosen_id && $programStudi->kaprod)
+                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0">
+                                Data lama saat ini: <strong>{{ $programStudi->kaprod }}</strong>.
+                                Data ini tidak berubah sampai akun dosen dipilih.
+                            </div>
+                            @else
+                            <div class="form-text">Akun terpilih akan menjadi identitas Kaprodi untuk proses verifikasi.</div>
+                            @endif
                         </div>
 
                         <!-- Input untuk Jenjang -->

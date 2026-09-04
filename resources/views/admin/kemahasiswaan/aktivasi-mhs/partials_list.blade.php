@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <div class="student-name">{{ $m->nama }}</div>
-                            <div class="student-nim">Semester {{ $m->semester }} • {{ ucfirst($m->kelas ?? '-') }}</div>
+                            <div class="student-nim">Semester {{ $m->semester }} • {{ jenis_kelas_label($m->kelas) }}</div>
                         </div>
                     </div>
                 </td>

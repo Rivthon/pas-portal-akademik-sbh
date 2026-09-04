@@ -250,9 +250,7 @@ class QuizDosenController extends Controller
     {
         $dosen = Auth::guard('dosen')->user();
 
-        return Jadwal::whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-            $query->where('dosen_id', $dosen->dosen_id)->where('jenis_dosen', 'teori');
-        })->findOrFail($jadwalId);
+        return Jadwal::accessibleInLmsByDosen($dosen->dosen_id)->findOrFail($jadwalId);
     }
 
     private function quizMilikDosen(LmsQuiz $quiz): LmsQuiz

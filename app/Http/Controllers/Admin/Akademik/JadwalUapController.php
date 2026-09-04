@@ -178,7 +178,7 @@ class JadwalUapController extends Controller
             'ruangan_id.required' => 'Ruangan harus dipilih.',
             'ruangan_id.exists' => 'Ruangan yang dipilih tidak valid.',
             'jenis_kelas.required' => 'Jenis kelas harus dipilih.',
-            'jenis_kelas.in' => 'Jenis kelas harus Reguler atau Karyawan.',
+            'jenis_kelas.in' => 'Jenis kelas harus Reguler A atau Reguler B.',
         ];
 
         $validator = Validator::make($request->all(), $rules, $messages);

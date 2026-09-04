@@ -97,7 +97,7 @@
                                 {{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}
                                 <div class="muted">{{ $jadwal->kurikulum?->programStudi?->nama ?? '-' }}</div>
                             </td>
-                            <td class="center">{{ ucfirst($jadwal->jenis_kelas ?: '-') }}</td>
+                            <td class="center">{{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</td>
                             <td class="center">0 / {{ $maksimalPertemuan }}</td>
                             <td colspan="7" class="center">Belum ada sesi mengajar yang tercatat.</td>
                         </tr>
@@ -121,7 +121,7 @@
                                         <strong>{{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</strong>
                                         <div class="muted">{{ $jadwal->kurikulum?->programStudi?->nama ?? '-' }}</div>
                                     </td>
-                                    <td class="center" rowspan="{{ $jadwal->pertemuan->count() }}">{{ ucfirst($jadwal->jenis_kelas ?: '-') }}</td>
+                                    <td class="center" rowspan="{{ $jadwal->pertemuan->count() }}">{{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</td>
                                 @endif
                                 <td class="center">{{ $loop->iteration }} / {{ $jadwal->jumlah_diakui }}</td>
                                 <td>{{ $tanggal?->translatedFormat('l') ?? '-' }}</td>

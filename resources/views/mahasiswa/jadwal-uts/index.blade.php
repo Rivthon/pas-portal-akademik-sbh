@@ -151,7 +151,7 @@
                                         <hr class="my-2 border-light">
 
                                         <div class="mt-2 text-muted small d-flex align-items-center">
-                                            <span class="badge bg-label-secondary px-2"><i class='bx bx-buildings me-1'></i> Kelas {{ ucfirst($item->jenis_kelas) }}</span>
+                                            <span class="badge bg-label-secondary px-2"><i class='bx bx-buildings me-1'></i> Kelas {{ jenis_kelas_label($item->jenis_kelas) }}</span>
                                         </div>
                                     </div>
                                 </div>

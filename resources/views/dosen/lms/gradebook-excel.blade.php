@@ -4,7 +4,7 @@
         <tr><th>Mata Kuliah</th><td colspan="{{ $tugasList->count() + $quizList->count() + 3 }}">{{ $jadwal->kurikulum?->mataKuliah?->nama }}</td></tr>
         <tr><th>Kode</th><td colspan="{{ $tugasList->count() + $quizList->count() + 3 }}">{{ $jadwal->kurikulum?->mataKuliah?->matakuliah_id }}</td></tr>
         <tr><th>Program Studi</th><td colspan="{{ $tugasList->count() + $quizList->count() + 3 }}">{{ $jadwal->kurikulum?->programStudi?->nama }}</td></tr>
-        <tr><th>Kelas</th><td colspan="{{ $tugasList->count() + $quizList->count() + 3 }}">{{ strtoupper($jadwal->jenis_kelas ?? '-') }}</td></tr>
+        <tr><th>Kelas</th><td colspan="{{ $tugasList->count() + $quizList->count() + 3 }}">{{ jenis_kelas_label($jadwal->jenis_kelas ?? '-') }}</td></tr>
         <tr></tr>
         <tr>
             <th>No</th><th>NIM</th><th>Nama Mahasiswa</th>

@@ -11,6 +11,7 @@ use App\Models\LmsPengumpulanTugas;
 use App\Models\LmsQuizAttempt;
 use App\Models\Mahasiswa;
 use App\Models\Penilaian;
+use App\Models\RpsRevision;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
 use Carbon\Carbon;
@@ -38,10 +39,15 @@ class DashboardDosenController extends Controller
         $totalMahasiswaBimbingan = Mahasiswa::where('dosen_id', $dosen->dosen_id)
             ->where('status_mhs', 'aktif')->count();
 
-        $rataRataEdomRaw = Penilaian::where('dosen_id', $dosen->dosen_id)->avg(\DB::raw('CAST(nilai AS UNSIGNED)'));
+        $rataRataEdomRaw = $ta
+            ? Penilaian::where('dosen_id', $dosen->dosen_id)
+                ->whereHas('kurikulum', fn ($query) => $query->where('ta_id', $ta->ta_id))
+                ->avg(DB::raw('CAST(nilai AS UNSIGNED)'))
+            : null;
         $rataRataEdom = $rataRataEdomRaw ? round($rataRataEdomRaw, 2) : 0;
         $lmsAnnouncements = $this->lmsAnnouncements($dosen->dosen_id);
         $teachingReminders = $this->teachingReminders($dosen->dosen_id, $ta);
+        $rpsReplacementNotifications = $this->rpsReplacementNotifications($dosen->dosen_id, $ta);
 
         activity_log('akses_dashboard', 'Dosen mengakses dashboard');
 
@@ -54,8 +60,28 @@ class DashboardDosenController extends Controller
             'totalMahasiswaBimbingan',
             'rataRataEdom',
             'lmsAnnouncements',
-            'teachingReminders'
+            'teachingReminders',
+            'rpsReplacementNotifications'
         ));
+    }
+
+    private function rpsReplacementNotifications(int $dosenId, ?TahunAkademik $tahunAkademik)
+    {
+        if (! $tahunAkademik) {
+            return collect();
+        }
+
+        return RpsRevision::query()
+            ->with(['uploader', 'kurikulum.mataKuliah', 'kurikulum.programStudi'])
+            ->where('uploaded_by_dosen_id', '!=', $dosenId)
+            ->whereHas('kurikulum', fn ($query) => $query->where('ta_id', $tahunAkademik->ta_id))
+            ->whereHas('kurikulum.dosenToMatakuliah', fn ($query) => $query
+                ->where('dosen_id', $dosenId)
+                ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+                ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(rps_revisions.jenis_kelas)'))
+            ->latest()
+            ->limit(8)
+            ->get();
     }
 
     private function teachingReminders(int $dosenId, ?TahunAkademik $tahunAkademik)
@@ -164,7 +190,7 @@ class DashboardDosenController extends Controller
             'course' => $jadwal->kurikulum?->mataKuliah?->nama ?? 'Mata kuliah',
             'semester' => $jadwal->kurikulum?->mataKuliah?->smt,
             'prodi' => $jadwal->programStudi?->nama ?? $jadwal->kurikulum?->programStudi?->nama ?? '-',
-            'class' => ucfirst((string) ($jadwal->jenis_kelas ?: '-')),
+            'class' => jenis_kelas_label($jadwal->jenis_kelas),
             'day' => ucfirst($day),
             'time' => substr((string) $jadwal->jam_mulai, 0, 5)
                 .' - '.substr((string) $jadwal->jam_selesai, 0, 5),
@@ -238,12 +264,21 @@ class DashboardDosenController extends Controller
     public function hasilEdom()
     {
         $dosen = auth('dosen')->user();
+        $tahunAkademikAktif = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
-        // EDOM summary
+        if (! $tahunAkademikAktif) {
+            return view('dosen.edom.hasil', [
+                'hasilEdom' => collect(),
+                'rataRataKeseluruhan' => 0,
+                'tahunAkademikAktif' => null,
+            ]);
+        }
+
         $hasilEdom = DB::table('penilaian')
             ->join('kurikulum', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
             ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
             ->where('penilaian.dosen_id', $dosen->dosen_id)
+            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
             ->select(
                 'kurikulum.kurikulum_id',
                 'matakuliah.matakuliah_id',
@@ -255,14 +290,33 @@ class DashboardDosenController extends Controller
             ->groupBy('kurikulum.kurikulum_id', 'matakuliah.matakuliah_id', 'matakuliah.nama', 'matakuliah.smt')
             ->get();
 
+        $komentarPerKurikulum = DB::table('saran')
+            ->join('kurikulum', 'saran.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+            ->where('saran.dosen_id', $dosen->dosen_id)
+            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
+            ->whereNotNull('saran.saran')
+            ->whereRaw("TRIM(saran.saran) != ''")
+            ->select('saran.kurikulum_id', 'saran.saran')
+            ->orderBy('saran.id')
+            ->get()
+            ->groupBy('kurikulum_id');
+
+        $hasilEdom->each(function ($item) use ($komentarPerKurikulum) {
+            $item->komentar = $komentarPerKurikulum->get($item->kurikulum_id, collect())
+                ->pluck('saran')
+                ->values();
+        });
+
         $rataRataKeseluruhan = DB::table('penilaian')
-            ->where('dosen_id', $dosen->dosen_id)
+            ->join('kurikulum', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+            ->where('penilaian.dosen_id', $dosen->dosen_id)
+            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
             ->avg(DB::raw('CAST(nilai AS UNSIGNED)'));
 
         $rataRataKeseluruhan = $rataRataKeseluruhan ? round($rataRataKeseluruhan, 2) : 0;
 
         activity_log('lihat_edom', 'Dosen melihat hasil evaluasi EDOM');
 
-        return view('dosen.edom.hasil', compact('hasilEdom', 'rataRataKeseluruhan'));
+        return view('dosen.edom.hasil', compact('hasilEdom', 'rataRataKeseluruhan', 'tahunAkademikAktif'));
     }
 }
