@@ -716,6 +716,7 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/edom/hasil', [DashboardDosenController::class, 'hasilEdom'])->name('edom.hasil');
 
             Route::prefix('kaprodi')->name('kaprodi.')->group(function () {
+                Route::get('/monitoring', [KaprodiVerificationController::class, 'monitoring'])->name('monitoring.index');
                 Route::get('/absensi', [KaprodiVerificationController::class, 'absensi'])->name('absensi.index');
                 Route::get('/absensi/{jadwal}', [KaprodiVerificationController::class, 'absensiDetail'])->name('absensi.show');
                 Route::post('/absensi/{jadwal}/verifikasi', [KaprodiVerificationController::class, 'verifyAbsensi'])->name('absensi.verify');

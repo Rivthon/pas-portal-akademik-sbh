@@ -28,6 +28,31 @@ class KaprodiVerificationWorkflowTest extends TestCase
         $this->actingAs($other, 'dosen')->get(route('dosen.kaprodi.absensi.index'))->assertForbidden();
     }
 
+    public function test_kaprodi_can_open_integrated_monitoring_for_led_program(): void
+    {
+        $prodi = ProgramStudi::query()->firstOrFail();
+        $kaprodi = Dosen::query()->firstOrFail();
+        $prodi->update(['kaprodi_dosen_id' => $kaprodi->dosen_id]);
+        $taId = TahunAkademik::where('status_ta', 1)->value('ta_id') ?: TahunAkademik::query()->value('ta_id');
+
+        $this->actingAs($kaprodi, 'dosen')
+            ->get(route('dosen.kaprodi.monitoring.index', [
+                'program_studi_id' => $prodi->jurusan_id,
+                'ta_id' => $taId,
+            ]))
+            ->assertOk()
+            ->assertSee('Progress Pengajaran')
+            ->assertSee('RPS')
+            ->assertSee('KRS')
+            ->assertSee('EDOM')
+            ->assertSee('Komentar ditampilkan anonim');
+
+        $other = Dosen::query()->whereKeyNot($kaprodi->dosen_id)->firstOrFail();
+        $this->actingAs($other, 'dosen')
+            ->get(route('dosen.kaprodi.monitoring.index', ['program_studi_id' => $prodi->jurusan_id]))
+            ->assertForbidden();
+    }
+
     public function test_kaprodi_can_review_and_approve_submitted_grade(): void
     {
         $jadwal = Jadwal::with('programStudi')->whereHas('programStudi')->firstOrFail();
