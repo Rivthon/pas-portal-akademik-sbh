@@ -198,21 +198,19 @@
         </thead>
         <tbody>
             @php
-            function calculateWeight($grade) {
-            return match ($grade) {
+            $calculateKhsWeight = fn ($grade) => match ($grade) {
             'A' => 4.00, 'AB' => 3.75, 'BA' => 3.50, 'B' => 3.00,
             'BC' => 2.75, 'C' => 2.00, 'D' => 1.00, 'E' => 0, default => 0,
             };
-            }
 
             $totalSks = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks);
-            $totalBobot = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks * calculateWeight($item->khs));
+            $totalBobot = $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks * $calculateKhsWeight($item->khs));
             $ips = $totalSks ? $totalBobot / $totalSks : 0;
             @endphp
 
             @forelse ($khs as $index => $item)
             @php
-            $bobot = calculateWeight($item->khs);
+            $bobot = $calculateKhsWeight($item->khs);
             $bobotTotal = $item->kurikulum->mataKuliah->sks * $bobot;
             @endphp
             <tr style="text-align: center;">

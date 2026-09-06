@@ -37,6 +37,16 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    @if (session('warning'))
+        <div class="alert alert-warning"><i class="bx bx-info-circle me-1"></i>{{ session('warning') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="alert alert-danger"><i class="bx bx-error-circle me-1"></i>{{ $errors->first() }}</div>
+    @endif
+
+    <form id="bulk-absensi-form" method="POST" action="{{ route('dosen.kaprodi.absensi.bulk-verify') }}">
+        @csrf
+    </form>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-3">
@@ -67,6 +77,12 @@
             </span>
         </div>
         <div class="d-flex gap-2 small">
+            <button type="submit" form="bulk-absensi-form" id="bulk-absensi-button"
+                class="btn btn-success btn-sm" disabled
+                onclick="return confirm('Verifikasi semua rekap absensi yang dipilih?')">
+                <i class="bx bx-check-double me-1"></i>Verifikasi Terpilih
+                <span id="bulk-absensi-count" class="badge bg-white text-success ms-1">0</span>
+            </button>
             <span class="badge bg-label-success px-3 py-2"><i class="bx bx-check me-1"></i>Terverifikasi</span>
             <span class="badge bg-label-warning px-3 py-2"><i class="bx bx-time me-1"></i>Menunggu</span>
         </div>
@@ -76,7 +92,10 @@
         <div class="table-responsive d-none d-md-block">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
-                    <tr><th class="ps-4">Mata Kuliah</th><th>Program Studi</th><th>Pengajar</th><th class="text-center">Pertemuan</th><th>Status</th><th class="text-end pe-4">Aksi</th></tr>
+                    <tr>
+                        <th class="ps-4" style="width:44px"><input type="checkbox" class="form-check-input" id="select-all-absensi" title="Pilih semua pada halaman ini"></th>
+                        <th>Mata Kuliah</th><th>Program Studi</th><th>Pengajar</th><th class="text-center">Pertemuan</th><th>Status</th><th class="text-end pe-4">Aksi</th>
+                    </tr>
                 </thead>
                 <tbody>
                     @forelse ($jadwals as $jadwal)
@@ -87,7 +106,11 @@
                             $pengajar = $jadwal->kurikulum?->dosenToMatakuliah?->pluck('dosen.nama')->filter()->unique()->join(', ') ?: '-';
                         @endphp
                         <tr>
-                            <td class="ps-4"><div class="fw-semibold text-dark">{{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</div><div class="small text-muted mt-1"><i class="bx bx-book me-1"></i>Semester {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }}</div></td>
+                            <td class="ps-4">
+                                <input type="checkbox" class="form-check-input bulk-absensi-item" name="jadwal_ids[]"
+                                    value="{{ $jadwal->id }}" form="bulk-absensi-form" @disabled($jadwal->pertemuan_count < 1)>
+                            </td>
+                            <td><div class="fw-semibold text-dark">{{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</div><div class="small text-muted mt-1"><i class="bx bx-book me-1"></i>Semester {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }}</div></td>
                             <td><div>{{ $jadwal->programStudi?->nama ?? '-' }}</div><span class="badge bg-label-info mt-1">{{ jenis_kelas_label($jadwal->jenis_kelas ?? 'Reguler') }}</span></td>
                             <td><span class="d-inline-block text-truncate" style="max-width:220px;" title="{{ $pengajar }}">{{ $pengajar }}</span></td>
                             <td class="text-center"><span class="fw-bold fs-5">{{ $jadwal->pertemuan_count }}</span><small class="d-block text-muted">pertemuan</small></td>
@@ -96,10 +119,21 @@
                                 @elseif ($perluUlang)<span class="badge bg-label-danger"><i class="bx bx-refresh me-1"></i>Perlu verifikasi ulang</span>
                                 @else<span class="badge bg-label-success"><i class="bx bx-check me-1"></i>Terverifikasi</span><small class="d-block text-muted mt-1">{{ $verifikasi->verified_at->format('d/m/Y H:i') }}</small>@endif
                             </td>
-                            <td class="text-end pe-4"><a class="btn btn-sm btn-primary text-nowrap" href="{{ route('dosen.kaprodi.absensi.show', $jadwal) }}"><i class="bx bx-show me-1"></i>Lihat Rekap</a></td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-1">
+                                    <a class="btn btn-sm btn-primary text-nowrap" href="{{ route('dosen.kaprodi.absensi.show', $jadwal) }}"><i class="bx bx-show me-1"></i>Lihat</a>
+                                    <form method="POST" action="{{ route('dosen.kaprodi.absensi.verify', $jadwal) }}" class="d-inline">
+                                        @csrf
+                                        <button class="btn btn-sm btn-success text-nowrap" @disabled($jadwal->pertemuan_count < 1)
+                                            onclick="return confirm('Verifikasi rekap absensi ini?')">
+                                            <i class="bx bx-check-shield me-1"></i>{{ $verifikasi ? 'Verifikasi Ulang' : 'Verifikasi' }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center py-5"><i class="bx bx-calendar-x d-block text-muted mb-2" style="font-size:3rem;"></i><h6>Belum ada jadwal</h6><p class="text-muted mb-0">Tidak ada mata kuliah pada tahun akademik ini.</p></td></tr>
+                        <tr><td colspan="7" class="text-center py-5"><i class="bx bx-calendar-x d-block text-muted mb-2" style="font-size:3rem;"></i><h6>Belum ada jadwal</h6><p class="text-muted mb-0">Tidak ada mata kuliah pada tahun akademik ini.</p></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -111,7 +145,19 @@
                 <div class="border rounded-3 p-3 mb-3">
                     <div class="d-flex justify-content-between gap-2 mb-2"><h6 class="mb-0">{{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</h6><span class="badge bg-label-info align-self-start">{{ jenis_kelas_label($jadwal->jenis_kelas ?? 'Reguler') }}</span></div>
                     <div class="small text-muted mb-3">{{ $jadwal->programStudi?->nama ?? '-' }}  -  Semester {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }}  -  {{ $jadwal->pertemuan_count }} pertemuan</div>
-                    <div class="d-flex justify-content-between align-items-center gap-2">@if(!$verifikasi)<span class="badge bg-label-warning">Belum diverifikasi</span>@elseif($perluUlang)<span class="badge bg-label-danger">Verifikasi ulang</span>@else<span class="badge bg-label-success">Terverifikasi</span>@endif<a class="btn btn-sm btn-primary" href="{{ route('dosen.kaprodi.absensi.show', $jadwal) }}">Lihat Rekap</a></div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        @if(!$verifikasi)<span class="badge bg-label-warning">Belum diverifikasi</span>@elseif($perluUlang)<span class="badge bg-label-danger">Verifikasi ulang</span>@else<span class="badge bg-label-success">Terverifikasi</span>@endif
+                        <div class="d-flex gap-1">
+                            <a class="btn btn-sm btn-primary" href="{{ route('dosen.kaprodi.absensi.show', $jadwal) }}">Lihat</a>
+                            <form method="POST" action="{{ route('dosen.kaprodi.absensi.verify', $jadwal) }}">
+                                @csrf
+                                <button class="btn btn-sm btn-success" @disabled($jadwal->pertemuan_count < 1)
+                                    onclick="return confirm('Verifikasi rekap absensi ini?')">
+                                    {{ $verifikasi ? 'Verifikasi Ulang' : 'Verifikasi' }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             @empty
                 <div class="text-center text-muted py-5">Belum ada jadwal.</div>
@@ -123,3 +169,29 @@
         @endif
     </div>
 @endsection
+
+@push('script')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('select-all-absensi');
+    const items = Array.from(document.querySelectorAll('.bulk-absensi-item:not(:disabled)'));
+    const button = document.getElementById('bulk-absensi-button');
+    const count = document.getElementById('bulk-absensi-count');
+
+    function updateBulkAbsensi() {
+        const selected = items.filter(item => item.checked).length;
+        count.textContent = selected;
+        button.disabled = selected === 0;
+        selectAll.checked = items.length > 0 && selected === items.length;
+        selectAll.indeterminate = selected > 0 && selected < items.length;
+    }
+
+    selectAll?.addEventListener('change', function () {
+        items.forEach(item => item.checked = selectAll.checked);
+        updateBulkAbsensi();
+    });
+    items.forEach(item => item.addEventListener('change', updateBulkAbsensi));
+    updateBulkAbsensi();
+});
+</script>
+@endpush

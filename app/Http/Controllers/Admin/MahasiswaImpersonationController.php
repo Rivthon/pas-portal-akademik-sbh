@@ -17,6 +17,31 @@ class MahasiswaImpersonationController extends Controller
 
         abort_unless($admin, 403);
 
+        if ($request->session()->get('impersonating_dosen')) {
+            $dosen = Auth::guard('dosen')->user();
+
+            if ($dosen) {
+                activity_log_for(
+                    $admin,
+                    'admin',
+                    'switch_impersonation',
+                    'Admin berpindah dari akun dosen '.$dosen->nama.' ke akun mahasiswa '.$mahasiswa->nama
+                );
+                activity_log_for(
+                    $dosen,
+                    'dosen',
+                    'impersonated_logout',
+                    'Sesi impersonasi dosen dihentikan karena admin berpindah ke akun mahasiswa.'
+                );
+            }
+
+            Auth::guard('dosen')->logout();
+            $request->session()->forget([
+                'impersonating_dosen',
+                'impersonated_dosen_id',
+            ]);
+        }
+
         if (Auth::guard('mahasiswa')->check()) {
             Auth::guard('mahasiswa')->logout();
         }

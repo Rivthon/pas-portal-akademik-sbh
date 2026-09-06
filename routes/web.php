@@ -151,6 +151,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::delete('/krs/{id}/hapus', [AkademikController::class, 'hapusKrs'])->name('hapus.krs');
 
         Route::get('/kartu-hasil-studi/mhs', [AkademikController::class, 'tampilanKartuHasil'])->name('kartu-hasil.index');
+        Route::get('/riwayat-khs', [AkademikController::class, 'riwayatKartuHasil'])->name('khs.riwayat');
         Route::get('/khs/cetak-pdf', [AkademikController::class, 'cetakKhs'])->name('khs.cetak');
 
         Route::get('/krs/cetak-pdf-kapro', [AkademikController::class, 'cetakKapro'])->middleware('mhs.status:krs')->name('krs.cetak-kapro');
@@ -358,10 +359,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('program-studi', ProgramStudiController::class);
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::post('/mahasiswa/{mahasiswa}/impersonate', [MahasiswaImpersonationController::class, 'store'])
-            ->middleware('permission:mahasiswa-impersonate')
+            ->middleware('permission:mahasiswa-impersonate,web')
             ->name('mahasiswa.impersonate');
         Route::post('/mahasiswa/impersonate/stop', [MahasiswaImpersonationController::class, 'destroy'])
-            ->middleware('permission:mahasiswa-impersonate')
+            ->middleware('permission:mahasiswa-impersonate,web')
             ->name('mahasiswa.impersonate.stop');
         Route::put('/mahasiswa/{id}/update-status', [MahasiswaController::class, 'updateStatus'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateStatus');
         Route::put('/mahasiswa/{id}/update-dosen', [MahasiswaController::class, 'updateDosen'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateDosen');
@@ -725,9 +726,11 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::prefix('kaprodi')->name('kaprodi.')->group(function () {
                 Route::get('/monitoring', [KaprodiVerificationController::class, 'monitoring'])->name('monitoring.index');
                 Route::get('/absensi', [KaprodiVerificationController::class, 'absensi'])->name('absensi.index');
+                Route::post('/absensi/verifikasi-massal', [KaprodiVerificationController::class, 'bulkVerifyAbsensi'])->name('absensi.bulk-verify');
                 Route::get('/absensi/{jadwal}', [KaprodiVerificationController::class, 'absensiDetail'])->name('absensi.show');
                 Route::post('/absensi/{jadwal}/verifikasi', [KaprodiVerificationController::class, 'verifyAbsensi'])->name('absensi.verify');
                 Route::get('/nilai', [KaprodiVerificationController::class, 'nilai'])->name('nilai.index');
+                Route::post('/nilai/setujui-massal', [KaprodiVerificationController::class, 'bulkApproveNilai'])->name('nilai.bulk-approve');
                 Route::get('/nilai/{submission}', [KaprodiVerificationController::class, 'nilaiDetail'])->name('nilai.show');
                 Route::post('/nilai/{submission}/setujui', [KaprodiVerificationController::class, 'approveNilai'])->name('nilai.approve');
                 Route::post('/nilai/{submission}/revisi', [KaprodiVerificationController::class, 'revisionNilai'])->name('nilai.revision');

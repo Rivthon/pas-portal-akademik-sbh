@@ -1,235 +1,40 @@
 @extends('layouts.mahasiswa')
 @section('title', 'Kartu Hasil Studi')
+
 @section('content')
-
-<div class="item mt-4">
-    @php
-    $user = auth()->guard('mahasiswa')->user();
-    $edom = $user->status_edom;
-    $status_akhir = $user->status_akhir;
-    @endphp
-
-    @if($status_akhir == 1 && ($tahunAjaranOptions ?? collect())->isNotEmpty())
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body">
-                <form method="GET" action="{{ route('mahasiswa.kartu-hasil.index') }}" class="row g-3 align-items-end">
-                    <div class="col-md-8">
-                        <label for="ta_id" class="form-label fw-semibold">
-                            <i class="bx bx-history text-primary me-1"></i>Riwayat Tahun Akademik
-                        </label>
-                        <select name="ta_id" id="ta_id" class="form-select" onchange="this.form.submit()">
-                            @foreach($tahunAjaranOptions as $tahunAjaran)
-                                <option value="{{ $tahunAjaran->ta_id }}" @selected((int) $selectedTaId === (int) $tahunAjaran->ta_id)>
-                                    {{ $tahunAjaran->nama }}{{ $tahunAjaran->semester ? ' - '.$tahunAjaran->semester : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-outline-primary w-100">
-                            <i class="bx bx-search-alt me-1"></i>Tampilkan KHS
-                        </button>
-                    </div>
-                </form>
-                @if($isHistorical ?? false)
-                    <div class="alert alert-info py-2 mt-3 mb-0">
-                        <i class="bx bx-archive me-1"></i>Anda sedang melihat arsip KHS tahun akademik sebelumnya.
-                    </div>
-                @endif
+<div class="card border-0 shadow-sm mb-4 overflow-hidden">
+    <div class="card-body p-4 text-white" style="background:linear-gradient(135deg,#3156a3 0%,#5a72d8 100%)">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge bg-white text-primary mb-2">SEMESTER AKTIF</span>
+                <h4 class="text-white mb-1">Kartu Hasil Studi</h4>
+                <p class="text-white-50 mb-0">KHS tahun akademik yang sedang berjalan.</p>
             </div>
-        </div>
-    @endif
-
-    @if($status_akhir != 1)
-    <div class="card shadow-sm mb-4 border-top border-5 border-danger">
-        <div class="d-flex align-items-center row g-0">
-            <div class="col-md-5 text-center">
-                <div class="p-4">
-                    <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
-                        alt="Restricted Access" style="max-height: 180px;">
-                </div>
-            </div>
-            <div class="col-md-7">
-                <div class="card-body">
-                    <h5 class="card-title text-danger mb-3 fw-bold">
-                        <i class="bx bx-lock me-1"></i> Akses Kartu Hasil Studi Belum Tersedia
-                    </h5>
-                    <div class="alert alert-danger d-flex align-items-center mb-3" role="alert">
-                        <i class="bx bx-error-circle fs-4 me-2 border-danger"></i>
-                        <div>
-                            <strong>Perhatian:</strong> Akses KHS Anda masih dikunci oleh sistem administrasi.
-                        </div>
-                    </div>
-                    <p class="mb-4 text-muted" style="line-height: 1.6;">
-                        Kartu Hasil Studi Anda belum diaktifkan. Harap selesaikan kewajiban pembayaran/administrasi terlebih dahulu, lalu hubungi bagian BAAK/Keuangan untuk membuka akses laporan KHS Anda.
-                    </p>
-                    <a href="{{ route('mahasiswa.dashboard') }}" class="btn btn-outline-secondary">
-                        <i class="bx bx-arrow-back me-1"></i> Kembali ke Dasbor
-                    </a>
-                </div>
+            <div class="text-md-end">
+                <strong>{{ $ta?->nama ?? '-' }}</strong>
+                <small class="d-block text-white-50">{{ $ta?->semester ? ucfirst($ta->semester) : '' }}</small>
             </div>
         </div>
     </div>
-    @elseif($edom == 0 && !($isHistorical ?? false))
-    <div class="card shadow-sm mb-4 border-top border-5 border-warning">
-        <div class="d-flex align-items-center row g-0">
-            <!-- Image Section -->
-            <div class="col-md-5 text-center">
-                <div class="p-3">
-                    <img src="{{ asset('assets/img/illustrations/error-404.png') }}" class="img-fluid"
-                        alt="Illustration of a schedule" style="max-height: 200px;">
-                </div>
-            </div>
-            <!-- Content Section -->
-            <div class="col-md-7">
-                <div class="card-body">
-                    <!-- Title -->
-                    <h5 class="card-title text-warning mb-3 fw-bold">
-                        Evaluasi Dosen Mengajar (EDOM)
-                    </h5>
-                    <!-- Conditional Alert -->
-                    <div class="alert alert-warning d-flex justify-content-between align-items-center mb-3"
-                        role="alert">
-                        <div>
-                            <strong>Perhatian:</strong> Belum Bisa Melihat Kartu Hasil Studi. Silakan mengisi EDOM
-                            terlebih
-                            dahulu.
-                        </div>
-                        <i class="bx bx-info-circle fs-4 text-warning"></i>
-                    </div>
-                    <!-- Description -->
-                    <p class="mb-4 text-muted" style="line-height: 1.6;">
-                        Evaluasi Dosen Mengajar (EDOM) adalah proses penting untuk menilai kinerja dosen dalam
-                        mengajar. Pastikan Anda telah mengisi EDOM untuk semua mata kuliah yang Anda ambil
-                        sebelum melanjutkan ke tahap berikutnya.
-                    </p>
-                    <!-- Additional Message -->
-
-                    <!-- CTA Button -->
-                    <div class="mb-3">
-                        <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning" aria-disabled="true">
-                            <i class="bx bx-edit"></i> Mulai Mengisi EDOM
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-    @elseif($edom == 1 || ($isHistorical ?? false))
-    <div class="col-md-12">
-        <div class="card shadow-sm mb-4">
-            <div class="d-flex align-items-center item g-0">
-                <!-- Content Section -->
-                <div class="col-md-7">
-                    <div class="card-body">
-                        <!-- Title -->
-                        <h5 class="card-title text-primary mb-3 fw-bold">
-                            Kartu Hasil Studi (Mahasiswa)
-                        </h5>
-                        <!-- Description -->
-                        <p class="mb-4 text-muted" style="line-height: 1.6;">
-                            List Kartu Hasil Studi (Semester {{ $semesterKhs ?: '-' }}) - Tahun Ajaran: {{
-                            $ta->nama }} {{ $ta->semester ? '(' . $ta->semester . ')' : '' }}
-                        </p>
-                        <!-- CTA Button -->
-                        <div class="mb-3">
-                            <a href="{{ route('mahasiswa.khs.cetak', ['ta_id' => $selectedTaId]) }}" class="btn btn-primary">
-                                Cetak Kartu Hasil Studi
-                            </a>
-                            <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning" aria-disabled="true">
-                                Riwayat EDOM
-                            </a>
-                        </div>
-
-                    </div>
-                </div>
-                <!-- Image Section -->
-                <div class="col-md-5 text-center">
-                    <div class="p-3">
-                        <img src="{{ asset('assets/img/illustrations/kartu-study.png') }}" class="img-fluid"
-                            alt="Illustration of a schedule" style="max-height: 200px;">
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="card bg-light">
-            <div class="card-body">
-                <div class="table-responsive text-nowrap">
-                    <table class="table table-hover">
-                        <thead class="table-primary">
-                            <tr>
-                                <th align="center">NO</th>
-                                <th>MATA KULIAH</th>
-                                <th>SKS</th>
-                                <th>HM</th>
-                                <th>AM</th>
-                                <th>SKS X AM</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php
-                            // Function to calculate grade weight
-                            function calculateWeight($grade) {
-                            return match ($grade) {
-                            'A' => 4.00,
-                            'AB' => 3.75,
-                            'BA' => 3.50,
-                            'B' => 3.00,
-                            'BC' => 2.75,
-                            'C' => 2.00,
-                            'D' => 1.00,
-                            'E' => 0,
-                            default => 0,
-                            };
-                            }
-                            @endphp
-                            @forelse ($khs as $index => $item)
-                            @php
-                            $bobot = calculateWeight($item->khs);
-                            $bobot2 = $item->kurikulum->mataKuliah->sks * $bobot;
-                            @endphp
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>{{ $item->kurikulum->mataKuliah->nama }}</td>
-                                <td>{{ $item->kurikulum->mataKuliah->sks }}</td>
-                                <td>{{ $item->khs }}</td>
-                                <td>{{ $bobot }}</td>
-                                <td>{{ $bobot2 }}</td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" class="text-center">Tidak ada mata kuliah yang diambil.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="5" align="center">Jumlah SKS</th>
-                                <th colspan="2">{{ $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks) }}</th>
-                            </tr>
-                            <tr>
-                                <th colspan="5" align="center">Jumlah SKS x AM</th>
-                                <th colspan="2">{{ $khs->sum(fn($item) => $item->kurikulum->mataKuliah->sks *
-                                    calculateWeight($item->khs)) }}
-                                </th>
-                            </tr>
-                            <tr>
-                                <th colspan="5" align="center">IPS (Indeks Prestasi Semester)</th>
-                                <th colspan="2">{{ number_format($ips, 2) }}</th>
-                            </tr>
-                            <tr>
-                                <th colspan="5" align="center">IPK (Indeks Prestasi Kumulatif)</th>
-                                <th colspan="2">{{ number_format($ipk, 2) }}</th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
-
 </div>
 
+@if((int) auth('mahasiswa')->user()->status_edom !== 1)
+    <div class="card shadow-sm mb-4 border-top border-5 border-warning">
+        <div class="card-body text-center py-5">
+            <i class="bx bx-message-square-edit text-warning" style="font-size:4rem"></i>
+            <h4 class="mt-3">Selesaikan EDOM Terlebih Dahulu</h4>
+            <p class="text-muted mx-auto" style="max-width:620px">
+                KHS semester aktif sudah tersedia, tetapi baru dapat dilihat setelah seluruh EDOM selesai dan dikonfirmasi.
+            </p>
+            <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning">
+                <i class="bx bx-edit me-1"></i>Buka EDOM
+            </a>
+        </div>
+    </div>
+@else
+    @include('mahasiswa.khs._hasil', [
+        'judulHasil' => 'Kartu Hasil Studi Semester Aktif',
+        'tampilkanRiwayatEdom' => true,
+    ])
+@endif
 @endsection

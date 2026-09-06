@@ -151,6 +151,13 @@ $user = Auth::guard('mahasiswa')->user();
             </a>
         </li>
 
+        <li class="menu-item {{ Route::is('mahasiswa.khs.riwayat') ? 'active' : '' }}">
+            <a href="{{ route('mahasiswa.khs.riwayat') }}" class="menu-link">
+                <i class="menu-icon bx bx-archive text-secondary"></i>
+                <span class="menu-text fw-medium">Riwayat KHS</span>
+            </a>
+        </li>
+
         <li class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.uap.index') || Route::is('mahasiswa.pengajuan.index') ) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-bar-chart-alt-2" style="color: #696cff;"></i>

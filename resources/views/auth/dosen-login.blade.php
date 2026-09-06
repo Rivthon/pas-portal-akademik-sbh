@@ -137,7 +137,7 @@
                                 {{ old('remember') ? 'checked' : '' }}/>
                             <span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Tetap masuk sampai logout manual</span>
                         </label>
-                        <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Lupa Password?</a>
+                        <!-- <a class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors" href="#">Lupa Password?</a> -->
                     </div>
                     <p class="font-body-sm text-body-sm text-on-surface-variant -mt-md">Gunakan hanya pada perangkat pribadi.</p>
 

@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use PDF;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -526,46 +527,34 @@ class AkademikController extends Controller
         }
 
         $activeTa = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        abort_unless($activeTa, 404, 'Tahun akademik aktif belum ditentukan.');
+        abort_unless(
+            (int) $mahasiswa->status_akhir === 1,
+            403,
+            'KHS semester aktif belum diaktifkan oleh bagian administrasi.'
+        );
 
         try {
-            $allPublishedKhs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
-                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->whereNotNull('khs')
-                ->whereHas('kurikulum.mataKuliah')
-                ->get()
-                ->filter(fn ($item) => $item->kurikulum && $item->kurikulum->mataKuliah);
-            $allPublishedKhs = KhsPublication::filterPublishedKrs($allPublishedKhs, $mahasiswa);
-            $availableTaIds = $allPublishedKhs->pluck('ta_id')->map(fn ($id) => (int) $id)->unique();
-            $tahunAjaranOptions = TahunAkademik::whereIn('ta_id', $availableTaIds)
-                ->orderByDesc('ta_id')
-                ->get(['ta_id', 'nama', 'semester']);
+            $allPublishedKhs = $this->publishedKhs($mahasiswa);
+            $selectedTaId = (int) $activeTa->ta_id;
+            $khs = $allPublishedKhs->where('ta_id', $selectedTaId)->values();
 
-            if ($tahunAjaranOptions->isEmpty()) {
+            if ($khs->isEmpty()) {
                 return view('mahasiswa.khs.belum-terbit');
             }
 
-            $requestedTaId = $request->integer('ta_id');
-            abort_if($request->filled('ta_id') && ! $availableTaIds->contains($requestedTaId), 404, 'Riwayat KHS tidak ditemukan.');
-            $selectedTaId = $requestedTaId
-                ?: ($activeTa && $availableTaIds->contains((int) $activeTa->ta_id)
-                    ? (int) $activeTa->ta_id
-                    : (int) $tahunAjaranOptions->first()->ta_id);
-            $ta = $tahunAjaranOptions->firstWhere('ta_id', $selectedTaId);
-            $khs = $allPublishedKhs->where('ta_id', $selectedTaId)->values();
+            $ta = $activeTa;
             $khsPublished = true;
-            $isHistorical = ! $activeTa || (int) $selectedTaId !== (int) $activeTa->ta_id;
+            $isHistorical = false;
             $semesterKhs = $khs->pluck('kurikulum.mataKuliah.smt')->filter()->unique()->sort()->implode(', ');
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
             $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
-
-            // IPK pada arsip hanya menghitung nilai yang telah terbit sampai tahun yang dipilih.
             $allKhs = $allPublishedKhs->where('ta_id', '<=', $selectedTaId)->values();
-
             [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
             $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
 
-            activity_log('lihat_khs', 'Mahasiswa melihat Kartu Hasil Studi (KHS)');
+            activity_log('lihat_khs', 'Mahasiswa melihat KHS semester aktif');
 
             return view('mahasiswa.khs.index', compact(
                 'khs',
@@ -574,7 +563,6 @@ class AkademikController extends Controller
                 'ips',
                 'ipk',
                 'khsPublished',
-                'tahunAjaranOptions',
                 'selectedTaId',
                 'isHistorical',
                 'semesterKhs'
@@ -582,6 +570,74 @@ class AkademikController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: '.$e->getMessage());
         }
+    }
+
+    public function riwayatKartuHasil(Request $request)
+    {
+        $mahasiswa = $this->getMahasiswa();
+        abort_unless($mahasiswa, 403, 'Mahasiswa tidak ditemukan.');
+
+        $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
+
+        try {
+            $allPublishedKhs = $this->publishedKhs($mahasiswa);
+            $historicalKhs = $activeTaId
+                ? $allPublishedKhs->where('ta_id', '<', (int) $activeTaId)->values()
+                : $allPublishedKhs;
+            $availableTaIds = $historicalKhs->pluck('ta_id')->map(fn ($id) => (int) $id)->unique();
+            $tahunAjaranOptions = TahunAkademik::whereIn('ta_id', $availableTaIds)
+                ->orderByDesc('ta_id')
+                ->get(['ta_id', 'nama', 'semester']);
+
+            if ($tahunAjaranOptions->isEmpty()) {
+                return view('mahasiswa.khs.riwayat', [
+                    'tahunAjaranOptions' => collect(),
+                    'khs' => collect(),
+                    'selectedTaId' => null,
+                    'ta' => null,
+                    'semesterKhs' => '',
+                    'ips' => 0,
+                    'ipk' => 0,
+                ]);
+            }
+
+            $requestedTaId = $request->integer('ta_id');
+            abort_if(
+                $request->filled('ta_id') && ! $availableTaIds->contains($requestedTaId),
+                404,
+                'Riwayat KHS tidak ditemukan.'
+            );
+            $selectedTaId = $requestedTaId ?: (int) $tahunAjaranOptions->first()->ta_id;
+            $ta = $tahunAjaranOptions->firstWhere('ta_id', $selectedTaId);
+            $khs = $historicalKhs->where('ta_id', $selectedTaId)->values();
+            $semesterKhs = $khs->pluck('kurikulum.mataKuliah.smt')->filter()->unique()->sort()->implode(', ');
+
+            [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
+            $ips = $ipsTotalSks > 0 ? $ipsTotalBobot / $ipsTotalSks : 0;
+            $allKhs = $allPublishedKhs->where('ta_id', '<=', $selectedTaId)->values();
+            [$ipkTotalSks, $ipkTotalBobot] = $this->calculateTotal($allKhs);
+            $ipk = $ipkTotalSks > 0 ? $ipkTotalBobot / $ipkTotalSks : 0;
+
+            activity_log('lihat_riwayat_khs', 'Mahasiswa melihat riwayat KHS tahun akademik '.$selectedTaId);
+
+            return view('mahasiswa.khs.riwayat', compact(
+                'tahunAjaranOptions', 'selectedTaId', 'ta', 'khs', 'semesterKhs', 'ips', 'ipk'
+            ));
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memuat riwayat KHS: '.$e->getMessage());
+        }
+    }
+
+    private function publishedKhs($mahasiswa)
+    {
+        $khs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.tahunAjaran'])
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereNotNull('khs')
+            ->whereHas('kurikulum.mataKuliah')
+            ->get()
+            ->filter(fn ($item) => $item->kurikulum && $item->kurikulum->mataKuliah);
+
+        return KhsPublication::filterPublishedKrs($khs, $mahasiswa);
     }
 
     /**
@@ -641,9 +697,14 @@ class AkademikController extends Controller
         $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
         $selectedTaId = $request->integer('ta_id') ?: $activeTaId;
         abort_unless($selectedTaId, 403, 'Tahun akademik tidak ditemukan.');
-        abort_unless((int) $mahasiswa->status_akhir === 1, 403, 'Akses KHS masih dikunci oleh sistem administrasi.');
+        $isHistorical = ! $activeTaId || (int) $selectedTaId !== (int) $activeTaId;
         abort_if(
-            (int) $selectedTaId === (int) $activeTaId && (int) $mahasiswa->status_edom !== 1,
+            ! $isHistorical && (int) $mahasiswa->status_akhir !== 1,
+            403,
+            'Akses KHS semester aktif masih dikunci oleh sistem administrasi.'
+        );
+        abort_if(
+            ! $isHistorical && (int) $mahasiswa->status_edom !== 1,
             403,
             'Silakan selesaikan EDOM sebelum mencetak KHS semester berjalan.'
         );
@@ -726,7 +787,9 @@ class AkademikController extends Controller
 
             activity_log('cetak_khs', 'Mahasiswa mencetak KHS');
 
-            return $pdf->download('khs-'.$mahasiswa->nama.'-'.$ta->nama.'-'.$ta->semester.'.pdf');
+            $filename = 'khs-'.Str::slug($mahasiswa->nama).'-'.Str::slug($ta->nama.'-'.$ta->semester).'.pdf';
+
+            return $pdf->download($filename);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat data KHS: '.$e->getMessage());
         }

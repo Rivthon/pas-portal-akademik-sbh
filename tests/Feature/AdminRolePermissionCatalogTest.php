@@ -94,6 +94,8 @@ class AdminRolePermissionCatalogTest extends TestCase
             'admin.nilai.export' => 'permission:nilai-export',
             'admin.tahun-ajaran.updateStatus' => 'permission:tahun-ajaran-status',
             'admin.resetPassword' => 'permission:mahasiswa-reset-password',
+            'admin.mahasiswa.impersonate' => 'permission:mahasiswa-impersonate,web',
+            'admin.mahasiswa.impersonate.stop' => 'permission:mahasiswa-impersonate,web',
             'admin.dosen.reset-password' => 'permission:dosen-reset-password',
             'admin.dosen.impersonate' => 'permission:dosen-impersonate,web',
             'admin.dosen.impersonate.stop' => 'permission:dosen-impersonate,web',

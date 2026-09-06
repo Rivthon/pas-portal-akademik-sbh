@@ -4,9 +4,11 @@ namespace Tests\Feature;
 
 use App\Models\Dosen;
 use App\Models\Jadwal;
+use App\Models\KaprodiAbsensiVerification;
 use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\NilaiSubmission;
+use App\Models\Pertemuan;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
 use App\Models\User;
@@ -62,6 +64,88 @@ class KaprodiVerificationWorkflowTest extends TestCase
         $this->actingAs($kaprodi, 'dosen')->get(route('dosen.kaprodi.nilai.show', $submission))->assertOk();
         $this->actingAs($kaprodi, 'dosen')->post(route('dosen.kaprodi.nilai.approve', $submission))->assertSessionHas('success');
         $this->assertSame('approved', $submission->fresh()->status);
+    }
+
+    public function test_kaprodi_can_verify_selected_attendance_recaps_in_bulk(): void
+    {
+        $jadwal = Jadwal::with('programStudi')->whereHas('programStudi')->firstOrFail();
+        $kaprodi = Dosen::query()->firstOrFail();
+        $jadwal->programStudi->update(['kaprodi_dosen_id' => $kaprodi->dosen_id]);
+        Pertemuan::firstOrCreate(
+            ['jadwal_id' => $jadwal->id, 'tanggal_pertemuan' => now()->toDateString()],
+            [
+                'topik' => 'Pertemuan uji verifikasi massal',
+                'sub_topik' => 'Pengujian',
+                'dosen_id' => $kaprodi->dosen_id,
+                'jam_mulai' => '08:00:00',
+                'jam_selesai' => '09:00:00',
+                'metode_pbm' => 'offline',
+                'status' => 0,
+            ]
+        );
+        KaprodiAbsensiVerification::where('jadwal_id', $jadwal->id)->delete();
+
+        $this->actingAs($kaprodi, 'dosen')
+            ->post(route('dosen.kaprodi.absensi.bulk-verify'), [
+                'jadwal_ids' => [$jadwal->id],
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('kaprodi_absensi_verifications', [
+            'jadwal_id' => $jadwal->id,
+            'program_studi_id' => $jadwal->jurusan_id,
+            'verified_by_dosen_id' => $kaprodi->dosen_id,
+        ]);
+    }
+
+    public function test_kaprodi_can_approve_selected_grades_in_bulk_and_cannot_cross_program_scope(): void
+    {
+        $jadwal = Jadwal::with('programStudi')->whereHas('programStudi')->firstOrFail();
+        $kaprodi = Dosen::query()->firstOrFail();
+        $jadwal->programStudi->update(['kaprodi_dosen_id' => $kaprodi->dosen_id]);
+        $submission = NilaiSubmission::updateOrCreate(
+            ['jadwal_id' => $jadwal->id],
+            [
+                'program_studi_id' => $jadwal->jurusan_id,
+                'submitted_by_dosen_id' => $kaprodi->dosen_id,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+                'reviewed_by_dosen_id' => null,
+                'reviewed_at' => null,
+            ]
+        );
+
+        $this->actingAs($kaprodi, 'dosen')
+            ->post(route('dosen.kaprodi.nilai.bulk-approve'), [
+                'submission_ids' => [$submission->id],
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertSame('approved', $submission->fresh()->status);
+        $this->assertSame((string) $kaprodi->dosen_id, (string) $submission->fresh()->reviewed_by_dosen_id);
+
+        $foreignJadwal = Jadwal::with('programStudi')
+            ->where('jurusan_id', '!=', $jadwal->jurusan_id)
+            ->whereHas('programStudi')
+            ->first();
+        if ($foreignJadwal) {
+            $foreignSubmission = NilaiSubmission::updateOrCreate(
+                ['jadwal_id' => $foreignJadwal->id],
+                [
+                'program_studi_id' => $foreignJadwal->jurusan_id,
+                'status' => 'submitted',
+                'reviewed_by_dosen_id' => null,
+                'reviewed_at' => null,
+                'submitted_at' => now(),
+                ]
+            );
+
+            $this->post(route('dosen.kaprodi.nilai.bulk-approve'), [
+                'submission_ids' => [$foreignSubmission->id],
+            ])->assertForbidden();
+
+            $this->assertSame('submitted', $foreignSubmission->fresh()->status);
+        }
     }
 
     public function test_kaprodi_can_search_attendance_by_course_name(): void

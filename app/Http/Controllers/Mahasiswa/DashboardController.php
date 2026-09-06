@@ -48,6 +48,9 @@ class DashboardController extends Controller
             ->whereHas('kurikulum.mataKuliah') // Pastikan ada relasi ke mata kuliah
             ->get();
         $khs = KhsPublication::filterPublishedKrs($khs, $mahasiswa);
+        if ($ta && (int) $mahasiswa->status_akhir !== 1) {
+            $khs = $khs->reject(fn ($item) => (int) $item->ta_id === (int) $ta->ta_id)->values();
+        }
         $isKhsPublished = $khs->isNotEmpty();
 
         // Filter hanya KHS yang memiliki nilai
@@ -57,17 +60,16 @@ class DashboardController extends Controller
         $totalSks = $filteredKhs->sum(fn ($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
 
         // Hitung total bobot
-        function calculateWeight($grade)
-        {
+        $calculateWeight = function ($grade) {
             $gradeWeights = [
                 'A' => 4.00, 'AB' => 3.75, 'BA' => 3.50, 'B' => 3.00,
                 'BC' => 2.75, 'C' => 2.00, 'D' => 1.00, 'E' => 0,
             ];
 
             return $gradeWeights[$grade] ?? 0;
-        }
+        };
 
-        $totalBobot = $filteredKhs->sum(fn ($item) => (optional($item->kurikulum->mataKuliah)->sks ?? 0) * calculateWeight($item->khs)
+        $totalBobot = $filteredKhs->sum(fn ($item) => (optional($item->kurikulum->mataKuliah)->sks ?? 0) * $calculateWeight($item->khs)
         );
 
         // Hitung IPK (Indeks Prestasi Kumulatif)

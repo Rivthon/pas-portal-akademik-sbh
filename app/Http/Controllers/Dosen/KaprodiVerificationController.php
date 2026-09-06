@@ -229,6 +229,69 @@ class KaprodiVerificationController extends Controller
         return back()->with('success', 'Rekap absensi berhasil diverifikasi.');
     }
 
+    public function bulkVerifyAbsensi(Request $request)
+    {
+        $data = $request->validate([
+            'jadwal_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'jadwal_ids.*' => ['required', 'integer', 'distinct', 'exists:jadwal,id'],
+        ], [
+            'jadwal_ids.required' => 'Pilih minimal satu rekap absensi.',
+            'jadwal_ids.max' => 'Maksimal 100 rekap dapat diverifikasi sekaligus.',
+        ]);
+
+        $jadwalIds = collect($data['jadwal_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        $prodiIds = $this->prodiIds()->map(fn ($id) => (string) $id);
+
+        $verifiedCount = DB::transaction(function () use ($jadwalIds, $prodiIds) {
+            $jadwals = Jadwal::withCount('pertemuan')
+                ->whereIn('id', $jadwalIds)
+                ->lockForUpdate()
+                ->get();
+
+            abort_unless(
+                $jadwals->count() === $jadwalIds->count()
+                && $jadwals->every(fn ($jadwal) => $prodiIds->contains((string) $jadwal->jurusan_id)),
+                403,
+                'Terdapat rekap absensi di luar program studi yang Anda pimpin.'
+            );
+
+            if ($jadwals->contains(fn ($jadwal) => $jadwal->pertemuan_count < 1)) {
+                abort(422, 'Semua rekap yang dipilih harus memiliki minimal satu pertemuan.');
+            }
+
+            $latestAbsensi = Absensi::whereIn('jadwal_id', $jadwalIds)
+                ->selectRaw('jadwal_id, MAX(updated_at) as latest')
+                ->groupBy('jadwal_id')
+                ->pluck('latest', 'jadwal_id');
+            $latestPertemuan = Pertemuan::whereIn('jadwal_id', $jadwalIds)
+                ->selectRaw('jadwal_id, MAX(updated_at) as latest')
+                ->groupBy('jadwal_id')
+                ->pluck('latest', 'jadwal_id');
+            $verifiedAt = now();
+
+            foreach ($jadwals as $jadwal) {
+                KaprodiAbsensiVerification::updateOrCreate(
+                    ['jadwal_id' => $jadwal->id],
+                    [
+                        'program_studi_id' => $jadwal->jurusan_id,
+                        'verified_by_dosen_id' => auth('dosen')->id(),
+                        'verified_at' => $verifiedAt,
+                        'source_updated_at' => $latestAbsensi->get($jadwal->id) ?: $latestPertemuan->get($jadwal->id),
+                    ]
+                );
+            }
+
+            return $jadwals->count();
+        });
+
+        activity_log(
+            'verifikasi_absensi_kaprodi_massal',
+            'Kaprodi memverifikasi '.$verifiedCount.' rekap absensi sekaligus. Jadwal: '.$jadwalIds->join(', ')
+        );
+
+        return back()->with('success', $verifiedCount.' rekap absensi berhasil diverifikasi.');
+    }
+
     public function nilai(Request $request)
     {
         $prodiIds = $this->prodiIds();
@@ -249,6 +312,58 @@ class KaprodiVerificationController extends Controller
         activity_log('verifikasi_nilai_kaprodi', 'Kaprodi menyetujui pengajuan nilai jadwal '.$submission->jadwal_id);
 
         return back()->with('success', 'Nilai berhasil di-ACC dan siap diterbitkan BAAK.');
+    }
+
+    public function bulkApproveNilai(Request $request)
+    {
+        $data = $request->validate([
+            'submission_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'submission_ids.*' => ['required', 'integer', 'distinct', 'exists:nilai_submissions,id'],
+        ], [
+            'submission_ids.required' => 'Pilih minimal satu pengajuan nilai.',
+            'submission_ids.max' => 'Maksimal 100 pengajuan dapat disetujui sekaligus.',
+        ]);
+
+        $submissionIds = collect($data['submission_ids'])->map(fn ($id) => (int) $id)->unique()->values();
+        $prodiIds = $this->prodiIds()->map(fn ($id) => (string) $id);
+
+        $approvedCount = DB::transaction(function () use ($submissionIds, $prodiIds) {
+            $submissions = NilaiSubmission::whereIn('id', $submissionIds)
+                ->lockForUpdate()
+                ->get();
+
+            abort_unless(
+                $submissions->count() === $submissionIds->count()
+                && $submissions->every(fn ($submission) => $prodiIds->contains((string) $submission->program_studi_id)),
+                403,
+                'Terdapat pengajuan nilai di luar program studi yang Anda pimpin.'
+            );
+
+            $eligible = $submissions->where('status', 'submitted');
+            $reviewedAt = now();
+
+            foreach ($eligible as $submission) {
+                $submission->update([
+                    'status' => 'approved',
+                    'reviewed_by_dosen_id' => auth('dosen')->id(),
+                    'reviewed_at' => $reviewedAt,
+                    'review_note' => null,
+                ]);
+            }
+
+            return $eligible->count();
+        });
+
+        if ($approvedCount < 1) {
+            return back()->with('warning', 'Pengajuan yang dipilih sudah diproses sebelumnya.');
+        }
+
+        activity_log(
+            'verifikasi_nilai_kaprodi_massal',
+            'Kaprodi menyetujui '.$approvedCount.' pengajuan nilai sekaligus. Pengajuan: '.$submissionIds->join(', ')
+        );
+
+        return back()->with('success', $approvedCount.' pengajuan nilai berhasil di-ACC dan siap diterbitkan BAAK.');
     }
 
     public function nilaiDetail(NilaiSubmission $submission)
