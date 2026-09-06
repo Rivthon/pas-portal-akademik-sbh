@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
 use App\Http\Controllers\Admin\BapPengajaranController;
 use App\Http\Controllers\Admin\BeritaController;
 use App\Http\Controllers\Admin\DosenKurikulumController;
+use App\Http\Controllers\Admin\DosenImpersonationController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\Kemahasiswaan\AktivasiController;
 use App\Http\Controllers\Admin\Kemahasiswaan\MahasiswaController;
@@ -372,6 +373,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/dosen/{dosen}/reset-password', [DosenController::class, 'resetPassword'])
             ->middleware('permission:dosen-reset-password')
             ->name('dosen.reset-password');
+        Route::post('/dosen/{dosen}/impersonate', [DosenImpersonationController::class, 'store'])
+            ->middleware('permission:dosen-impersonate,web')
+            ->name('dosen.impersonate');
+        Route::post('/dosen/impersonate/stop', [DosenImpersonationController::class, 'destroy'])
+            ->middleware('permission:dosen-impersonate,web')
+            ->name('dosen.impersonate.stop');
         Route::resource('dosen', DosenController::class);
         Route::resource('tahun-ajaran', TahunAkademikController::class);
         Route::resource('evaluasi', EvaluasiController::class);

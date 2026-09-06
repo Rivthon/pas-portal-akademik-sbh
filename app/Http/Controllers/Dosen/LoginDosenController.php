@@ -71,6 +71,39 @@ class LoginDosenController extends Controller
     {
         // Log aktivitas logout sebelum session dihapus
         $dosen = Auth::guard('dosen')->user();
+
+        if ($request->session()->get('impersonating_dosen') && Auth::guard('web')->check()) {
+            $admin = Auth::guard('web')->user();
+
+            if ($dosen) {
+                activity_log_for(
+                    $admin,
+                    'admin',
+                    'stop_impersonate_dosen',
+                    'Admin kembali dari akun dosen: '.$dosen->nama.' (NIDN/Kode: '.($dosen->nidn ?: $dosen->kd_dosen ?: '-').')'
+                );
+
+                activity_log_for(
+                    $dosen,
+                    'dosen',
+                    'impersonated_logout',
+                    'Sesi impersonasi dosen dihentikan oleh admin: '.$admin->name.' ('.$admin->email.')'
+                );
+            }
+
+            Auth::guard('dosen')->logout();
+            $request->session()->forget([
+                'impersonating_dosen',
+                'impersonator_admin_id',
+                'impersonated_dosen_id',
+            ]);
+            $request->session()->regenerateToken();
+
+            Alert::Success('Kembali ke Admin', 'Anda telah kembali ke sesi admin');
+
+            return redirect()->route('admin.dosen.index');
+        }
+
         if ($dosen) {
             activity_log_for($dosen, 'dosen', 'logout', 'Dosen berhasil logout: '.$dosen->nama);
         }

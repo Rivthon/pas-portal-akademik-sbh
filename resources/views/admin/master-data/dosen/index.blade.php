@@ -123,6 +123,18 @@
                             </button>
                         </form>
                         @endcan
+
+                        @can('dosen-impersonate')
+                        <form action="{{ route('admin.dosen.impersonate', $r->dosen_id) }}" method="POST"
+                            class="d-inline"
+                            onsubmit="return confirm('Login sebagai dosen ini?')">
+                            @csrf
+                            <button type="submit" class="btn btn-info btn-sm"
+                                data-bs-toggle="tooltip" data-bs-original-title="Login sebagai Dosen">
+                                <i class="bx bx-log-in-circle"></i> Login
+                            </button>
+                        </form>
+                        @endcan
                     </td>
                 </tr>
                 @empty

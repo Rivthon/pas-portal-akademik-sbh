@@ -83,6 +83,7 @@ class PermissionCatalog
             'krs-archive-list' => 'Lihat arsip KRS',
             'krs-archive-export' => 'Unduh arsip KRS',
             'mahasiswa-impersonate' => 'Login sebagai mahasiswa',
+            'dosen-impersonate' => 'Login sebagai dosen',
             'dosen-reset-password' => 'Reset password dosen',
             'settings-edit' => 'Ubah pengaturan portal',
             'system-health-list' => 'Lihat kesehatan sistem',

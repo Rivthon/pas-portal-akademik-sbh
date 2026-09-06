@@ -97,6 +97,38 @@
                 <!-- Navbar -->
                 @include('components.navbar-dosen')
                 <!-- / Navbar -->
+                @if(session('impersonating_dosen') && Auth::guard('web')->check())
+                @php
+                    $impersonatedDosen = Auth::guard('dosen')->user();
+                    $impersonatorAdmin = Auth::guard('web')->user();
+                @endphp
+                <div class="alert alert-warning border-warning rounded-0 mb-0 mx-3 mt-3 shadow-sm" role="alert">
+                    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div class="d-flex align-items-start gap-3">
+                            <span class="avatar-initial rounded-circle bg-label-warning p-2">
+                                <i class="bx bx-user-check fs-4"></i>
+                            </span>
+                            <div>
+                                <div class="fw-bold mb-1">Mode Login Sebagai Dosen</div>
+                                <div class="small">
+                                    Anda sedang melihat portal sebagai
+                                    <strong>{{ $impersonatedDosen?->nama ?? 'dosen' }}</strong>
+                                    @if($impersonatedDosen?->nidn || $impersonatedDosen?->kd_dosen)
+                                        ({{ $impersonatedDosen?->nidn ?: $impersonatedDosen?->kd_dosen }})
+                                    @endif
+                                    melalui akun admin <strong>{{ $impersonatorAdmin?->name ?? 'Admin' }}</strong>.
+                                </div>
+                            </div>
+                        </div>
+                        <form method="POST" action="{{ route('admin.dosen.impersonate.stop') }}" class="m-0">
+                            @csrf
+                            <button type="submit" class="btn btn-warning fw-semibold text-nowrap">
+                                <i class="bx bx-arrow-back me-1"></i>Kembali ke Admin
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                @endif
                 <div id="toast-overlay"></div>
 
                 <!-- Content wrapper -->
