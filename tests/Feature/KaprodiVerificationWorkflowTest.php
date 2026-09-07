@@ -282,6 +282,35 @@ class KaprodiVerificationWorkflowTest extends TestCase
         $this->assertFalse(KhsPublication::coversJadwal($jadwal));
     }
 
+    public function test_baak_can_publish_complete_legacy_grades_without_submission_record(): void
+    {
+        $jadwal = $this->jadwalWithMatchingParticipant();
+        $admin = User::factory()->create();
+        $admin->givePermissionTo(Permission::findOrCreate('nilai-publish', 'web'));
+        KhsPublication::where('ta_id', $jadwal->ta_id)->where('program_studi_id', $jadwal->jurusan_id)->delete();
+        NilaiSubmission::where('jadwal_id', $jadwal->id)->delete();
+
+        Krs::where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->whereHas('mahasiswa', function ($query) use ($jadwal) {
+                strtolower((string) $jadwal->jenis_kelas) === 'karyawan'
+                    ? $query->whereRaw("LOWER(kelas) = 'karyawan'")
+                    : $query->where(fn ($kelas) => $kelas->whereNull('kelas')->orWhereRaw("LOWER(kelas) != 'karyawan'"));
+            })
+            ->update(['akhir' => 85, 'khs' => 'A']);
+
+        $this->actingAs($admin)->post(route('admin.nilai-publish.store'), [
+            'ta_id' => $jadwal->ta_id,
+            'program_studi_id' => $jadwal->jurusan_id,
+            'scope_type' => 'course',
+            'jadwal_id' => $jadwal->id,
+        ])->assertSessionHas('success');
+
+        $submission = NilaiSubmission::where('jadwal_id', $jadwal->id)->firstOrFail();
+        $this->assertTrue($submission->isTemporaryBaakApproval());
+        $this->assertTrue(KhsPublication::coversJadwal($jadwal));
+    }
+
     private function jadwalWithMatchingParticipant(): Jadwal
     {
         return $this->matchingParticipantQuery()

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Penilaian;
 use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\KhsPublication;
+use App\Models\Krs;
 use App\Models\NilaiSubmission;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
@@ -58,6 +59,7 @@ class KhsPublicationController extends Controller
                 ->orderBy('kurikulum_id')
                 ->orderBy('jenis_kelas')
                 ->get();
+            $allJadwal->each(fn (Jadwal $jadwal) => $jadwal->stored_grades_complete = $this->hasCompleteStoredGrades($jadwal));
             $semesterOptions = $allJadwal->pluck('kurikulum.mataKuliah.smt')->filter()->map(fn ($value) => (int) $value)->unique()->sort()->values();
             if ($semester !== null && ! $semesterOptions->contains($semester)) {
                 $semester = null;
@@ -118,19 +120,43 @@ class KhsPublicationController extends Controller
         ]);
 
         $target = $this->targetJadwal($data)->with(['kurikulum.mataKuliah', 'nilaiSubmission'])->get();
+        $target->each(fn (Jadwal $jadwal) => $jadwal->stored_grades_complete = $this->hasCompleteStoredGrades($jadwal));
         abort_if($target->isEmpty(), 422, 'Tidak ada kelas berpeserta pada cakupan yang dipilih.');
-        abort_if($target->contains(fn ($jadwal) => ! $jadwal->nilaiSubmission), 422, 'Masih ada kelas yang nilainya belum diajukan dosen.');
-
-        $temporaryApprovals = $target
-            ->filter(fn ($jadwal) => $jadwal->nilaiSubmission->status !== 'approved')
-            ->pluck('nilaiSubmission');
+        abort_if(
+            $target->contains(fn ($jadwal) => ! $jadwal->nilaiSubmission && ! $jadwal->stored_grades_complete),
+            422,
+            'Masih ada kelas yang nilainya belum diinput lengkap oleh dosen.'
+        );
 
         $semester = $data['scope_type'] === 'semester' ? (int) $data['semester'] : null;
         $jadwalId = $data['scope_type'] === 'course' ? (int) $data['jadwal_id'] : null;
         $scopeKey = KhsPublication::scopeKey($data['scope_type'], $semester, $jadwalId);
 
-        DB::transaction(function () use ($data, $target, $temporaryApprovals, $semester, $jadwalId, $scopeKey) {
-            $temporaryApprovals->each(function (NilaiSubmission $submission) {
+        $temporaryApprovalCount = DB::transaction(function () use ($data, $target, $semester, $jadwalId, $scopeKey) {
+            $temporaryCount = 0;
+
+            $target->each(function (Jadwal $jadwal) use (&$temporaryCount) {
+                $submission = $jadwal->nilaiSubmission;
+                if (! $submission) {
+                    NilaiSubmission::create([
+                        'jadwal_id' => $jadwal->id,
+                        'program_studi_id' => $jadwal->jurusan_id,
+                        'submitted_by_dosen_id' => null,
+                        'status' => 'approved',
+                        'submitted_at' => now(),
+                        'reviewed_by_dosen_id' => null,
+                        'reviewed_at' => now(),
+                        'review_note' => NilaiSubmission::TEMPORARY_BAAK_NOTE,
+                    ]);
+                    $temporaryCount++;
+
+                    return;
+                }
+
+                if ($submission->status === 'approved') {
+                    return;
+                }
+
                 $previousNote = trim((string) $submission->review_note);
                 $submission->update([
                     'status' => 'approved',
@@ -139,6 +165,7 @@ class KhsPublicationController extends Controller
                     'review_note' => NilaiSubmission::TEMPORARY_BAAK_NOTE
                         .($previousNote !== '' ? ' Catatan sebelumnya: '.$previousNote : ''),
                 ]);
+                $temporaryCount++;
             });
 
             $base = KhsPublication::where('ta_id', $data['ta_id'])
@@ -167,16 +194,18 @@ class KhsPublicationController extends Controller
                     'published_at' => now(),
                 ]
             );
+
+            return $temporaryCount;
         });
 
         activity_log(
             'terbitkan_khs',
             'BAAK menerbitkan KHS '.$scopeKey.' prodi '.$data['program_studi_id'].' TA '.$data['ta_id']
-                .($temporaryApprovals->isNotEmpty() ? ' dengan '.$temporaryApprovals->count().' persetujuan sementara' : '')
+                .($temporaryApprovalCount > 0 ? ' dengan '.$temporaryApprovalCount.' persetujuan sementara' : '')
         );
 
-        $message = $temporaryApprovals->isNotEmpty()
-            ? 'KHS berhasil diterbitkan sementara. '.$temporaryApprovals->count().' pengajuan disahkan oleh BAAK tanpa menunggu verifikasi Kaprodi.'
+        $message = $temporaryApprovalCount > 0
+            ? 'KHS berhasil diterbitkan sementara. '.$temporaryApprovalCount.' pengajuan disahkan oleh BAAK tanpa menunggu verifikasi Kaprodi.'
             : 'KHS pada cakupan yang dipilih berhasil diterbitkan.';
 
         return back()->with('success', $message);
@@ -241,7 +270,34 @@ class KhsPublicationController extends Controller
     private function isPublishable(Collection $jadwal): bool
     {
         return $jadwal->isNotEmpty()
-            && $jadwal->every(fn ($item) => $item->nilaiSubmission !== null);
+            && $jadwal->every(fn ($item) => $item->nilaiSubmission !== null || $item->stored_grades_complete);
+    }
+
+    private function hasCompleteStoredGrades(Jadwal $jadwal): bool
+    {
+        $peserta = $this->krsPeserta($jadwal);
+
+        return (clone $peserta)->exists()
+            && ! (clone $peserta)->where(function ($query) {
+                $query->whereNull('khs')->orWhereRaw("TRIM(khs) = ''");
+            })->exists();
+    }
+
+    private function krsPeserta(Jadwal $jadwal): Builder
+    {
+        $kelasJadwal = strtolower((string) $jadwal->jenis_kelas);
+
+        return Krs::query()
+            ->where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
+                if ($kelasJadwal === 'karyawan') {
+                    $query->whereRaw("LOWER(kelas) = 'karyawan'");
+                } else {
+                    $query->where(fn ($kelas) => $kelas->whereNull('kelas')
+                        ->orWhereRaw("LOWER(kelas) != 'karyawan'"));
+                }
+            });
     }
 
     private function jadwalBerpeserta($taId, $prodiId): Builder

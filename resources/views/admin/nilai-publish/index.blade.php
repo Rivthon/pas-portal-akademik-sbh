@@ -25,7 +25,7 @@
 
     <div class="alert alert-warning border-0 shadow-sm d-flex gap-2 align-items-start">
         <i class="bx bx-info-circle fs-4"></i>
-        <div><strong>Penerbitan sementara aktif.</strong> Nilai yang belum diverifikasi akan otomatis berstatus <em>Disahkan sementara oleh BAAK</em>. Mata kuliah yang nilainya belum pernah diinput dosen tetap tidak dapat diterbitkan.</div>
+        <div><strong>Penerbitan sementara aktif.</strong> Nilai yang belum diverifikasi akan otomatis berstatus <em>Disahkan sementara oleh BAAK</em>. Data nilai lama yang sudah lengkap tetap dapat diterbitkan meskipun belum mempunyai pengajuan.</div>
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
@@ -91,7 +91,7 @@
                                     <input type="hidden" name="scope_type" value="all">
                                     <button class="btn btn-primary" @disabled(!$allPublishable) onclick="return confirm('{{ $allReady ? 'Terbitkan seluruh KHS tahun ajaran ini?' : 'Terbitkan sementara seluruh KHS? Nilai yang belum diverifikasi Kaprodi akan disahkan sementara oleh BAAK.' }}')"><i class="bx bx-paper-plane me-1"></i>{{ $allReady ? 'Terbitkan Semua' : 'Terbitkan Sementara' }}</button>
                                 </form>
-                                @unless($allPublishable)<small class="d-block text-danger mt-2">Semua kelas harus sudah memiliki nilai. Gunakan penerbitan per mata kuliah jika belum lengkap.</small>@endunless
+                                @unless($allPublishable)<small class="d-block text-danger mt-2">Masih ada kelas dengan nilai mahasiswa yang benar-benar belum lengkap. Gunakan penerbitan per mata kuliah.</small>@endunless
                                 @if($allPublishable && !$allReady)<small class="d-block text-warning mt-2">Verifikasi Kaprodi yang belum selesai akan dilewati sementara.</small>@endif
                             @endif
                         </div>
@@ -126,7 +126,7 @@
                                     <input type="hidden" name="semester" value="{{ $semester }}">
                                     <button class="btn btn-info text-white" @disabled(!$semesterPublishable) onclick="return confirm('{{ $semesterReady ? 'Terbitkan seluruh KHS Semester '.$semester.'?' : 'Terbitkan sementara KHS Semester '.$semester.'? Nilai yang belum diverifikasi Kaprodi akan disahkan sementara oleh BAAK.' }}')"><i class="bx bx-paper-plane me-1"></i>{{ $semesterReady ? 'Terbitkan Semester '.$semester : 'Terbitkan Sementara' }}</button>
                                 </form>
-                                @unless($semesterPublishable)<small class="d-block text-danger mt-2">Seluruh kelas semester ini harus sudah memiliki nilai.</small>@endunless
+                                @unless($semesterPublishable)<small class="d-block text-danger mt-2">Masih ada kelas pada semester ini dengan nilai mahasiswa yang belum lengkap.</small>@endunless
                                 @if($semesterPublishable && !$semesterReady)<small class="d-block text-warning mt-2">Verifikasi Kaprodi yang belum selesai akan dilewati sementara.</small>@endif
                             @endif
                         </div>
@@ -149,6 +149,7 @@
                                 $submission = $jadwal->nilaiSubmission;
                                 $ready = $submission?->status === 'approved';
                                 $temporaryApproval = $submission?->isTemporaryBaakApproval() ?? false;
+                                $hasStoredGrades = (bool) $jadwal->stored_grades_complete;
                                 $publication = $jadwal->effective_publication;
                             @endphp
                             <tr>
@@ -157,6 +158,7 @@
                                 <td>
                                     @if($temporaryApproval)<span class="badge bg-label-info">Disahkan Sementara BAAK</span>
                                     @elseif($ready)<span class="badge bg-label-success">Disetujui Kaprodi</span>
+                                    @elseif(!$submission && $hasStoredGrades)<span class="badge bg-label-primary">Nilai Lama Siap Diterbitkan</span>
                                     @elseif(!$submission)<span class="badge bg-label-secondary">Belum Diajukan</span>
                                     @elseif($submission->status === 'revision')<span class="badge bg-label-danger">Perlu Revisi</span>
                                     @else<span class="badge bg-label-warning">Menunggu Kaprodi</span>@endif
@@ -180,7 +182,7 @@
                                             <input type="hidden" name="program_studi_id" value="{{ $selectedProdiId }}">
                                             <input type="hidden" name="scope_type" value="course">
                                             <input type="hidden" name="jadwal_id" value="{{ $jadwal->id }}">
-                                            <button class="btn btn-sm {{ $submission ? 'btn-primary' : 'btn-secondary' }}" @disabled(!$submission) onclick="return confirm('{{ $ready ? 'Terbitkan KHS mata kuliah ini?' : 'Terbitkan nilai ini sementara tanpa menunggu verifikasi Kaprodi?' }}')"><i class="bx bx-paper-plane me-1"></i>{{ $ready ? 'Terbitkan' : 'Terbitkan Sementara' }}</button>
+                                            <button class="btn btn-sm {{ ($submission || $hasStoredGrades) ? 'btn-primary' : 'btn-secondary' }}" @disabled(!$submission && !$hasStoredGrades) onclick="return confirm('{{ $ready ? 'Terbitkan KHS mata kuliah ini?' : 'Terbitkan nilai ini sementara tanpa menunggu verifikasi Kaprodi?' }}')"><i class="bx bx-paper-plane me-1"></i>{{ $ready ? 'Terbitkan' : 'Terbitkan Sementara' }}</button>
                                         </form>
                                     @else<span class="text-muted small">Diatur dari cakupan {{ $publication->scope_type === 'all' ? 'tahun ajaran' : 'semester' }}</span>@endif
                                 </td>
