@@ -25,20 +25,31 @@ class MatakuliahController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
+        $kategori = $request->input('kategori_mk');
 
         // Start building the query
         $query = Matakuliah::with('programStudi');
 
         // Apply the search filter if provided
         if ($search) {
-            $query->where('nama', 'like', '%'.$search.'%')
-                ->orWhereHas('programStudi', function ($q) use ($search) {
-                    $q->where('nama', 'like', '%'.$search.'%');
-                });
+            $query->where(function ($filter) use ($search) {
+                $filter->where('nama', 'like', '%'.$search.'%')
+                    ->orWhere('matakuliah_id', 'like', '%'.$search.'%')
+                    ->orWhereHas('programStudi', function ($q) use ($search) {
+                        $q->where('nama', 'like', '%'.$search.'%');
+                    });
+            });
+        }
+
+        if (in_array((string) $kategori, ['0', '1'], true)) {
+            $query->where('kategori_mk', (int) $kategori);
         }
 
         // Paginate the results after filtering
-        $matakuliah = $query->paginate(10)->appends($request->query());
+        $matakuliah = $query
+            ->orderBy('nama')
+            ->paginate(10)
+            ->appends($request->query());
 
         // Check if request is AJAX
         if ($request->ajax()) {
@@ -49,7 +60,7 @@ class MatakuliahController extends Controller
 
         $pageIndex = ($matakuliah->currentPage() - 1) * $matakuliah->perPage();
 
-        return view('admin.akademik.matakuliah.index', compact('matakuliah', 'pageIndex', 'search'));
+        return view('admin.akademik.matakuliah.index', compact('matakuliah', 'pageIndex', 'search', 'kategori'));
     }
 
     public function create(): View

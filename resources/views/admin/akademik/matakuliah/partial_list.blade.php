@@ -13,9 +13,9 @@
             </tr>
         </thead>
         <tbody>
-            @forelse ($matakuliah as $item)
+            @forelse ($matakuliah as $index => $item)
             <tr>
-                <td>{{ $loop->iteration }}</td>
+                <td>{{ $matakuliah->firstItem() + $index }}</td>
                 <td>{{ $item->nama ?? '-' }}</td>
                 <td>{{ $item->matakuliah_id ?? '-' }}</td>
                 <td>
@@ -46,7 +46,10 @@
             </tr>
             @empty
             <tr>
-                <td colspan="7" class="text-center">Tidak ada data mata kuliah.</td>
+                <td colspan="8" class="text-center py-4">
+                    <i class="bx bx-search-alt fs-3 text-muted d-block mb-2"></i>
+                    Tidak ada mata kuliah yang sesuai dengan filter.
+                </td>
             </tr>
             @endforelse
         </tbody>

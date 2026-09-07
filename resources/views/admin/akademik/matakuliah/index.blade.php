@@ -42,11 +42,34 @@
         <div class="card-body">
             <!-- Form Pencarian Mata Kuliah dengan AJAX -->
             <form id="search-form" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="search" id="search-matakuliah" class="form-control"
-                        placeholder="Cari nama mata kuliah atau program studi" value="{{ request()->get('search') }}">
-                    <button type="submit" class="btn btn-primary">Cari</button>
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-7">
+                        <label for="search-matakuliah" class="form-label fw-semibold">Pencarian</label>
+                        <input type="text" name="search" id="search-matakuliah" class="form-control"
+                            placeholder="Cari kode, nama mata kuliah, atau program studi"
+                            value="{{ request()->get('search') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="kategori-matakuliah" class="form-label fw-semibold">Kategori</label>
+                        <select name="kategori_mk" id="kategori-matakuliah" class="form-select">
+                            <option value="">Semua Kategori</option>
+                            <option value="0" @selected((string) request('kategori_mk') === '0')>Wajib</option>
+                            <option value="1" @selected((string) request('kategori_mk') === '1')>Pilihan</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bx bx-filter-alt me-1"></i>Terapkan
+                        </button>
+                    </div>
                 </div>
+                @if(request()->filled('search') || request()->filled('kategori_mk'))
+                    <div class="mt-2">
+                        <a href="{{ route('admin.matakuliah.index') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bx bx-reset me-1"></i>Reset Filter
+                        </a>
+                    </div>
+                @endif
             </form>
 
 
