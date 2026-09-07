@@ -146,6 +146,8 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
 
         Route::post('/krs/simpan', [AkademikController::class, 'nyimpenKrs'])->name('simpan.krs');
         Route::get('/krs', [AkademikController::class, 'index'])->name('krs.index');
+        Route::get('/krs/edit', [AkademikController::class, 'editKrs'])->name('krs.edit');
+        Route::put('/krs', [AkademikController::class, 'updateKrs'])->name('krs.update');
         Route::get('/status-krs', [AkademikController::class, 'tampilkanKrs'])->name('status.krs.index');
         Route::post('/status-krs/komentar', [AkademikController::class, 'storeKrsGuidanceReply'])->name('status.krs.comment.store');
         Route::delete('/krs/{id}/hapus', [AkademikController::class, 'hapusKrs'])->name('hapus.krs');
@@ -366,6 +368,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->name('mahasiswa.impersonate.stop');
         Route::put('/mahasiswa/{id}/update-status', [MahasiswaController::class, 'updateStatus'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateStatus');
         Route::put('/mahasiswa/{id}/update-dosen', [MahasiswaController::class, 'updateDosen'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateDosen');
+        Route::put('/mahasiswa/{mahasiswa}/update-kelas', [MahasiswaController::class, 'updateKelas'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateKelas');
+        Route::post('/mahasiswa/update-kelas-massal', [MahasiswaController::class, 'bulkUpdateKelas'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.bulkUpdateKelas');
         Route::put('/mahasiswa/search-dosen', [MahasiswaController::class, 'searchDosen'])->middleware('permission:mahasiswa-list')->name('mahasiswa.searchDosen');
 
         Route::get('/export', [MahasiswaController::class, 'exportExcel'])->middleware('permission:mahasiswa-export')->name('export');

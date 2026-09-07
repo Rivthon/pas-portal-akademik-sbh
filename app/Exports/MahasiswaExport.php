@@ -46,6 +46,12 @@ class MahasiswaExport implements FromView
             $query->where('status_mhs', $this->filters['status']);
         }
 
+        if (! empty($this->filters['kelas'])) {
+            $this->filters['kelas'] === 'pagi'
+                ? $query->whereIn('kelas', ['pagi', 'reguler', 'regular'])
+                : $query->where('kelas', 'karyawan');
+        }
+
         $mahasiswa = $query->get();
 
         return view('exports.mahasiswa', compact('mahasiswa'));

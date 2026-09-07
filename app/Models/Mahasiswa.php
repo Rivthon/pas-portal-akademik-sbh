@@ -82,6 +82,24 @@ class Mahasiswa extends Authenticatable
         'remember_token',
     ];
 
+    public static function normalisasiKelasUntukPenyimpanan(?string $kelas): ?string
+    {
+        return match (strtolower(trim((string) $kelas))) {
+            'a', 'reg a', 'reguler a', 'regular a', 'pagi', 'reguler', 'regular' => 'pagi',
+            'b', 'reg b', 'reguler b', 'regular b', 'karyawan' => 'karyawan',
+            default => null,
+        };
+    }
+
+    public function getLabelKelasAttribute(): string
+    {
+        return match (self::normalisasiKelasUntukPenyimpanan($this->kelas)) {
+            'pagi' => 'Reguler A',
+            'karyawan' => 'Reguler B',
+            default => 'Belum diklasifikasikan',
+        };
+    }
+
     /**
      * Get the attributes that should be cast.
      *

@@ -76,6 +76,7 @@ class KrsDuplicatePreventionTest extends TestCase
         $mahasiswa = Mahasiswa::where('jurusan_id', $kurikulum->jurusan_id)
             ->where('semester', $kurikulum->mataKuliah->smt)
             ->firstOrFail();
+        $mahasiswa->setAttribute('status_krs', 1);
 
         return [$mahasiswa, $kurikulum, $ta];
     }

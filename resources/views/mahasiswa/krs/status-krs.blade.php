@@ -117,6 +117,9 @@
                                 <i class="bx bx-lock-alt me-1"></i>
                                 Menu cetak KRS tersedia setelah KRS disetujui Dosen Pembimbing.
                             </div>
+                            <a href="{{ route('mahasiswa.krs.edit') }}" class="btn btn-warning">
+                                <i class="bx bx-edit me-1"></i>Edit KRS
+                            </a>
                         @endif
 
                     </div>

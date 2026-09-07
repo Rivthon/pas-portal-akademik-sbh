@@ -24,10 +24,10 @@
     <div class="row">
         {{-- Nama --}}
         <div class="col-md-6 mb-3">
-            <label for="name" class="form-label"><strong>Nama</strong></label>
-            <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror"
-                placeholder="Masukkan nama lengkap" value="{{ old('name') }}">
-            @error('name')
+            <label for="nama" class="form-label"><strong>Nama</strong></label>
+            <input type="text" name="nama" id="nama" class="form-control @error('nama') is-invalid @enderror"
+                placeholder="Masukkan nama lengkap" value="{{ old('nama') }}">
+            @error('nama')
             <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
@@ -68,18 +68,30 @@
     <div class="row">
         {{-- Program Studi --}}
         <div class="col-md-6 mb-3">
-            <label for="program_studi_id" class="form-label"><strong>Program Studi</strong></label>
-            <select name="program_studi_id" id="program_studi_id"
-                class="form-select @error('program_studi_id') is-invalid @enderror">
+            <label for="jurusan_id" class="form-label"><strong>Program Studi</strong></label>
+            <select name="jurusan_id" id="jurusan_id"
+                class="form-select @error('jurusan_id') is-invalid @enderror">
                 <option value="">-- Pilih Program Studi --</option>
                 @foreach ($programStudi as $program)
-                <option value="{{ $program->program_studi_id }}" {{ old('program_studi_id')==$program->program_studi_id
+                <option value="{{ $program->jurusan_id }}" {{ old('jurusan_id')==$program->jurusan_id
                     ? 'selected' : '' }}>
-                    {{ $program->name }}
+                    {{ $program->nama }}
                 </option>
                 @endforeach
             </select>
-            @error('program_studi_id')
+            @error('jurusan_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label for="kelas" class="form-label"><strong>Kelas</strong></label>
+            <select name="kelas" id="kelas" class="form-select @error('kelas') is-invalid @enderror">
+                <option value="">-- Pilih Kelas --</option>
+                <option value="pagi" @selected(old('kelas') === 'pagi')>Reguler A</option>
+                <option value="karyawan" @selected(old('kelas') === 'karyawan')>Reguler B</option>
+            </select>
+            @error('kelas')
             <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>

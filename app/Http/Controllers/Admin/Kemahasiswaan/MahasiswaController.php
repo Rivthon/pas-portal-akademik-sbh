@@ -48,6 +48,7 @@ class MahasiswaController extends Controller
         $programStudi = $request->input('jurusan_id');
         $tahunMasuk = $request->input('tahun_masuk');
         $status = $request->input('status');
+        $kelas = $request->input('kelas');
         $dosen = Dosen::all();
         // Query mahasiswa dengan relasi program studi
         $query = Mahasiswa::with('programStudi');
@@ -83,6 +84,12 @@ class MahasiswaController extends Controller
             $query->where('status_mhs', $status);
         }
 
+        if ($request->filled('kelas')) {
+            $kelas === 'pagi'
+                ? $query->whereIn('kelas', ['pagi', 'reguler', 'regular'])
+                : $query->where('kelas', 'karyawan');
+        }
+
         // Ambil semua data tanpa pagination
         $mahasiswa = $query->get();
 
@@ -99,9 +106,10 @@ class MahasiswaController extends Controller
         $programStudi = $request->input('jurusan_id');
         $tahunMasuk = $request->input('tahun_masuk');
         $status = $request->input('status');
+        $kelas = $request->input('kelas');
 
         // Simpan semua filter dalam array
-        $filters = compact('search', 'programStudi', 'tahunMasuk', 'status');
+        $filters = compact('search', 'programStudi', 'tahunMasuk', 'status', 'kelas');
 
         try {
             // Export ke Excel
@@ -126,22 +134,24 @@ class MahasiswaController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => 'required',
+            'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:mahasiswa,email',
             'password' => 'required|min:8',
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'nim' => 'required|unique:mahasiswa,nim',
+            'kelas' => 'required|in:pagi,karyawan',
         ]);
 
         Mahasiswa::create([
-            'name' => $request->name,
+            'nama' => $request->nama,
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'jurusan_id' => $request->jurusan_id,
             'nim' => $request->nim,
+            'kelas' => $request->kelas,
         ]);
 
-        activity_log('tambah_mahasiswa', 'Admin menambah mahasiswa baru: '.$request->name.' (NIM: '.$request->nim.')');
+        activity_log('tambah_mahasiswa', 'Admin menambah mahasiswa baru: '.$request->nama.' (NIM: '.$request->nim.')');
 
         return redirect()->route('admin.mahasiswa.index')
             ->with('success', 'Mahasiswa created successfully.');
@@ -185,7 +195,7 @@ class MahasiswaController extends Controller
                 'semester' => 'required|integer|min:1|max:8',
                 'asal_sekolah' => 'nullable|string|max:255',
                 'tahun_masuk' => 'required|integer|min:2000|max:'.date('Y'),
-                'kelas' => 'required|string|max:50',
+                'kelas' => 'required|in:pagi,karyawan',
                 'status_mhs' => 'required|string|in:aktif,nonaktif,lulus,dropout,cuti',
                 'pendapatan_ortu' => 'nullable|string',
                 'password' => 'nullable|string|min:8',
@@ -342,6 +352,42 @@ class MahasiswaController extends Controller
                 'message' => 'Gagal memperbarui dosen. '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function updateKelas(Mahasiswa $mahasiswa, Request $request)
+    {
+        $validated = $request->validate([
+            'kelas' => 'required|in:pagi,karyawan',
+        ]);
+
+        $mahasiswa->update(['kelas' => $validated['kelas']]);
+        activity_log('update_kelas_mahasiswa', 'Admin mengubah kelas mahasiswa '.$mahasiswa->nim.' menjadi '.$mahasiswa->label_kelas);
+
+        return response()->json([
+            'message' => 'Kelas '.$mahasiswa->nama.' berhasil diperbarui menjadi '.$mahasiswa->label_kelas.'.',
+            'kelas' => $mahasiswa->kelas,
+            'label' => $mahasiswa->label_kelas,
+        ]);
+    }
+
+    public function bulkUpdateKelas(Request $request)
+    {
+        $validated = $request->validate([
+            'mahasiswa_ids' => 'required|array|min:1|max:500',
+            'mahasiswa_ids.*' => 'required|integer|distinct|exists:mahasiswa,mahasiswa_id',
+            'kelas' => 'required|in:pagi,karyawan',
+        ]);
+
+        $updated = Mahasiswa::whereIn('mahasiswa_id', $validated['mahasiswa_ids'])
+            ->update(['kelas' => $validated['kelas'], 'updated_at' => now()]);
+        $label = $validated['kelas'] === 'karyawan' ? 'Reguler B' : 'Reguler A';
+
+        activity_log('bulk_update_kelas_mahasiswa', 'Admin mengubah kelas '.$updated.' mahasiswa menjadi '.$label);
+
+        return response()->json([
+            'message' => $updated.' mahasiswa berhasil diklasifikasikan sebagai '.$label.'.',
+            'updated' => $updated,
+        ]);
     }
 
     public function importExcel(Request $request): RedirectResponse

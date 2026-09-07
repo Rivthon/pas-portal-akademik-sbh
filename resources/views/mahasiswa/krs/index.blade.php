@@ -96,27 +96,68 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($krs as $key => $item)
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" name="krs[]" value="{{ $item->kurikulum_id }}"
-                                            data-krs-id="{{ $item->krs_id ?? '' }}">
-                                    </td>
-                                    <td>{{ $key + 1 }}</td>
-                                    <td>{{ $item->mataKuliah->nama }}</td>
-                                    <td>{{ $item->mataKuliah->sks }}</td>
-                                    <td>{{ $item->mataKuliah->smt }}</td>
-                                    <td>
-                                        <span
-                                            class="badge
-                                                {{ $item->mataKuliah->kategori_mk == 1 ? 'bg-success' : ($item->mataKuliah->kategori_mk == 0 ? 'bg-primary' : 'bg-secondary') }}">
-                                            {{ $item->mataKuliah->kategori_mk == 1 ? 'Pilihan' :
-                                            ($item->mataKuliah->kategori_mk ==
-                                            0 ? 'Wajib' : 'Tidak Diketahui') }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @empty
+                                @if ($krs->isNotEmpty())
+                                    @php
+                                        $kelompokKrs = [
+                                            [
+                                                'judul' => 'Mata Kuliah Wajib',
+                                                'ikon' => 'bx-book-bookmark',
+                                                'warna' => 'primary',
+                                                'items' => $krs->filter(fn ($item) => (int) ($item->mataKuliah?->kategori_mk ?? -1) === 0),
+                                            ],
+                                            [
+                                                'judul' => 'Mata Kuliah Pilihan',
+                                                'ikon' => 'bx-list-check',
+                                                'warna' => 'success',
+                                                'items' => $krs->filter(fn ($item) => (int) ($item->mataKuliah?->kategori_mk ?? -1) === 1),
+                                            ],
+                                            [
+                                                'judul' => 'Belum Dikategorikan',
+                                                'ikon' => 'bx-help-circle',
+                                                'warna' => 'secondary',
+                                                'items' => $krs->filter(fn ($item) => ! in_array((int) ($item->mataKuliah?->kategori_mk ?? -1), [0, 1], true)),
+                                            ],
+                                        ];
+                                        $nomor = 1;
+                                    @endphp
+
+                                    @foreach ($kelompokKrs as $kelompok)
+                                        @continue($kelompok['items']->isEmpty())
+                                        <tr class="table-{{ $kelompok['warna'] }}">
+                                            <td colspan="6" class="py-3">
+                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                                    <span class="fw-bold text-{{ $kelompok['warna'] }}">
+                                                        <i class="bx {{ $kelompok['ikon'] }} me-1"></i>
+                                                        {{ $kelompok['judul'] }}
+                                                    </span>
+                                                    <span class="badge bg-{{ $kelompok['warna'] }}">
+                                                        {{ $kelompok['items']->count() }} Mata Kuliah &bull;
+                                                        {{ $kelompok['items']->sum(fn ($item) => (int) ($item->mataKuliah?->sks ?? 0)) }} SKS
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        @foreach ($kelompok['items'] as $item)
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="krs[]" value="{{ $item->kurikulum_id }}"
+                                                        data-krs-id="{{ $item->krs_id ?? '' }}"
+                                                        data-sks="{{ (int) ($item->mataKuliah?->sks ?? 0) }}">
+                                                </td>
+                                                <td>{{ $nomor++ }}</td>
+                                                <td class="fw-semibold">{{ $item->mataKuliah->nama }}</td>
+                                                <td>{{ $item->mataKuliah->sks }}</td>
+                                                <td>{{ $item->mataKuliah->smt }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ $kelompok['warna'] }}">
+                                                        {{ (int) $item->mataKuliah->kategori_mk === 0 ? 'Wajib' : ((int) $item->mataKuliah->kategori_mk === 1 ? 'Pilihan' : 'Tidak Diketahui') }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endforeach
+                                @else
                                 <tr>
                                     <td colspan="6" class="text-center py-4">
                                         @if ($hasExistingKrs)
@@ -127,7 +168,7 @@
                                         @endif
                                     </td>
                                 </tr>
-                                @endforelse
+                                @endif
                             </tbody>
                         </table>
                     </form>
@@ -146,3 +187,15 @@
 </div>
 </div>
 @endsection
+
+@push('script')
+<script>
+    $(document).on('change', 'input[name="krs[]"]', function () {
+        let totalSks = 0;
+        $('input[name="krs[]"]:checked').each(function () {
+            totalSks += Number($(this).data('sks')) || 0;
+        });
+        $('#totalSks').text(totalSks);
+    });
+</script>
+@endpush

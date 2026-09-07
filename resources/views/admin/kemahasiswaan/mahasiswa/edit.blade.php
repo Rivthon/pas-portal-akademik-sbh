@@ -187,10 +187,10 @@
                         <div class="input-group">
                             <span class="input-group-text"><i class="bx bx-user-check"></i></span>
                             <select class="form-select" id="kelas" name="kelas" required>
-                                <option value="">Pilih Status</option>
+                                <option value="">Pilih Kelas</option>
                                 <option value="karyawan" {{ old('kelas', $mahasiswa->kelas) == 'karyawan' ? 'selected' :
                                     '' }}>Reguler B</option>
-                                <option value="pagi" {{ old('kelas', $mahasiswa->kelas) == 'pagi' ? 'selected' : ''
+                                <option value="pagi" {{ in_array(strtolower((string) old('kelas', $mahasiswa->kelas)), ['pagi', 'reguler', 'regular'], true) ? 'selected' : ''
                                     }}>Reguler A</option>
                             </select>
                         </div>

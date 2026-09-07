@@ -1,11 +1,17 @@
 <table class="table table-bordered table-striped align-middle">
     <thead class="table-primary">
         <tr>
+            @can('mahasiswa-edit')
+            <th class="text-center" style="width: 40px;">
+                <input type="checkbox" id="select-all-mahasiswa" class="form-check-input" aria-label="Pilih semua mahasiswa">
+            </th>
+            @endcan
             <th>Avatar</th>
             <th>Nama</th>
             <th>Email</th>
             <th>NIM</th>
             <th>Program Studi</th>
+            <th>Kelas</th>
             <th>Dosen Pembimbing</th>
             <th>Status</th>
             <th>Aksi</th>
@@ -14,6 +20,12 @@
     <tbody>
         @forelse ($mahasiswa as $m)
         <tr data-id="{{ $m->mahasiswa_id }}">
+            @can('mahasiswa-edit')
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input mahasiswa-checkbox" value="{{ $m->mahasiswa_id }}"
+                    aria-label="Pilih {{ $m->nama }}">
+            </td>
+            @endcan
             <!-- Avatar -->
             <td class="text-center">
                 <img src="{{ $m->avatar_url }}" alt="Avatar" class="rounded-circle border"
@@ -26,6 +38,21 @@
             <td>{{ $m->email }}</td>
             <td>{{ $m->nim }}</td>
             <td>{{ $m->programStudi->nama ?? '-' }}</td>
+            <td class="text-center" style="min-width: 145px;">
+                @can('mahasiswa-edit')
+                <select class="form-select form-select-sm kelas-dropdown"
+                    data-previous="{{ \App\Models\Mahasiswa::normalisasiKelasUntukPenyimpanan($m->kelas) ?? '' }}">
+                    <option value="pagi" @selected(\App\Models\Mahasiswa::normalisasiKelasUntukPenyimpanan($m->kelas) === 'pagi')>
+                        Reguler A
+                    </option>
+                    <option value="karyawan" @selected(\App\Models\Mahasiswa::normalisasiKelasUntukPenyimpanan($m->kelas) === 'karyawan')>
+                        Reguler B
+                    </option>
+                </select>
+                @else
+                <span class="badge bg-label-info">{{ $m->label_kelas }}</span>
+                @endcan
+            </td>
             <td class="text-center">
                 <select name="dosen_id" class="form-select form-select-sm dosen-dropdown">
                     <option value="">Pilih Dosen</option>
@@ -105,7 +132,7 @@
         </tr>
         @empty
         <tr>
-            <td colspan="8" class="text-center text-muted">Data tidak ditemukan</td>
+            <td colspan="@can('mahasiswa-edit') 10 @else 9 @endcan" class="text-center text-muted">Data tidak ditemukan</td>
         </tr>
         @endforelse
     </tbody>

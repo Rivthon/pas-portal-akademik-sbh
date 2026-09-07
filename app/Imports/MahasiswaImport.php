@@ -11,6 +11,11 @@ class MahasiswaImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
+        $kelas = Mahasiswa::normalisasiKelasUntukPenyimpanan($row['kelas'] ?? null);
+        if ($kelas === null) {
+            throw new \InvalidArgumentException('Kelas mahasiswa '.($row['nim'] ?? '-').' harus Reguler A atau Reguler B.');
+        }
+
         return new Mahasiswa([
             'nim' => $row['nim'],
             'email' => $row['email'],
@@ -41,7 +46,7 @@ class MahasiswaImport implements ToModel, WithHeadingRow
             'status_kip' => $row['status_kip'],
             'gelombang_id' => $row['gelombang_id'], // baru
             'tahun_masuk' => $row['tahun_masuk'],
-            'kelas' => $row['kelas'],
+            'kelas' => $kelas,
         ]);
     }
 }

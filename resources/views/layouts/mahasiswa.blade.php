@@ -262,7 +262,7 @@
         // Konfirmasi dengan SweetAlert2
         Swal.fire({
             title: 'Apakah Anda yakin?',
-            text: "KRS yang dipilih akan disimpan. Anda tidak dapat mengubahnya lagi!",
+            text: "KRS yang dipilih akan diajukan. KRS masih dapat diedit sebelum disetujui Dosen Pembimbing.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#3085d6',

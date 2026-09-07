@@ -67,13 +67,13 @@
         <div class="bg-label-primary p-4 rounded mb-4">
             <div class="row g-3">
                 <!-- Input Search -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-search-alt"></i> Kata Kunci</label>
                     <input type="text" id="search" class="form-control border-primary text-primary" placeholder="Ketik Nama / NIM...">
                 </div>
 
                 <!-- Program Studi -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-book"></i> Program Studi</label>
                     <select id="program-studi" class="form-select border-primary text-primary">
                         <option value="">Semua Program Studi</option>
@@ -84,7 +84,7 @@
                 </div>
 
                 <!-- Tahun Masuk -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-calendar-event"></i> Tahun Masuk</label>
                     <select id="tahun-masuk" class="form-select border-primary text-primary">
                         <option value="">Semua Tahun</option>
@@ -95,7 +95,7 @@
                 </div>
 
                 <!-- Status -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-user-check"></i> Status Mahasiswa</label>
                     <select id="status" class="form-select border-primary text-primary">
                         <option value="">Semua Status</option>
@@ -104,6 +104,15 @@
                         <option value="Nonaktif">Nonaktif</option>
                         <option value="Cuti">Cuti</option>
                         <option value="Dropout">Dropout</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold text-primary"><i class="bx bx-group"></i> Kelas</label>
+                    <select id="kelas" class="form-select border-primary text-primary">
+                        <option value="">Semua Kelas</option>
+                        <option value="pagi">Reguler A</option>
+                        <option value="karyawan">Reguler B</option>
                     </select>
                 </div>
             </div>
@@ -125,6 +134,29 @@
         <!-- Alert -->
         <div id="alert-container"></div>
 
+        @can('mahasiswa-edit')
+        <div class="card border shadow-none mb-3">
+            <div class="card-body py-3">
+                <div class="row align-items-end g-2">
+                    <div class="col-md-8">
+                        <label for="bulk-kelas" class="form-label fw-semibold mb-1">Klasifikasi mahasiswa terpilih</label>
+                        <select id="bulk-kelas" class="form-select">
+                            <option value="">-- Pilih kelas tujuan --</option>
+                            <option value="pagi">Reguler A</option>
+                            <option value="karyawan">Reguler B</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" id="bulk-kelas-btn" class="btn btn-primary w-100">
+                            <i class="bx bx-group me-1"></i> Terapkan Kelas Massal
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">Centang mahasiswa pada tabel, pilih kelas, lalu terapkan.</small>
+            </div>
+        </div>
+        @endcan
+
         <!-- Tabel Hasil Pencarian -->
         <div class="table-responsive" id="table-container" style="min-height: 250px;">
             <div class="text-center py-5">
@@ -143,6 +175,7 @@ $(document).ready(function () {
         var programStudi = $('#program-studi').val();
         var tahunMasuk = $('#tahun-masuk').val();
         var status = $('#status').val();
+        var kelas = $('#kelas').val();
 
         // Menampilkan loading indicator
         $('#table-container').html('<div class="text-center my-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Memuat data...</div>');
@@ -154,7 +187,8 @@ $(document).ready(function () {
                 search: search,
                 jurusan_id: programStudi,
                 tahun_masuk: tahunMasuk,
-                status: status
+                status: status,
+                kelas: kelas
             },
             dataType: 'json',
             success: function (response) {
@@ -171,6 +205,79 @@ $(document).ready(function () {
     // Event ketika tombol cari ditekan
     $('#search-btn').on('click', function () {
         fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
+    });
+
+    $(document).on('change', '#select-all-mahasiswa', function () {
+        $('.mahasiswa-checkbox').prop('checked', this.checked);
+    });
+
+    $(document).on('change', '.kelas-dropdown', function () {
+        const selectElement = $(this);
+        const mahasiswaId = selectElement.closest('tr').data('id');
+        const previousValue = selectElement.data('previous');
+
+        $.ajax({
+            url: `/admin/mahasiswa/${mahasiswaId}/update-kelas`,
+            type: 'PUT',
+            data: {
+                _token: "{{ csrf_token() }}",
+                kelas: selectElement.val()
+            },
+            beforeSend: function () {
+                selectElement.prop('disabled', true);
+            },
+            success: function (response) {
+                selectElement.data('previous', response.kelas);
+                showStatusAlert('success', response.message);
+            },
+            error: function (xhr) {
+                selectElement.val(previousValue);
+                showStatusAlert('danger', xhr.responseJSON?.message || 'Gagal memperbarui kelas mahasiswa.');
+            },
+            complete: function () {
+                selectElement.prop('disabled', false);
+            }
+        });
+    });
+
+    $('#bulk-kelas-btn').on('click', function () {
+        const mahasiswaIds = $('.mahasiswa-checkbox:checked').map(function () {
+            return Number(this.value);
+        }).get();
+        const kelas = $('#bulk-kelas').val();
+
+        if (mahasiswaIds.length === 0 || !kelas) {
+            showStatusAlert('warning', 'Pilih mahasiswa dan kelas tujuan terlebih dahulu.');
+            return;
+        }
+
+        if (!confirm(`Ubah kelas ${mahasiswaIds.length} mahasiswa yang dipilih?`)) {
+            return;
+        }
+
+        const button = $(this);
+        $.ajax({
+            url: "{{ route('admin.mahasiswa.bulkUpdateKelas') }}",
+            type: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                mahasiswa_ids: mahasiswaIds,
+                kelas: kelas
+            },
+            beforeSend: function () {
+                button.prop('disabled', true);
+            },
+            success: function (response) {
+                showStatusAlert('success', response.message);
+                fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
+            },
+            error: function (xhr) {
+                showStatusAlert('danger', xhr.responseJSON?.message || 'Gagal memperbarui kelas mahasiswa.');
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
     });
 
     // Event ketika menekan Enter di input pencarian
@@ -292,14 +399,15 @@ $(document).ready(function () {
         const programStudi = $('#program-studi').val();
         const tahunMasuk = $('#tahun-masuk').val();
         const status = $('#status').val();
+        const kelas = $('#kelas').val();
 
-        if (!search && !programStudi && !tahunMasuk && !status) {
+        if (!search && !programStudi && !tahunMasuk && !status && !kelas) {
             if (!confirm("Tidak ada filter diterapkan. Apakah Anda yakin ingin mengekspor semua data mahasiswa?")) {
                 return;
             }
         }
 
-        const exportUrl = `${baseUrl}?search=${encodeURIComponent(search)}&jurusan_id=${programStudi}&tahun_masuk=${tahunMasuk}&status=${status}`;
+        const exportUrl = `${baseUrl}?search=${encodeURIComponent(search)}&jurusan_id=${programStudi}&tahun_masuk=${tahunMasuk}&status=${status}&kelas=${kelas}`;
 
         window.location.href = exportUrl;
     });

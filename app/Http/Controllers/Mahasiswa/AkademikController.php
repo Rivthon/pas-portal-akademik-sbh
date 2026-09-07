@@ -99,6 +99,12 @@ class AkademikController extends Controller
                 'message' => 'Mahasiswa tidak ditemukan.',
             ], 401);
         }
+        if ((int) $mahasiswa->status_krs !== 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses pengisian KRS sedang dinonaktifkan.',
+            ], 403);
+        }
 
         // Ambil Tahun Akademik Aktif
         $ta = TahunAkademik::where('status_ta', 1)->first();
@@ -238,6 +244,144 @@ class AkademikController extends Controller
         }
     }
 
+    public function editKrs()
+    {
+        $mahasiswa = $this->getMahasiswa();
+        $activeTA = $this->getActiveTA();
+
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        }
+        if ((int) $mahasiswa->status_krs !== 1) {
+            return redirect()->route('mahasiswa.status.krs.index')
+                ->with('error', 'Akses pengisian KRS sedang dinonaktifkan.');
+        }
+
+        $krsAktif = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $activeTA->ta_id)
+            ->get();
+
+        if ($krsAktif->isEmpty()) {
+            return redirect()->route('mahasiswa.krs.index')
+                ->with('error', 'KRS belum diajukan. Silakan pilih mata kuliah terlebih dahulu.');
+        }
+        if ($krsAktif->contains(fn (Krs $item) => $item->disetujui_pada !== null)) {
+            return redirect()->route('mahasiswa.status.krs.index')
+                ->with('error', 'KRS sudah disetujui Dosen Pembimbing dan tidak dapat diubah.');
+        }
+
+        $kurikulum = Kurikulum::with(['programStudi', 'mataKuliah'])
+            ->where('ta_id', $activeTA->ta_id)
+            ->where('jurusan_id', $mahasiswa->jurusan_id)
+            ->whereHas('mataKuliah', fn ($query) => $query->where('smt', $mahasiswa->semester))
+            ->get()
+            ->unique('matakuliah_id')
+            ->values();
+        $mataKuliahTerpilih = $krsAktif->pluck('matakuliah_id')->filter()->map(fn ($id) => (string) $id);
+
+        return view('mahasiswa.krs.edit', compact(
+            'mahasiswa',
+            'activeTA',
+            'kurikulum',
+            'mataKuliahTerpilih'
+        ));
+    }
+
+    public function updateKrs(Request $request)
+    {
+        $mahasiswa = $this->getMahasiswa();
+        $activeTA = $this->getActiveTA();
+
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        }
+        if ((int) $mahasiswa->status_krs !== 1) {
+            return redirect()->route('mahasiswa.status.krs.index')
+                ->with('error', 'Akses pengisian KRS sedang dinonaktifkan.');
+        }
+
+        $validated = $request->validate([
+            'krs' => ['required', 'array', 'min:1'],
+            'krs.*' => ['required', 'integer', 'distinct', 'exists:kurikulum,kurikulum_id'],
+        ], [
+            'krs.required' => 'Pilih minimal satu mata kuliah.',
+            'krs.min' => 'Pilih minimal satu mata kuliah.',
+        ]);
+
+        $kurikulum = Kurikulum::with('mataKuliah')
+            ->whereIn('kurikulum_id', array_unique($validated['krs']))
+            ->where('ta_id', $activeTA->ta_id)
+            ->where('jurusan_id', $mahasiswa->jurusan_id)
+            ->whereHas('mataKuliah', fn ($query) => $query->where('smt', $mahasiswa->semester))
+            ->get();
+
+        if ($kurikulum->count() !== count(array_unique($validated['krs']))) {
+            return back()->withInput()->with('error', 'Terdapat mata kuliah yang tidak sesuai dengan prodi, semester, atau tahun akademik aktif.');
+        }
+        if ($kurikulum->pluck('matakuliah_id')->duplicates()->isNotEmpty()) {
+            return back()->withInput()->with('error', 'Mata kuliah yang sama tidak boleh dipilih lebih dari satu kali.');
+        }
+
+        $hasil = DB::transaction(function () use ($mahasiswa, $activeTA, $kurikulum) {
+            $krsAktif = Krs::with('kurikulum.mataKuliah')
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->where('ta_id', $activeTA->ta_id)
+                ->lockForUpdate()
+                ->get();
+
+            if ($krsAktif->contains(fn (Krs $item) => $item->disetujui_pada !== null)) {
+                return null;
+            }
+
+            $mataKuliahDipilih = $kurikulum->pluck('matakuliah_id')->map(fn ($id) => (string) $id);
+            $krsDapatDiubah = $krsAktif->filter(
+                fn (Krs $item) => (int) ($item->kurikulum?->mataKuliah?->smt ?? 0) === (int) $mahasiswa->semester
+                    && (string) ($item->kurikulum?->jurusan_id ?? '') === (string) $mahasiswa->jurusan_id
+            );
+            $hapusIds = $krsDapatDiubah
+                ->reject(fn (Krs $item) => $mataKuliahDipilih->contains((string) $item->matakuliah_id))
+                ->pluck('krs_id');
+
+            if ($hapusIds->isNotEmpty()) {
+                Krs::whereIn('krs_id', $hapusIds)->delete();
+            }
+
+            $mataKuliahSaatIni = $krsAktif->pluck('matakuliah_id')->map(fn ($id) => (string) $id);
+            $ditambahkan = 0;
+            foreach ($kurikulum as $item) {
+                if ($mataKuliahSaatIni->contains((string) $item->matakuliah_id)) {
+                    continue;
+                }
+
+                Krs::create([
+                    'kurikulum_id' => $item->kurikulum_id,
+                    'matakuliah_id' => $item->matakuliah_id,
+                    'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                    'ta_id' => $activeTA->ta_id,
+                ]);
+                $ditambahkan++;
+            }
+
+            return [
+                'ditambahkan' => $ditambahkan,
+                'dihapus' => $hapusIds->count(),
+            ];
+        });
+
+        if ($hasil === null) {
+            return redirect()->route('mahasiswa.status.krs.index')
+                ->with('error', 'KRS baru saja disetujui Dosen Pembimbing sehingga perubahan dibatalkan.');
+        }
+
+        activity_log(
+            'ubah_krs',
+            'Mahasiswa mengubah KRS: '.$hasil['ditambahkan'].' ditambahkan dan '.$hasil['dihapus'].' dihapus'
+        );
+
+        return redirect()->route('mahasiswa.status.krs.index')
+            ->with('success', 'Perubahan KRS berhasil disimpan dan menunggu ACC Dosen Pembimbing.');
+    }
+
     public function storeKrsGuidanceReply(Request $request)
     {
         $mahasiswa = $this->getMahasiswa();
@@ -272,7 +416,19 @@ class AkademikController extends Controller
 
     public function hapusKrs($id)
     {
-        $krs = Krs::where('mahasiswa_id', $this->getMahasiswa()->mahasiswa_id)->findOrFail($id);
+        $mahasiswa = $this->getMahasiswa();
+        $activeTA = $this->getActiveTA();
+
+        if ((int) $mahasiswa->status_krs !== 1) {
+            return back()->with('error', 'Akses pengisian KRS sedang dinonaktifkan.');
+        }
+        if (! $activeTA) {
+            return back()->with('error', 'Tidak ada Tahun Ajaran yang aktif.');
+        }
+
+        $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $activeTA->ta_id)
+            ->findOrFail($id);
 
         if ($krs->disetujui_pada !== null) {
             return back()->with('error', 'KRS sudah disetujui oleh Dosen Pembimbing dan tidak dapat dihapus.');
