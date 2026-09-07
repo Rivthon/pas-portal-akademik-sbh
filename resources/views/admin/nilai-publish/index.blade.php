@@ -156,7 +156,8 @@
                                 <td><strong>{{ $jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</strong><small class="d-block text-muted">{{ $jadwal->kurikulum?->mataKuliah?->matakuliah_id ?? '-' }}</small></td>
                                 <td><span class="badge bg-label-secondary">Semester {{ $jadwal->kurikulum?->mataKuliah?->smt ?? '-' }}</span><span class="badge bg-label-{{ strtolower((string) $jadwal->jenis_kelas) === 'karyawan' ? 'warning' : 'success' }} ms-1">{{ jenis_kelas_label($jadwal->jenis_kelas) }}</span></td>
                                 <td>
-                                    @if($temporaryApproval)<span class="badge bg-label-info">Disahkan Sementara BAAK</span>
+                                    @if($publication && !$submission)<span class="badge bg-label-info">Diterbitkan Historis BAAK</span>
+                                    @elseif($temporaryApproval)<span class="badge bg-label-info">Disahkan Sementara BAAK</span>
                                     @elseif($ready)<span class="badge bg-label-success">Disetujui Kaprodi</span>
                                     @elseif(!$submission && $hasStoredGrades)<span class="badge bg-label-primary">Nilai Lama Siap Diterbitkan</span>
                                     @elseif(!$submission)<span class="badge bg-label-secondary">Belum Diajukan</span>
