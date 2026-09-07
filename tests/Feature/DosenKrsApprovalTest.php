@@ -129,11 +129,15 @@ class DosenKrsApprovalTest extends TestCase
             ->get(route('mahasiswa.status.krs.index'))
             ->assertOk()
             ->assertSee('KRS telah disetujui Dosen Pembimbing')
-            ->assertSee('Cetak KAPRO')
-            ->assertSee('Cetak BAAK')
-            ->assertSee('Cetak DOSPEM')
+            ->assertDontSee('Cetak KAPRO')
+            ->assertDontSee('Cetak BAAK')
+            ->assertDontSee('Cetak DOSPEM')
             ->assertSee('Cetak Mahasiswa')
             ->assertSee($dosen->nama);
+
+        $this->get(route('mahasiswa.krs.cetak-krs-mahasiswa'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
 
         $this->delete(route('mahasiswa.hapus.krs', $krs->krs_id))
             ->assertSessionHas('error', 'KRS sudah disetujui oleh Dosen Pembimbing dan tidak dapat dihapus.');

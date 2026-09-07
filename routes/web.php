@@ -165,6 +165,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
 
         Route::get('/nilai-uts', [UjianController::class, 'tampilkanNilaiUts'])->name('nilai-uts.index');
         Route::get('/nilai-uas', [UjianController::class, 'tampilkanNilaiUas'])->name('nilai-uas.index');
+        Route::get('/riwayat-nilai-ujian', [UjianController::class, 'riwayatNilaiUjian'])->name('nilai-ujian.riwayat');
         Route::get('/nilai-akhir', [UjianController::class, 'tampilkanNilaiAkhir'])->name('nilai-akhir.index');
 
         Route::get('/edom', [EdomController::class, 'index'])->name('edom.index');

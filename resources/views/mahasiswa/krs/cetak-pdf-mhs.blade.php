@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kartu Rencana Studi - BAAK</title>
+    <title>Kartu Rencana Studi - Mahasiswa</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -48,40 +48,38 @@
             margin: 5px 0;
         }
 
-        .signature {
+        .verification {
             width: 100%;
-            border-collapse: collapse;
             margin-top: 30px;
-            table-layout: fixed;
-        }
-
-        .signature td {
-            width: 33.33%;
             text-align: center;
-            vertical-align: top;
-            padding: 10px;
         }
 
-        .signature img {
+        .verification-stamp {
             display: inline-block;
-            height: 50px;
-            margin-bottom: 5px;
-            border: 1px solid #ccc;
+            width: 330px;
+            border: 3px double #198754;
+            padding: 12px 18px;
+            text-align: center;
+            color: #146c43;
+            background-color: #f2fbf6;
         }
 
-        .signature .placeholder {
-            display: inline-block;
-            width: 100px;
-            height: 50px;
-            margin-bottom: 5px;
-            border: 1px dashed #ccc;
-            background-color: #f9f9f9;
-        }
-
-        .signature .name {
-            margin-top: 10px;
+        .verification-stamp .stamp-title {
+            font-size: 15px;
             font-weight: bold;
-            text-decoration: underline;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .verification-stamp .stamp-name {
+            font-size: 13px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .verification-stamp .stamp-meta {
+            font-size: 10px;
+            color: #3d6f56;
         }
 
         .watermark {
@@ -185,38 +183,16 @@
         </tbody>
     </table>
 
-    <table class="signature">
-        <tr>
-            <td style="text-align: center;">
-                <p>Mahasiswa</p>
-                @if (isset($ttdMahasiswa) && $ttdMahasiswa)
-                <img src="data:image/png;base64,{{ $ttdMahasiswa }}" alt="Tanda Tangan Mahasiswa" style="height: 50px;">
-                @else
-                <div class="placeholder"></div>
-                @endif
-                <div class="name">{{ $mahasiswa->nama }}</div>
-            </td>
-            <td style="text-align: center;">
-                <p>Dosen Pembimbing</p>
-                @if (isset($ttdDosPem) && $ttdDosPem)
-                <img src="data:image/png;base64,{{ $ttdDosPem }}" alt="Tanda Tangan Dosen Pembimbing"
-                    style="height: 50px;">
-                @else
-                <div class="placeholder"></div>
-                @endif
-                <div class="name">{{ $mahasiswa->dosen->nama ?? 'Dosen Pembimbing' }}</div>
-            </td>
-            <td style="text-align: center;">
-                <p>Kaprodi</p>
-                @if ($ttd)
-                <div class="placeholder"></div>
-                @else
-                <div class="placeholder"></div>
-                @endif
-                <div class="name">{{ $mahasiswa->programStudi->kaprod ?? 'Ketua Program Studi' }}</div>
-            </td>
-        </tr>
-    </table>
+    <div class="verification">
+        <div class="verification-stamp">
+            <div class="stamp-title">TERVERIFIKASI OLEH DOSPEM</div>
+            <div>Dosen Pembimbing Akademik</div>
+            <div class="stamp-name">{{ $persetujuan?->disetujuiOleh?->nama ?? $mahasiswa->dosen?->nama ?? 'Dosen Pembimbing' }}</div>
+            <div class="stamp-meta">
+                Disetujui pada {{ $persetujuan?->disetujui_pada?->translatedFormat('d F Y H:i') ?? '-' }}
+            </div>
+        </div>
+    </div>
     <div class="footer">
         © {{ date('Y') }} {{ $settings->footer_name }} – Dicetak oleh {{ $mahasiswa->nama }} (NIM: {{ $mahasiswa->nim
         }})<br>

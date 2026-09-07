@@ -99,17 +99,8 @@
                         <!-- CTA Button -->
                         @if($krsDisetujui)
                             <div class="mb-3 d-flex flex-wrap gap-2">
-                                <a href="{{ route('mahasiswa.krs.cetak-kapro') }}" class="btn btn-primary">
-                                    Cetak KAPRO
-                                </a>
-                                <a href="{{ route('mahasiswa.krs.cetak-krs-baak') }}" class="btn btn-primary">
-                                    Cetak BAAK
-                                </a>
-                                <a href="{{ route('mahasiswa.krs.cetak-krs-dospem') }}" class="btn btn-primary">
-                                    Cetak DOSPEM
-                                </a>
                                 <a href="{{ route('mahasiswa.krs.cetak-krs-mahasiswa') }}" class="btn btn-primary">
-                                    Cetak Mahasiswa
+                                    <i class="bx bx-download me-1"></i>Cetak Mahasiswa
                                 </a>
                             </div>
                         @elseif($krs->isNotEmpty())

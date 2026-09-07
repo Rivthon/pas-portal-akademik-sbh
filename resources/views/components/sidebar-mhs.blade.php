@@ -158,7 +158,7 @@ $user = Auth::guard('mahasiswa')->user();
             </a>
         </li>
 
-        <li class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.uap.index') || Route::is('mahasiswa.pengajuan.index') ) active open @endif">
+        <li class="menu-item @if(Route::is('mahasiswa.nilai-uts.index') || Route::is('mahasiswa.nilai-uas.index') || Route::is('mahasiswa.nilai-ujian.riwayat') || Route::is('mahasiswa.uap.index') || Route::is('mahasiswa.pengajuan.index') ) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-bar-chart-alt-2" style="color: #696cff;"></i>
                 <div class="fw-medium">Manajemen Nilai</div>
@@ -175,6 +175,13 @@ $user = Auth::guard('mahasiswa')->user();
                     <a href="{{ route('mahasiswa.nilai-uas.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-line-chart"></i>
                         <div>Nilai UAS</div>
+                    </a>
+                </li>
+
+                <li class="menu-item @if(Route::is('mahasiswa.nilai-ujian.riwayat')) active @endif">
+                    <a href="{{ route('mahasiswa.nilai-ujian.riwayat') }}" class="menu-link">
+                        <i class="menu-icon bx bx-history"></i>
+                        <div>Riwayat UTS &amp; UAS</div>
                     </a>
                 </li>
 

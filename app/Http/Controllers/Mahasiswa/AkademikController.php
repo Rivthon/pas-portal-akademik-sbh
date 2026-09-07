@@ -636,13 +636,6 @@ class AkademikController extends Controller
                 $headerKrs = base64_encode(file_get_contents($logoPath));
             }
         }
-        $ttd = null;
-        if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
-        }
         $logo = null;
         if ($settings && $settings->logo) {
             $logoPath = storage_path('app/public/'.$settings->logo);
@@ -652,15 +645,15 @@ class AkademikController extends Controller
         }
 
         try {
-            $krs = Krs::with(['kurikulum.mataKuliah'])
+            $krs = Krs::with(['kurikulum.mataKuliah', 'disetujuiOleh'])
                 ->where('mahasiswa_id', $mahasiswaId)
-                ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
-                    $query->where('smt', $mahasiswa->semester);
-                })
+                ->where('ta_id', $taId)
+                ->whereHas('kurikulum.mataKuliah')
                 ->get();
+            $persetujuan = $krs->sortByDesc('disetujui_pada')->first();
 
             // Load view khusus untuk PDF
-            $pdf = PDF::loadView('mahasiswa.krs.cetak-pdf-mhs', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ttd', 'ta', 'logo', 'settings'))
+            $pdf = PDF::loadView('mahasiswa.krs.cetak-pdf-mhs', compact('krs', 'mahasiswa', 'taId', 'headerKrs', 'ta', 'logo', 'settings', 'persetujuan'))
                 ->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])
                 ->setPaper('a4', 'portrait');
 
