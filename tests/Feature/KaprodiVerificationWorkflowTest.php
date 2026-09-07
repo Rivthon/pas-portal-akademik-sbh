@@ -239,6 +239,49 @@ class KaprodiVerificationWorkflowTest extends TestCase
         $this->assertDatabaseMissing('khs_publications', ['scope_key' => 'jadwal:'.$jadwal->id]);
     }
 
+    public function test_baak_can_temporarily_publish_submitted_grade_without_kaprodi_approval(): void
+    {
+        $jadwal = $this->jadwalWithMatchingParticipant();
+        $admin = User::factory()->create();
+        $admin->givePermissionTo(Permission::findOrCreate('nilai-publish', 'web'));
+        KhsPublication::where('ta_id', $jadwal->ta_id)->where('program_studi_id', $jadwal->jurusan_id)->delete();
+
+        $submission = NilaiSubmission::updateOrCreate(
+            ['jadwal_id' => $jadwal->id],
+            [
+                'program_studi_id' => $jadwal->jurusan_id,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+                'reviewed_by_dosen_id' => null,
+                'reviewed_at' => null,
+                'review_note' => null,
+            ]
+        );
+
+        $this->actingAs($admin)->post(route('admin.nilai-publish.store'), [
+            'ta_id' => $jadwal->ta_id,
+            'program_studi_id' => $jadwal->jurusan_id,
+            'scope_type' => 'course',
+            'jadwal_id' => $jadwal->id,
+        ])->assertSessionHas('success');
+
+        $submission->refresh();
+        $this->assertSame('approved', $submission->status);
+        $this->assertNull($submission->reviewed_by_dosen_id);
+        $this->assertTrue($submission->isTemporaryBaakApproval());
+        $this->assertTrue(KhsPublication::coversJadwal($jadwal));
+
+        $publication = KhsPublication::where('scope_type', 'course')
+            ->where('jadwal_id', $jadwal->id)
+            ->firstOrFail();
+        $this->actingAs($admin)
+            ->delete(route('admin.nilai-publish.destroy', $publication))
+            ->assertSessionHas('success');
+
+        $this->assertSame('submitted', $submission->fresh()->status);
+        $this->assertFalse(KhsPublication::coversJadwal($jadwal));
+    }
+
     private function jadwalWithMatchingParticipant(): Jadwal
     {
         return $this->matchingParticipantQuery()

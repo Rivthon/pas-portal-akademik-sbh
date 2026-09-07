@@ -24,6 +24,10 @@ class KhsPublicationController extends Controller
                 ->whereHas('jadwal', fn ($query) => $query->where('ta_id', $taId));
             $prodi->submitted_count = (clone $base)->where('status', 'submitted')->count();
             $prodi->approved_count = (clone $base)->where('status', 'approved')->count();
+            $prodi->temporary_count = (clone $base)->where('status', 'approved')
+                ->whereNull('reviewed_by_dosen_id')
+                ->where('review_note', 'like', '[PENERBITAN SEMENTARA BAAK]%')
+                ->count();
             $prodi->revision_count = (clone $base)->where('status', 'revision')->count();
             $prodi->missing_count = $this->jadwalBerpeserta($taId, $prodi->jurusan_id)
                 ->whereDoesntHave('nilaiSubmission')->count();
@@ -45,6 +49,8 @@ class KhsPublicationController extends Controller
         $semesterPublication = null;
         $allReady = false;
         $semesterReady = false;
+        $allPublishable = false;
+        $semesterPublishable = false;
 
         if ($selectedProdi && $taId) {
             $allJadwal = $this->jadwalBerpeserta($taId, $selectedProdiId)
@@ -68,6 +74,8 @@ class KhsPublicationController extends Controller
                 ->first(fn ($item) => $item->scope_type === 'semester' && (int) $item->semester === $semester);
             $allReady = $this->isReady($allJadwal);
             $semesterReady = $semester !== null && $this->isReady($jadwalList);
+            $allPublishable = $this->isPublishable($allJadwal);
+            $semesterPublishable = $semester !== null && $this->isPublishable($jadwalList);
 
             $jadwalList->each(function ($jadwal) use ($publications) {
                 $semesterJadwal = (int) ($jadwal->kurikulum?->mataKuliah?->smt ?? 0);
@@ -93,7 +101,9 @@ class KhsPublicationController extends Controller
             'globalPublication',
             'semesterPublication',
             'allReady',
-            'semesterReady'
+            'semesterReady',
+            'allPublishable',
+            'semesterPublishable'
         ));
     }
 
@@ -110,13 +120,27 @@ class KhsPublicationController extends Controller
         $target = $this->targetJadwal($data)->with(['kurikulum.mataKuliah', 'nilaiSubmission'])->get();
         abort_if($target->isEmpty(), 422, 'Tidak ada kelas berpeserta pada cakupan yang dipilih.');
         abort_if($target->contains(fn ($jadwal) => ! $jadwal->nilaiSubmission), 422, 'Masih ada kelas yang nilainya belum diajukan dosen.');
-        abort_if($target->contains(fn ($jadwal) => $jadwal->nilaiSubmission->status !== 'approved'), 422, 'Masih ada nilai yang belum disetujui Kaprodi.');
+
+        $temporaryApprovals = $target
+            ->filter(fn ($jadwal) => $jadwal->nilaiSubmission->status !== 'approved')
+            ->pluck('nilaiSubmission');
 
         $semester = $data['scope_type'] === 'semester' ? (int) $data['semester'] : null;
         $jadwalId = $data['scope_type'] === 'course' ? (int) $data['jadwal_id'] : null;
         $scopeKey = KhsPublication::scopeKey($data['scope_type'], $semester, $jadwalId);
 
-        DB::transaction(function () use ($data, $target, $semester, $jadwalId, $scopeKey) {
+        DB::transaction(function () use ($data, $target, $temporaryApprovals, $semester, $jadwalId, $scopeKey) {
+            $temporaryApprovals->each(function (NilaiSubmission $submission) {
+                $previousNote = trim((string) $submission->review_note);
+                $submission->update([
+                    'status' => 'approved',
+                    'reviewed_by_dosen_id' => null,
+                    'reviewed_at' => now(),
+                    'review_note' => NilaiSubmission::TEMPORARY_BAAK_NOTE
+                        .($previousNote !== '' ? ' Catatan sebelumnya: '.$previousNote : ''),
+                ]);
+            });
+
             $base = KhsPublication::where('ta_id', $data['ta_id'])
                 ->where('program_studi_id', $data['program_studi_id']);
 
@@ -145,16 +169,57 @@ class KhsPublicationController extends Controller
             );
         });
 
-        activity_log('terbitkan_khs', 'BAAK menerbitkan KHS '.$scopeKey.' prodi '.$data['program_studi_id'].' TA '.$data['ta_id']);
+        activity_log(
+            'terbitkan_khs',
+            'BAAK menerbitkan KHS '.$scopeKey.' prodi '.$data['program_studi_id'].' TA '.$data['ta_id']
+                .($temporaryApprovals->isNotEmpty() ? ' dengan '.$temporaryApprovals->count().' persetujuan sementara' : '')
+        );
 
-        return back()->with('success', 'KHS pada cakupan yang dipilih berhasil diterbitkan.');
+        $message = $temporaryApprovals->isNotEmpty()
+            ? 'KHS berhasil diterbitkan sementara. '.$temporaryApprovals->count().' pengajuan disahkan oleh BAAK tanpa menunggu verifikasi Kaprodi.'
+            : 'KHS pada cakupan yang dipilih berhasil diterbitkan.';
+
+        return back()->with('success', $message);
     }
 
     public function revoke(KhsPublication $publication)
     {
-        $publication->delete();
+        $target = $this->targetJadwal([
+            'ta_id' => $publication->ta_id,
+            'program_studi_id' => $publication->program_studi_id,
+            'scope_type' => $publication->scope_type,
+            'semester' => $publication->semester,
+            'jadwal_id' => $publication->jadwal_id,
+        ])->with(['kurikulum.mataKuliah', 'nilaiSubmission'])->get();
 
-        return back()->with('success', 'Penerbitan KHS dibatalkan.');
+        $restoredCount = DB::transaction(function () use ($publication, $target) {
+            $publication->delete();
+            $restored = 0;
+
+            $target->each(function (Jadwal $jadwal) use (&$restored) {
+                $submission = $jadwal->nilaiSubmission;
+                if (! $submission?->isTemporaryBaakApproval() || KhsPublication::coversJadwal($jadwal)) {
+                    return;
+                }
+
+                $submission->update([
+                    'status' => 'submitted',
+                    'reviewed_by_dosen_id' => null,
+                    'reviewed_at' => null,
+                    'review_note' => null,
+                ]);
+                $restored++;
+            });
+
+            return $restored;
+        });
+
+        $message = 'Penerbitan KHS dibatalkan.';
+        if ($restoredCount > 0) {
+            $message .= ' '.$restoredCount.' status persetujuan sementara dikembalikan menjadi menunggu verifikasi.';
+        }
+
+        return back()->with('success', $message);
     }
 
     private function targetJadwal(array $data): Builder
@@ -171,6 +236,12 @@ class KhsPublicationController extends Controller
     {
         return $jadwal->isNotEmpty()
             && $jadwal->every(fn ($item) => $item->nilaiSubmission?->status === 'approved');
+    }
+
+    private function isPublishable(Collection $jadwal): bool
+    {
+        return $jadwal->isNotEmpty()
+            && $jadwal->every(fn ($item) => $item->nilaiSubmission !== null);
     }
 
     private function jadwalBerpeserta($taId, $prodiId): Builder

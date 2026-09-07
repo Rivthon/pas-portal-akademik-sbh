@@ -95,10 +95,15 @@
                     <td>{{ $item->submitter?->nama ?? '-' }}</td>
                     <td>{{ optional($item->submitted_at)->format('d/m/Y H:i') ?: '-' }}</td>
                     <td>
-                        <span class="badge bg-label-{{ ['submitted'=>'warning','approved'=>'success','revision'=>'danger'][$item->status] ?? 'secondary' }}">
-                            {{ ['submitted'=>'Menunggu ACC','approved'=>'Disetujui','revision'=>'Perlu revisi'][$item->status] ?? $item->status }}
-                        </span>
-                        @if($item->review_note)<small class="d-block text-danger mt-1">{{ $item->review_note }}</small>@endif
+                        @if($item->isTemporaryBaakApproval())
+                            <span class="badge bg-label-info">Disahkan sementara BAAK</span>
+                            <small class="d-block text-info mt-1">Nilai telah diterbitkan tanpa menunggu verifikasi Kaprodi.</small>
+                        @else
+                            <span class="badge bg-label-{{ ['submitted'=>'warning','approved'=>'success','revision'=>'danger'][$item->status] ?? 'secondary' }}">
+                                {{ ['submitted'=>'Menunggu ACC','approved'=>'Disetujui','revision'=>'Perlu revisi'][$item->status] ?? $item->status }}
+                            </span>
+                            @if($item->review_note)<small class="d-block text-danger mt-1">{{ $item->review_note }}</small>@endif
+                        @endif
                     </td>
                     <td class="text-end pe-4">
                         <div class="d-inline-flex flex-wrap justify-content-end gap-1">
