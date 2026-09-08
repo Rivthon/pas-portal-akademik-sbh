@@ -134,6 +134,12 @@
         <div class="card bg-light">
             <div class="card-body">
                 <h4 class="card-title">List Kartu Rencana Studi</h4>
+                @if(($invalidKrsCount ?? 0) > 0)
+                    <div class="alert alert-warning border-0">
+                        <i class="bx bx-error-circle me-1"></i>
+                        Terdapat {{ $invalidKrsCount }} data KRS lama yang mata kuliahnya sudah tidak tersedia. Data tersebut tidak ditampilkan dan perlu diperiksa oleh BAAK.
+                    </div>
+                @endif
                 <div class="table-responsive text-nowrap">
                     <table class="table table-hover">
                         <thead class="table-primary">
@@ -147,11 +153,12 @@
                         </thead>
                         <tbody>
                             @forelse ($krs as $index => $item)
+                            @php($mataKuliah = $item->kurikulum?->mataKuliah)
                             <tr>
                                 <td>{{ $index + 1 }}</td>
-                                <td>{{ $item->kurikulum->mataKuliah->matakuliah_id }}</td>
-                                <td>{{ $item->kurikulum->mataKuliah->nama }}</td>
-                                <td>{{ $item->kurikulum->mataKuliah->sks }}</td>
+                                <td>{{ $mataKuliah?->matakuliah_id ?? '-' }}</td>
+                                <td>{{ $mataKuliah?->nama ?? 'Mata kuliah tidak tersedia' }}</td>
+                                <td>{{ $mataKuliah?->sks ?? '-' }}</td>
                                 <td>
                                     @if($item->disetujui_pada)
                                         <span class="badge bg-label-success"><i class="bx bx-lock-alt me-1"></i>Disetujui</span>

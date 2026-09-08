@@ -177,6 +177,20 @@ class DosenKrsApprovalTest extends TestCase
         }
     }
 
+    public function test_status_krs_ignores_orphaned_curriculum_record_without_error(): void
+    {
+        [, $mahasiswa, $ta] = $this->approvalContext();
+        $orphan = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $ta->ta_id)
+            ->firstOrFail();
+        $orphan->update(['kurikulum_id' => 999999999, 'matakuliah_id' => null]);
+
+        $this->actingAs($mahasiswa, 'mahasiswa')
+            ->get(route('mahasiswa.status.krs.index'))
+            ->assertOk()
+            ->assertSee('data KRS lama yang mata kuliahnya sudah tidak tersedia');
+    }
+
     public function test_dosen_can_open_krs_detail_only_for_own_advisee(): void
     {
         [$dosen, $mahasiswa, $ta] = $this->approvalContext();

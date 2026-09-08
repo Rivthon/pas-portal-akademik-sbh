@@ -222,9 +222,14 @@ class AkademikController extends Controller
         }
 
         try {
-            $krs = Krs::with(['kurikulum.mataKuliah', 'disetujuiOleh'])
-                ->where('mahasiswa_id', $mahasiswaId)
-                ->where('ta_id', $activeTA->ta_id)
+            $krsQuery = Krs::where('mahasiswa_id', $mahasiswaId)
+                ->where('ta_id', $activeTA->ta_id);
+            $invalidKrsCount = (clone $krsQuery)
+                ->whereDoesntHave('kurikulum.mataKuliah')
+                ->count();
+            $krs = (clone $krsQuery)
+                ->with(['kurikulum.mataKuliah', 'disetujuiOleh'])
+                ->whereHas('kurikulum.mataKuliah')
                 ->get();
 
             activity_log('lihat_krs', 'Mahasiswa melihat status KRS');
@@ -237,7 +242,7 @@ class AkademikController extends Controller
                 ->oldest()
                 ->get();
 
-            return view('mahasiswa.krs.status-krs', compact('mahasiswa', 'krs', 'krsDisetujui', 'activeTA', 'guidanceMessages'));
+            return view('mahasiswa.krs.status-krs', compact('mahasiswa', 'krs', 'krsDisetujui', 'activeTA', 'guidanceMessages', 'invalidKrsCount'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: '.$e->getMessage());
@@ -947,7 +952,8 @@ class AkademikController extends Controller
     private function krsAktifSudahDisetujui(int $mahasiswaId, int $taId): bool
     {
         $query = Krs::where('mahasiswa_id', $mahasiswaId)
-            ->where('ta_id', $taId);
+            ->where('ta_id', $taId)
+            ->whereHas('kurikulum.mataKuliah');
 
         return (clone $query)->exists()
             && ! (clone $query)->whereNull('disetujui_pada')->exists();
