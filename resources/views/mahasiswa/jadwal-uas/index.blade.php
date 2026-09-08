@@ -42,7 +42,7 @@
                         </div>
                         <!-- Description -->
                         <p class="mb-4 text-muted" style="line-height: 1.6;">
-                            Temukan jadwal ujian tengah semester Anda dengan mudah. Jadwal ini mencakup informasi
+                            Temukan jadwal Ujian Akhis Semester Anda dengan mudah. Jadwal ini mencakup informasi
                             mata kuliah,
                             hari, waktu, dan ruang kelas untuk semester aktif.
                         </p>

@@ -70,7 +70,7 @@
                     <th>Email</th>
                     <th>Kode Dosen / NIDN</th>
                     <th>Program Studi</th>
-                    <th width="200px">Aksi</th>
+                    <th width="90px" class="text-center">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,50 +91,16 @@
                         <small class="text-muted">{{ $r->nidn }}</small>
                     </td>
                     <td>{{ $r->programStudi->nama ?? '-' }}</td>
-                    <td>
-                        <form action="{{ route('admin.dosen.destroy', $r->dosen_id) }}" method="POST"
-                            style="display:inline;">
-                            @csrf
-                            @method('DELETE')
-
-                            @can('dosen-edit')
-                            <a class="btn btn-primary btn-sm"
-                                href="{{ route('admin.dosen.edit', $r->dosen_id) }}">
-                                <i class="fa-solid fa-pen-to-square"></i> Edit
-                            </a>
-                            @endcan
-
-                            @can('dosen-delete')
-                            <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Apakah Anda yakin ingin menghapus dosen ini?')">
-                                <i class="fa-solid fa-trash"></i> Delete
-                            </button>
-                            @endcan
-                        </form>
-
-                        @can('dosen-reset-password')
-                        <form action="{{ route('admin.dosen.reset-password', $r->dosen_id) }}" method="POST"
-                            class="d-inline"
-                            onsubmit="return confirm('Reset password dosen ini dengan password acak?')">
-                            @csrf
-                            <button type="submit" class="btn btn-warning btn-sm"
-                                data-bs-toggle="tooltip" data-bs-original-title="Reset Password">
-                                <i class="bx bx-reset"></i> Reset Password
-                            </button>
-                        </form>
-                        @endcan
-
-                        @can('dosen-impersonate')
-                        <form action="{{ route('admin.dosen.impersonate', $r->dosen_id) }}" method="POST"
-                            class="d-inline"
-                            onsubmit="return confirm('Login sebagai dosen ini?')">
-                            @csrf
-                            <button type="submit" class="btn btn-info btn-sm"
-                                data-bs-toggle="tooltip" data-bs-original-title="Login sebagai Dosen">
-                                <i class="bx bx-log-in-circle"></i> Login
-                            </button>
-                        </form>
-                        @endcan
+                    <td class="text-center">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Aksi"><i class="bx bx-dots-vertical-rounded"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                @can('dosen-edit')<li><a class="dropdown-item" href="{{ route('admin.dosen.edit', $r->dosen_id) }}"><i class="bx bx-edit me-2"></i>Edit</a></li>@endcan
+                                @can('dosen-reset-password')<li><form action="{{ route('admin.dosen.reset-password', $r->dosen_id) }}" method="POST" onsubmit="return confirm('Reset password dosen ini dengan password acak?')">@csrf<button type="submit" class="dropdown-item"><i class="bx bx-reset me-2"></i>Reset Password</button></form></li>@endcan
+                                @can('dosen-impersonate')<li><form action="{{ route('admin.dosen.impersonate', $r->dosen_id) }}" method="POST" onsubmit="return confirm('Login sebagai dosen ini?')">@csrf<button type="submit" class="dropdown-item"><i class="bx bx-log-in-circle me-2"></i>Login sebagai Dosen</button></form></li>@endcan
+                                @can('dosen-delete')<li><hr class="dropdown-divider"></li><li><form action="{{ route('admin.dosen.destroy', $r->dosen_id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus dosen ini?')">@csrf @method('DELETE')<button type="submit" class="dropdown-item text-danger"><i class="bx bx-trash me-2"></i>Hapus</button></form></li>@endcan
+                            </ul>
+                        </div>
                     </td>
                 </tr>
                 @empty

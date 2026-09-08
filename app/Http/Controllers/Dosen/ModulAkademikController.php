@@ -747,9 +747,6 @@ class ModulAkademikController extends Controller
             ->where('jurusan_id', $mahasiswa->jurusan_id)
             ->whereHas('mataKuliah', fn ($query) => $query
                 ->where('smt', (int) $mahasiswa->semester))
-            ->when($jenisKelas !== null, fn ($query) => $query
-                ->whereHas('dosenToMatakuliah', fn ($penugasan) => $penugasan
-                    ->whereRaw('LOWER(jenis_kelas) = ?', [$jenisKelas])))
             ->get();
 
         if ($kurikulum->isEmpty()) {
