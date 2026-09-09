@@ -171,6 +171,7 @@
         </div>
     </div>
 </div>
+<div id="pagination-container" class="d-flex justify-content-center mt-3"></div>
 @push('script')
 <script>
 $(document).ready(function () {

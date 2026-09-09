@@ -92,12 +92,13 @@ class MahasiswaController extends Controller
                 : $query->where('kelas', 'karyawan');
         }
 
-        // Ambil semua data tanpa pagination
-        $mahasiswa = $query->get();
+        // Mahasiswa lulus ditempatkan setelah mahasiswa aktif/non-lulus.
+        $mahasiswa = $query->orderByRaw("CASE WHEN status_mhs = 'lulus' THEN 1 WHEN status_mhs = 'nonaktif' THEN 2 ELSE 0 END")->orderBy('nama')->paginate(15)->withQueryString();
 
         // Kembalikan tabel hasil pencarian tanpa pagination
         return response()->json([
             'html' => view('admin.kemahasiswaan.mahasiswa.partials_list', compact('mahasiswa', 'dosen'))->render(),
+            'pagination' => $mahasiswa->links('pagination::bootstrap-4')->render(),
         ]);
     }
 
