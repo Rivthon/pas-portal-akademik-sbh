@@ -360,6 +360,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
         Route::resource('products', ProductController::class);
         Route::resource('program-studi', ProgramStudiController::class);
+        // Route khusus harus didefinisikan sebelum resource agar tidak dianggap sebagai parameter {mahasiswa}.
+        Route::get('/mahasiswa/template-mhs', [MahasiswaController::class, 'downloadTemplateNew'])
+            ->middleware('permission:mahasiswa-import')
+            ->name('mahasiswa.download-template');
+        Route::get('/mahasiswa/template-cepat', [MahasiswaController::class, 'downloadTemplateCepat'])
+            ->middleware('permission:mahasiswa-import')
+            ->name('mahasiswa.download-template-cepat');
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::post('/mahasiswa/{mahasiswa}/impersonate', [MahasiswaImpersonationController::class, 'store'])
             ->middleware('permission:mahasiswa-impersonate,web')
@@ -570,9 +577,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Import ke Excel
         Route::post('/mahasiswa/import', [MahasiswaController::class, 'importExcel'])->middleware('permission:mahasiswa-import')->name('mahasiswa.import');
-        Route::get('/mahasiswa/template-mhs', [MahasiswaController::class, 'downloadTemplateNew'])->middleware('permission:mahasiswa-import')
-            ->name('mahasiswa.download-template');
-
+        Route::post('/mahasiswa/import-cepat', [MahasiswaController::class, 'importExcelCepat'])->middleware('permission:mahasiswa-import')->name('mahasiswa.import-cepat');
         // Laporan PDF
         Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
         Route::post('/laporan/generate-pdf', [LaporanController::class, 'generatePDF'])->name('laporan.generate-pdf');

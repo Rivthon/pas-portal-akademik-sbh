@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin\Kemahasiswaan;
 
 use App\Exports\MahasiswaExport;
+use App\Exports\MahasiswaTemplateCepatExport;
 use App\Http\Controllers\Controller;
 use App\Imports\MahasiswaImport;
+use App\Imports\MahasiswaImportCepat;
 use App\Models\Dosen;
 use App\Models\Gelombang;
 use App\Models\Mahasiswa;
@@ -127,28 +129,37 @@ class MahasiswaController extends Controller
     public function create(): View
     {
         $programStudi = ProgramStudi::all();
+        $dosen = Dosen::orderBy('nama')->get(['dosen_id', 'nama']);
 
-        return view('admin.kemahasiswaan.mahasiswa.create', compact('programStudi'));
+        return view('admin.kemahasiswaan.mahasiswa.create', compact('programStudi', 'dosen'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:mahasiswa,email',
-            'password' => 'required|min:8',
+            'email' => 'nullable|email|unique:mahasiswa,email',
             'jurusan_id' => 'required|exists:program_studi,jurusan_id',
             'nim' => 'required|unique:mahasiswa,nim',
             'kelas' => 'required|in:pagi,karyawan',
+            'dosen_id' => 'nullable|exists:dosen,dosen_id',
         ]);
+
+        $nim = trim($request->nim);
 
         Mahasiswa::create([
             'nama' => $request->nama,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
+            'email' => $request->filled('email') ? $request->email : $nim.'@mahasiswa.sbh.ac.id',
+            'password' => bcrypt($nim),
             'jurusan_id' => $request->jurusan_id,
             'nim' => $request->nim,
+            'nama_ibu' => '', 'nama_ayah' => '', 'jenis_kelamin' => '', 'agama' => '', 'alamat' => '',
+            'no_telp' => '', 'no_telp_ortu' => '', 'no_telp_ibu' => '', 'alamat_ortu' => '',
+            'asal_sekolah' => '', 'jurusan_sekolah' => '', 'tahun_lulus' => '', 'tahun_masuk' => 0,
+            'gelombang_id' => 0, 'pendapatan_ortu' => '', 'semester' => 1, 'status_mhs' => 'aktif',
+
             'kelas' => $request->kelas,
+            'dosen_id' => $request->dosen_id,
         ]);
 
         activity_log('tambah_mahasiswa', 'Admin menambah mahasiswa baru: '.$request->nama.' (NIM: '.$request->nim.')');
@@ -409,6 +420,19 @@ class MahasiswaController extends Controller
         }
     }
 
+    public function importExcelCepat(Request $request): RedirectResponse
+    {
+        $request->validate(['file_cepat' => 'required|mimes:xlsx,xls,csv|max:2048']);
+
+        try {
+            Excel::import(new MahasiswaImportCepat, $request->file('file_cepat'));
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Template Cepat berhasil diimport.');
+        } catch (\Throwable $e) {
+            Log::error('Gagal import template cepat mahasiswa: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Import gagal: '.$e->getMessage());
+        }
+    }
+
     public function downloadTemplateNew()
     {
         $filePath = public_path('templates/contoh_import_mahasiswa.xlsx');
@@ -421,6 +445,17 @@ class MahasiswaController extends Controller
         }
 
         return redirect()->back()->with('error', 'File template tidak ditemukan.');
+    }
+
+    public function downloadTemplateCepat()
+    {
+        $filePath = public_path('templates/template-cepat.xlsx');
+
+        if (! file_exists($filePath)) {
+            return redirect()->back()->with('error', 'File Template Cepat tidak ditemukan.');
+        }
+
+        return response()->download($filePath, 'template-cepat.xlsx');
     }
 
     public function getMahasiswa()

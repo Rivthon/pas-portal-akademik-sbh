@@ -11,7 +11,22 @@ class MahasiswaImport implements ToModel, WithHeadingRow
 {
     public function model(array $row)
     {
+        $firstCell = trim((string) ($row['nama'] ?? ''));
+        if (count(array_filter($row, static fn ($value) => trim((string) $value) !== '')) === 0
+            || str_starts_with($firstCell, '*')
+            || (trim((string) ($row['nim'] ?? '')) === ''
+                && trim((string) ($row['jurusan_id'] ?? '')) === ''
+                && trim((string) ($row['kelas'] ?? '')) === '')) {
+            return null;
+        }
+
+        // Izinkan Template Cepat diproses melalui tombol import lama juga.
+        if (array_key_exists('dosen', $row) && ! array_key_exists('password', $row)) {
+            return (new MahasiswaImportCepat)->model($row);
+        }
+
         $kelas = Mahasiswa::normalisasiKelasUntukPenyimpanan($row['kelas'] ?? null);
+        $kelas ??= 'pagi';
         if ($kelas === null) {
             throw new \InvalidArgumentException('Kelas mahasiswa '.($row['nim'] ?? '-').' harus Reguler A atau Reguler B.');
         }

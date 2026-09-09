@@ -27,17 +27,19 @@
                                 <label for="file" class="form-label fw-bold text-dark">Upload File Excel</label>
                                 <input type="file" name="file" id="file" class="form-control" accept=".xlsx, .csv" required>
                                 <small class="text-muted"><i class="bx bx-info-circle"></i> Pastikan file berformat sesuai template</small>
-                            </div>
-
-                            <div class="col-md-3">
+                            </div>                            <div class="col-md-3">
                                 <button type="submit" class="btn btn-success w-100">
                                     <i class="bx bx-upload me-1"></i> Mulai Import
                                 </button>
                             </div>
                             <div class="col-md-3">
-                                <a href="{{ route('admin.mahasiswa.download-template') }}" class="btn btn-outline-info w-100" title="Download Template Excel Kosong">
-                                    <i class="bx bx-download me-1"></i> Template
+                                <a href="{{ route('admin.mahasiswa.download-template') }}" class="btn btn-outline-info w-100" title="Download Template Lengkap">
+                                    <i class="bx bx-download me-1"></i> Template Lengkap
                                 </a>
+                                <a href="{{ route('admin.mahasiswa.download-template-cepat') }}" class="btn btn-outline-primary w-100 mt-2" title="Download Template Cepat">
+                                    <i class="bx bx-download me-1"></i> Template Cepat
+                                </a>
+
                             </div>
                         </div>
                     </form>
@@ -63,6 +65,9 @@
         </div>
     </div>
 
+        @can('mahasiswa-create')
+        <a href="{{ route('admin.mahasiswa.create') }}" class="btn btn-primary btn-sm"><i class="bx bx-user-plus me-1"></i> Tambah Mahasiswa</a>
+        @endcan
     <div class="card-body mt-4">
         <div class="bg-label-primary p-4 rounded mb-4">
             <div class="row g-3">
