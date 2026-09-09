@@ -252,8 +252,10 @@
             });
     });
 
-    // Auto update inline fields
-    document.addEventListener('change', async function (e) {
+    // Simpan setelah field selesai diedit dan fokus berpindah.
+    // Event change pada input type=time dapat terpanggil saat jam/menit
+    // dipilih, sehingga sebelumnya nilai tersimpan terlalu cepat.
+    document.addEventListener('focusout', async function (e) {
         if (e.target.classList.contains('update-field')) {
             let row = e.target.closest('tr');
             let id = row.getAttribute('data-id');
