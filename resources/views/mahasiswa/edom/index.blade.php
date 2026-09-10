@@ -48,11 +48,16 @@
                 <div class="card-body">
 
                     <div class="table-responsive text-nowrap">
-                        @if ($mahasiswa->status_edom == 1)
+                        @if ($isHistorical && $allFilled)
+                        <div class="container mt-4 mb-4">
+                            <a href="{{ route('mahasiswa.khs.riwayat', ['ta_id' => $selectedTaId]) }}" class="btn btn-primary">
+                                <i class="bx bx-history me-1"></i>Lihat Riwayat KHS
+                            </a>
+                        </div>
+                        @elseif (! $isHistorical && $mahasiswa->status_edom == 1)
                         <div class="container mt-4 mb-4">
                             <a href="{{ route('mahasiswa.kartu-hasil.index') }}" class="btn btn-primary">Lihat KHS</a>
                         </div>
-
                         @endif
                         @if ($krsList->isEmpty())
                         <div class="alert alert-warning text-center">
@@ -137,7 +142,7 @@
                                                                 <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
                                                             </div>
                                                         @else
-                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                                                                 <div class="d-flex align-items-center text-warning">
                                                                     <i class="bx bx-user me-2 fs-4"></i>
                                                                     <span class="fw-bold">{{ $dosen['nama'] }}</span>
@@ -173,7 +178,7 @@
                                                                 <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
                                                             </div>
                                                         @else
-                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id']]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                                                                 <div class="d-flex align-items-center text-warning">
                                                                     <i class="bx bx-user me-2 fs-4"></i>
                                                                     <span class="fw-bold">{{ $dosen['nama'] }}</span>
@@ -203,10 +208,11 @@
                             @endforelse
                         </div>
 
-                    @if ($allFilled && $mahasiswa->status_edom != 1 && !$krsList->isEmpty() && $totalDosen > 0)
+                    @if ($allFilled && ! $isHistorical && $mahasiswa->status_edom != 1 && !$krsList->isEmpty() && $totalDosen > 0)
                     <div class="d-flex justify-content-center mt-4 mb-4">
                         <form action="{{ route('mahasiswa.edom.konfirmasi') }}" method="POST" id="formKonfirmasiEdom">
                             @csrf
+                            <input type="hidden" name="ta_id" value="{{ $selectedTaId }}">
                             <button type="button" class="btn btn-success btn-lg" onclick="konfirmasiEdomSubmit()">
                                 <i class="bx bx-check-double me-2"></i>Konfirmasi Pengisian EDOM
                             </button>

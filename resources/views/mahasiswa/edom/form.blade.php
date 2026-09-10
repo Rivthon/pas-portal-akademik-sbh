@@ -77,6 +77,12 @@
                                         <p class="mb-0"><strong>Program Studi:</strong> {{
                                             $krs->kurikulum->programStudi->nama }}</p>
                                     </div>
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bx bx-calendar me-2"></i>
+                                        <p class="mb-0"><strong>Tahun Akademik:</strong>
+                                            {{ $krs->tahunAjaran?->nama }} ({{ $krs->tahunAjaran?->semester }})
+                                        </p>
+                                    </div>
                                     <div class="d-flex align-items-center">
                                         <i class="bx bx-user me-2"></i>
                                         <p class="mb-0"><strong>Dosen:</strong> {{ $dosen->nama }}</p>
@@ -125,10 +131,11 @@
 
                 <!-- Form Section -->
                 <form id="formEdom"
-                    action="{{ route('mahasiswa.edom.submit', ['krs_id' => $krs->krs_id, 'dosen_id' => $dosen->dosen_id]) }}"
+                    action="{{ route('mahasiswa.edom.submit', ['krs_id' => $krs->krs_id, 'dosen_id' => $dosen->dosen_id, 'ta_id' => $krs->ta_id]) }}"
                     method="POST">
                     @csrf
                     <input type="hidden" name="krs_id" value="{{ $krs->krs_id }}">
+                    <input type="hidden" name="ta_id" value="{{ $krs->ta_id }}">
                     <!-- Evaluation Questions -->
                     @foreach ($evaluasis as $index => $evaluasi)
                     <div class="card mb-3 step-card shadow-none border border-secondary border-start-0">
@@ -184,7 +191,7 @@
                         </div>
                         <div class="card-footer bg-transparent border-top">
                             <div class="d-flex justify-content-between align-items-center">
-                                <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-outline-secondary">
+                                <a href="{{ route('mahasiswa.edom.index', ['ta_id' => $krs->ta_id]) }}" class="btn btn-outline-secondary">
                                     <i class="bx bx-arrow-back me-1"></i> Kembali
                                 </a>
                                 <button type="button" class="btn btn-primary" onclick="confirmSubmit()">

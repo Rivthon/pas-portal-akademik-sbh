@@ -56,7 +56,7 @@
                 </span>
                 <h5>Riwayat KHS Belum Dapat Dibuka</h5>
                 <p class="text-muted mb-3">{{ $edomMessage }}</p>
-                <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-primary">
+                <a href="{{ route('mahasiswa.edom.index', ['ta_id' => $selectedTaId]) }}" class="btn btn-primary">
                     <i class="bx bx-edit-alt me-1"></i>Buka EDOM
                 </a>
             </div>
