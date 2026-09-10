@@ -730,6 +730,11 @@ class AkademikController extends Controller
     {
         $mahasiswa = $this->getMahasiswa();
         abort_unless($mahasiswa, 403, 'Mahasiswa tidak ditemukan.');
+        abort_unless(
+            (int) $mahasiswa->status_akhir === 1 && (int) $mahasiswa->status_edom === 1,
+            403,
+            'Riwayat KHS hanya dapat dilihat setelah EDOM selesai dan KHS diaktifkan oleh BAUK.'
+        );
 
         $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
 
