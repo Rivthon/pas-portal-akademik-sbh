@@ -48,9 +48,24 @@
         </div>
     </div>
 
-    @include('mahasiswa.khs._hasil', [
-        'judulHasil' => 'Arsip Kartu Hasil Studi',
-        'tampilkanRiwayatEdom' => false,
-    ])
+    @if($edomLocked ?? false)
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-label-warning mb-3" style="width:72px;height:72px">
+                    <i class="bx bx-lock-alt text-warning" style="font-size:2.5rem"></i>
+                </span>
+                <h5>Riwayat KHS Belum Dapat Dibuka</h5>
+                <p class="text-muted mb-3">{{ $edomMessage }}</p>
+                <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-primary">
+                    <i class="bx bx-edit-alt me-1"></i>Buka EDOM
+                </a>
+            </div>
+        </div>
+    @else
+        @include('mahasiswa.khs._hasil', [
+            'judulHasil' => 'Arsip Kartu Hasil Studi',
+            'tampilkanRiwayatEdom' => false,
+        ])
+    @endif
 @endif
 @endsection

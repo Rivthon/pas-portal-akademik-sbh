@@ -730,12 +730,6 @@ class AkademikController extends Controller
     {
         $mahasiswa = $this->getMahasiswa();
         abort_unless($mahasiswa, 403, 'Mahasiswa tidak ditemukan.');
-        abort_unless(
-            (int) $mahasiswa->status_akhir === 1 && (int) $mahasiswa->status_edom === 1,
-            403,
-            'Riwayat KHS hanya dapat dilihat setelah EDOM selesai dan KHS diaktifkan oleh BAUK.'
-        );
-
         $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
 
         try {
@@ -769,6 +763,57 @@ class AkademikController extends Controller
             $selectedTaId = $requestedTaId ?: (int) $tahunAjaranOptions->first()->ta_id;
             $ta = $tahunAjaranOptions->firstWhere('ta_id', $selectedTaId);
             $khs = $historicalKhs->where('ta_id', $selectedTaId)->values();
+
+            // Validasi EDOM berdasarkan TA yang dipilih, mengikuti daftar dosen
+            // yang benar-benar tampil pada halaman EDOM (kelas teori/praktik).
+            $kelasMahasiswa = strtolower(trim((string) $mahasiswa->kelas));
+            $searchKelas = $kelasMahasiswa === 'karyawan' ? 'karyawan' : 'reguler';
+            $krsEdom = Krs::with('kurikulum.dosenToMatakuliah')
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->where('ta_id', $selectedTaId)
+                ->get();
+            $edomKeys = $krsEdom->flatMap(function ($krs) use ($searchKelas) {
+                return $krs->kurikulum?->dosenToMatakuliah
+                    ->filter(function ($dtm) use ($searchKelas) {
+                        $jenisKelas = strtolower((string) ($dtm->jenis_kelas ?? ''));
+                        $jenisDosen = strtolower((string) ($dtm->jenis_dosen ?? ''));
+                        if ($jenisDosen === 'teori') {
+                            return $jenisKelas === $searchKelas;
+                        }
+                        if ($jenisDosen === 'praktik') {
+                            return $jenisKelas === $searchKelas || $jenisKelas === '';
+                        }
+                        return $jenisKelas === $searchKelas;
+                    })
+                    ->map(fn ($dtm) => $dtm->dosen_id.'-'.$krs->kurikulum_id) ?? collect();
+            })->unique()->values();
+            $kurikulumIds = $krsEdom->pluck('kurikulum_id')->unique();
+            $totalEdomWajib = $edomKeys->count();
+            $totalEdomTerisi = DB::table('penilaian')
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->whereIn('kurikulum_id', $kurikulumIds)
+                ->selectRaw("COUNT(DISTINCT CONCAT(dosen_id, '-', kurikulum_id)) AS total")
+                ->value('total');
+
+            $edomLocked = $totalEdomWajib > 0 && (int) $totalEdomTerisi < $totalEdomWajib;
+            $edomMessage = $edomLocked
+                ? 'Riwayat KHS TA '.$ta?->nama.' belum dapat dibuka karena EDOM pada Tahun Akademik tersebut belum selesai.'
+                : null;
+
+            if ($edomLocked) {
+                return view('mahasiswa.khs.riwayat', [
+                    'tahunAjaranOptions' => $tahunAjaranOptions,
+                    'selectedTaId' => $selectedTaId,
+                    'ta' => $ta,
+                    'khs' => collect(),
+                    'semesterKhs' => '',
+                    'ips' => 0,
+                    'ipk' => 0,
+                    'edomLocked' => true,
+                    'edomMessage' => $edomMessage,
+                ]);
+            }
+
             $semesterKhs = $khs->pluck('kurikulum.mataKuliah.smt')->filter()->unique()->sort()->implode(', ');
 
             [$ipsTotalSks, $ipsTotalBobot] = $this->calculateTotal($khs);
@@ -780,7 +825,8 @@ class AkademikController extends Controller
             activity_log('lihat_riwayat_khs', 'Mahasiswa melihat riwayat KHS tahun akademik '.$selectedTaId);
 
             return view('mahasiswa.khs.riwayat', compact(
-                'tahunAjaranOptions', 'selectedTaId', 'ta', 'khs', 'semesterKhs', 'ips', 'ipk'
+                'tahunAjaranOptions', 'selectedTaId', 'ta', 'khs', 'semesterKhs', 'ips', 'ipk',
+                'edomLocked', 'edomMessage'
             ));
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memuat riwayat KHS: '.$e->getMessage());
