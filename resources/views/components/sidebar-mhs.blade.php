@@ -134,6 +134,13 @@ $user = Auth::guard('mahasiswa')->user();
             </ul>
         </li>
 
+        <li class="menu-item {{ Route::is('mahasiswa.edom.*') ? 'active' : '' }}">
+            <a href="{{ route('mahasiswa.edom.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-message-square-check text-info"></i>
+                <span class="menu-text fw-medium">EDOM</span>
+            </a>
+        </li>
+
         <li class="menu-item {{ Route::is('mahasiswa.kartu-hasil.index') ? 'active' : '' }}">
             <a href="{{ $user && $user->status_akhir == 1 ? route('mahasiswa.kartu-hasil.index') : '#' }}"
                 class="menu-link {{ $user && $user->status_akhir == 0 ? 'disabled opacity-50' : '' }}"
