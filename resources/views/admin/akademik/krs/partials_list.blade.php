@@ -147,7 +147,7 @@
                 Menampilkan {{ $mahasiswa->firstItem() }}–{{ $mahasiswa->lastItem() }} dari {{ $mahasiswa->total() }} mahasiswa
             </div>
             <div class="pagination-links">
-                {{ $mahasiswa->links() }}
+                {{ $mahasiswa->withQueryString()->links('pagination::bootstrap-5') }}
             </div>
         </div>
     @else
