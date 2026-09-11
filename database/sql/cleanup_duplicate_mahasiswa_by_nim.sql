@@ -41,27 +41,29 @@ BEGIN
     ) grouped ON grouped.nim_key = UPPER(TRIM(m.nim))
     WHERE m.mahasiswa_id <> grouped.keep_id;
 
-    SELECT
-        (SELECT COUNT(*) FROM absensi x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM absensi_praktik x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM kegiatan_tambahan x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM krs x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM krs_guidance_messages x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM lms_pengumpulan_tugas x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM lms_quiz_attempts x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM p2mw x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM pengajuan_transkrip x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM penguasaan_bahasa x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM penilaian x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM permintaan_perubahans x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM pkm x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM ppsm x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM saran x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM sertifikasi_profesi_kompetensi x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM tagihan_mahasiswa x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM transaksi_pembayaran x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id) +
-        (SELECT COUNT(*) FROM uap_nilai x JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=x.mahasiswa_id)
-    INTO related_rows;
+    SELECT COUNT(*) INTO related_rows
+    FROM (
+        SELECT mahasiswa_id FROM absensi
+        UNION ALL SELECT mahasiswa_id FROM absensi_praktik
+        UNION ALL SELECT mahasiswa_id FROM kegiatan_tambahan
+        UNION ALL SELECT mahasiswa_id FROM krs
+        UNION ALL SELECT mahasiswa_id FROM krs_guidance_messages
+        UNION ALL SELECT mahasiswa_id FROM lms_pengumpulan_tugas
+        UNION ALL SELECT mahasiswa_id FROM lms_quiz_attempts
+        UNION ALL SELECT mahasiswa_id FROM p2mw
+        UNION ALL SELECT mahasiswa_id FROM pengajuan_transkrip
+        UNION ALL SELECT mahasiswa_id FROM penguasaan_bahasa
+        UNION ALL SELECT mahasiswa_id FROM penilaian
+        UNION ALL SELECT mahasiswa_id FROM permintaan_perubahans
+        UNION ALL SELECT mahasiswa_id FROM pkm
+        UNION ALL SELECT mahasiswa_id FROM ppsm
+        UNION ALL SELECT mahasiswa_id FROM saran
+        UNION ALL SELECT mahasiswa_id FROM sertifikasi_profesi_kompetensi
+        UNION ALL SELECT mahasiswa_id FROM tagihan_mahasiswa
+        UNION ALL SELECT mahasiswa_id FROM transaksi_pembayaran
+        UNION ALL SELECT mahasiswa_id FROM uap_nilai
+    ) related
+    JOIN tmp_mahasiswa_duplicate_map d ON d.duplicate_id=related.mahasiswa_id;
 
     IF related_rows > 0 THEN
         SIGNAL SQLSTATE '45000'
