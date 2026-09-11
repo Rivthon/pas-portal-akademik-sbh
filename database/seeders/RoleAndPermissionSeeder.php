@@ -98,6 +98,7 @@ class RoleAndPermissionSeeder extends Seeder
     {
         return [
             'aktivasi-list', 'aktivasi-update', 'aktivasi-bulk-update', 'aktivasi-reset',
+            'aktivasi-uap-list', 'aktivasi-uap-update', 'aktivasi-uap-bulk-update',
             'list-aktivasi',
             'permintaan-list', 'permintaan-show', 'permintaan-edit', 'permintaan-status',
             'pengajuan-transkrip-list', 'pengajuan-transkrip-edit', 'pengajuan-transkrip-delete', 'pengajuan-transkrip-status',
@@ -231,6 +232,7 @@ class RoleAndPermissionSeeder extends Seeder
             'mahasiswa-list', 'mahasiswa-create', 'mahasiswa-edit', 'mahasiswa-delete',
             'mahasiswa-import', 'mahasiswa-export', 'mahasiswa-reset-password',
             'aktivasi-list', 'aktivasi-update', 'aktivasi-bulk-update', 'aktivasi-reset',
+            'aktivasi-uap-list', 'aktivasi-uap-update', 'aktivasi-uap-bulk-update',
             'list-aktivasi',
             'permintaan-list', 'permintaan-show', 'permintaan-edit', 'permintaan-status',
             'pengajuan-transkrip-list', 'pengajuan-transkrip-edit', 'pengajuan-transkrip-delete', 'pengajuan-transkrip-status',

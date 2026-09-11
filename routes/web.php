@@ -20,8 +20,8 @@ use App\Http\Controllers\Admin\Akademik\RuanganController;
 use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
 use App\Http\Controllers\Admin\BapPengajaranController;
 use App\Http\Controllers\Admin\BeritaController;
-use App\Http\Controllers\Admin\DosenKurikulumController;
 use App\Http\Controllers\Admin\DosenImpersonationController;
+use App\Http\Controllers\Admin\DosenKurikulumController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\Kemahasiswaan\AktivasiController;
 use App\Http\Controllers\Admin\Kemahasiswaan\MahasiswaController;
@@ -507,6 +507,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/aktivasi-mhs/update-status', [AktivasiController::class, 'updateStatus'])->middleware('permission:aktivasi-update')->name('aktivasi-mhs.updateStatus');
         Route::post('/aktivasi-mhs/bulk-update', [AktivasiController::class, 'bulkUpdateStatus'])->middleware('permission:aktivasi-bulk-update')->name('aktivasi-mhs.bulkUpdate');
         Route::post('/reset-status', [AktivasiController::class, 'resetAllStatus'])->middleware('permission:aktivasi-reset')->name('reset.all.status');
+
+        Route::get('/aktivasi-uap', [AktivasiController::class, 'uapIndex'])
+            ->middleware('permission:aktivasi-uap-list')
+            ->name('aktivasi-uap.index');
+        Route::post('/aktivasi-uap/update-status', [AktivasiController::class, 'updateUapStatus'])
+            ->middleware('permission:aktivasi-uap-update')
+            ->name('aktivasi-uap.update-status');
+        Route::post('/aktivasi-uap/bulk-update', [AktivasiController::class, 'bulkUpdateUapStatus'])
+            ->middleware('permission:aktivasi-uap-bulk-update')
+            ->name('aktivasi-uap.bulk-update');
 
         // Manajemen KRS Admin
         Route::middleware(['permission:krs-list'])->group(function () {

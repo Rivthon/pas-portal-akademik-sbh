@@ -10,7 +10,6 @@
                 <th><i class="bx bx-calendar-check me-1"></i>Jdw UAS</th>
                 <th><i class="bx bx-bar-chart-alt-2 me-1"></i>Nilai UTS</th>
                 <th><i class="bx bx-bar-chart me-1"></i>Nilai UAS</th>
-                <th><i class="bx bx-medal me-1"></i>UAP</th>
                 <th><i class="bx bx-file me-1"></i>KHS</th>
             </tr>
         </thead>
@@ -115,19 +114,6 @@
                     </div>
                 </td>
 
-                {{-- Status UAP --}}
-                <td>
-                    <div class="toggle-wrapper">
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input toggle-status" type="checkbox" data-type="uap"
-                                data-id="{{ $m->mahasiswa_id }}" @checked($m->status_uap) @disabled(!auth()->user()->can('aktivasi-update'))>
-                        </div>
-                        <span class="toggle-label {{ $m->status_uap ? 'aktif' : 'nonaktif' }}">
-                            {{ $m->status_uap ? 'AKTIF' : 'NONAKTIF' }}
-                        </span>
-                    </div>
-                </td>
-
                 {{-- Status KHS --}}
                 <td>
                     <div class="toggle-wrapper">
@@ -143,7 +129,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="10" class="text-center py-5">
+                <td colspan="9" class="text-center py-5">
                     <div class="d-flex flex-column align-items-center gap-2">
                         <i class="bx bx-search-alt" style="font-size: 2.5rem; color: #c2c6de;"></i>
                         <span class="text-muted fw-semibold">Tidak ada data ditemukan.</span>

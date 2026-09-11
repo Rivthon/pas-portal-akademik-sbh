@@ -325,9 +325,9 @@
                 </li>
             @endcan
         @endcanany {{-- ADMINISTRASI --}}
-        @canany(['tarif-list', 'tenor-list', 'tagihan-list', 'aktivasi-list'])
+        @canany(['tarif-list', 'tenor-list', 'tagihan-list', 'aktivasi-list', 'aktivasi-uap-list'])
             <li
-                class="menu-item @if(Route::is('admin.aktivasi.index') || Route::is('admin.tarif.index') || Route::is('admin.tenor-pembayaran.index') || Route::is('admin.tagihan-mahasiswa.index')) active open @endif">
+                class="menu-item @if(Route::is('admin.aktivasi.index') || Route::is('admin.aktivasi-uap.*') || Route::is('admin.tarif.index') || Route::is('admin.tenor-pembayaran.index') || Route::is('admin.tagihan-mahasiswa.index')) active open @endif">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bx-book-bookmark"></i>
                     <div data-i18n="Administrasi">Administrasi</div>
@@ -358,7 +358,14 @@
                     @can('aktivasi-list')
                         <li class="menu-item @if(Route::is('admin.aktivasi.index')) active @endif">
                             <a href="{{ route('admin.aktivasi.index') }}" class="menu-link">
-                                <div data-i18n="Aktivasi">Aktivasi</div>
+                                <div data-i18n="Aktivasi Mahasiswa">Aktivasi Mahasiswa</div>
+                            </a>
+                        </li>
+                    @endcan
+                    @can('aktivasi-uap-list')
+                        <li class="menu-item @if(Route::is('admin.aktivasi-uap.*')) active @endif">
+                            <a href="{{ route('admin.aktivasi-uap.index') }}" class="menu-link">
+                                <div data-i18n="Aktivasi UAP">Aktivasi UAP</div>
                             </a>
                         </li>
                     @endcan

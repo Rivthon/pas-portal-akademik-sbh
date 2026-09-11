@@ -385,7 +385,6 @@
                             <li><a class="dropdown-item bulk-activate" href="#" data-type="uas">Aktifkan Semua Jadwal UAS</a></li>
                             <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uts">Aktifkan Semua Nilai UTS</a></li>
                             <li><a class="dropdown-item bulk-activate" href="#" data-type="nilai_uas">Aktifkan Semua Nilai UAS</a></li>
-                            <li><a class="dropdown-item bulk-activate" href="#" data-type="uap">Aktifkan Semua UAP</a></li>
                             <li><a class="dropdown-item bulk-activate" href="#" data-type="akhir">Aktifkan Semua KHS</a></li>
                         </ul>
                     </div>

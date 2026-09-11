@@ -23,6 +23,21 @@ class MahasiswaImportCepat implements ToModel, WithHeadingRow
 
         $nim = trim((string) ($row['nim'] ?? ''));
         $nama = trim((string) ($row['nama'] ?? ''));
+        $tahunMasukRaw = trim((string) ($row['tahun_masuk'] ?? ''));
+        $tahunMasuk = null;
+
+        if ($tahunMasukRaw !== '') {
+            if (! preg_match('/^\d{4}$/', $tahunMasukRaw)
+                || (int) $tahunMasukRaw < 1900
+                || (int) $tahunMasukRaw > 2100) {
+                throw new \InvalidArgumentException(
+                    'Tahun masuk mahasiswa '.$nim.' harus berupa 4 digit, contoh: 2026.'
+                );
+            }
+
+            $tahunMasuk = (int) $tahunMasukRaw;
+        }
+
         $kelas = Mahasiswa::normalisasiKelasUntukPenyimpanan($row['kelas'] ?? null);
         // Jika kolom kelas dikosongkan pada Template Cepat, gunakan Reguler A.
         $kelas ??= 'pagi';
@@ -48,6 +63,10 @@ class MahasiswaImportCepat implements ToModel, WithHeadingRow
             'dosen_id' => $dosenId,
         ];
 
+        if ($tahunMasuk !== null) {
+            $attributes['tahun_masuk'] = $tahunMasuk;
+        }
+
         $mahasiswa = Mahasiswa::query()
             ->whereRaw('UPPER(TRIM(nim)) = ?', [strtoupper($nim)])
             ->orderBy('mahasiswa_id')
@@ -70,7 +89,7 @@ class MahasiswaImportCepat implements ToModel, WithHeadingRow
             'nama_ibu' => '', 'nama_ayah' => '', 'jenis_kelamin' => '', 'agama' => '',
             'alamat' => '', 'no_telp' => '', 'no_telp_ortu' => '', 'no_telp_ibu' => '',
             'alamat_ortu' => '', 'asal_sekolah' => '', 'jurusan_sekolah' => '',
-            'tahun_lulus' => '', 'tahun_masuk' => 0, 'gelombang_id' => 0,
+            'tahun_lulus' => '', 'tahun_masuk' => $tahunMasuk ?? 0, 'gelombang_id' => 0,
             'pendapatan_ortu' => '', 'semester' => 1, 'status_mhs' => 'aktif',
         ]);
     }

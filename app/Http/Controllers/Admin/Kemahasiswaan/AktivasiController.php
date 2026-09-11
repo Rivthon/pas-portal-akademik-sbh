@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Admin\Kemahasiswaan;
 use App\Http\Controllers\Controller;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class AktivasiController extends Controller
 {
+    private const KEBIDANAN_JURUSAN_ID = '15401';
+
     public function index(Request $request)
     {
         // Ambil input pencarian & filter
@@ -89,7 +92,7 @@ class AktivasiController extends Controller
             $mahasiswa = Mahasiswa::findOrFail($request->mahasiswa_id);
             $field = 'status_'.$request->type;
 
-            if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs', 'status_uap', 'status_akhir'])) {
+            if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs', 'status_akhir'])) {
                 $mahasiswa->$field = $request->status;
                 $mahasiswa->save();
 
@@ -109,6 +112,83 @@ class AktivasiController extends Controller
         }
     }
 
+    public function uapIndex(Request $request)
+    {
+        $query = $this->uapMahasiswaQuery($request);
+        $mahasiswa = $query->paginate(15)->appends($request->query());
+
+        $total = Mahasiswa::query()
+            ->where('status_mhs', 'aktif')
+            ->where('jurusan_id', self::KEBIDANAN_JURUSAN_ID)
+            ->where('semester', 6)
+            ->count();
+        $totalAktif = Mahasiswa::query()
+            ->where('status_mhs', 'aktif')
+            ->where('jurusan_id', self::KEBIDANAN_JURUSAN_ID)
+            ->where('semester', 6)
+            ->where('status_uap', 1)
+            ->count();
+
+        return view('admin.kemahasiswaan.aktivasi-uap.index', [
+            'mahasiswa' => $mahasiswa,
+            'total' => $total,
+            'totalAktif' => $totalAktif,
+            'totalNonaktif' => $total - $totalAktif,
+        ]);
+    }
+
+    public function updateUapStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'mahasiswa_id' => 'required|integer',
+            'status' => 'required|boolean',
+        ]);
+
+        $mahasiswa = Mahasiswa::query()
+            ->where('status_mhs', 'aktif')
+            ->where('jurusan_id', self::KEBIDANAN_JURUSAN_ID)
+            ->where('semester', 6)
+            ->findOrFail($validated['mahasiswa_id']);
+
+        $mahasiswa->status_uap = (int) $validated['status'];
+        $mahasiswa->save();
+
+        activity_log(
+            'update_aktivasi_uap',
+            'Admin mengubah aktivasi UAP mahasiswa Kebidanan: '.$mahasiswa->nama.' menjadi '.$validated['status']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status UAP '.$mahasiswa->nama.' berhasil diperbarui.',
+        ]);
+    }
+
+    public function bulkUpdateUapStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'status' => 'required|boolean',
+            'kelas' => 'nullable|in:pagi,karyawan',
+            'search' => 'nullable|string|max:100',
+        ]);
+
+        $query = $this->uapMahasiswaQuery($request);
+        $affected = $query->update([
+            'status_uap' => (int) $validated['status'],
+            'updated_at' => now(),
+        ]);
+
+        activity_log(
+            'bulk_update_aktivasi_uap',
+            'Admin mengubah aktivasi UAP untuk '.$affected.' mahasiswa Kebidanan menjadi '.$validated['status']
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "Status UAP berhasil diperbarui untuk {$affected} mahasiswa Kebidanan.",
+        ]);
+    }
+
     public function resetAllStatus()
     {
         try {
@@ -118,7 +198,6 @@ class AktivasiController extends Controller
                 'status_uas' => 0,
                 'status_nilai_uts' => 0,
                 'status_nilai_uas' => 0,
-                'status_uap' => 0,
                 'status_akhir' => 0,
             ]);
 
@@ -148,7 +227,7 @@ class AktivasiController extends Controller
             $status = $request->input('status', 1);
             $field = 'status_'.$type;
 
-            $validFields = ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_uap', 'status_akhir'];
+            $validFields = ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_akhir'];
 
             if (! in_array($field, $validFields)) {
                 return response()->json(['success' => false, 'message' => 'Field tidak valid.']);
@@ -183,5 +262,24 @@ class AktivasiController extends Controller
                 'message' => 'Terjadi kesalahan saat bulk update.',
             ]);
         }
+    }
+
+    private function uapMahasiswaQuery(Request $request): Builder
+    {
+        return Mahasiswa::query()
+            ->with('programStudi')
+            ->where('status_mhs', 'aktif')
+            ->where('jurusan_id', self::KEBIDANAN_JURUSAN_ID)
+            ->where('semester', 6)
+            ->when($request->filled('kelas'), fn (Builder $query) => $query->where('kelas', $request->input('kelas')))
+            ->when($request->filled('search'), function (Builder $query) use ($request) {
+                $search = trim((string) $request->input('search'));
+                $query->where(function (Builder $studentQuery) use ($search) {
+                    $studentQuery->where('nama', 'like', '%'.$search.'%')
+                        ->orWhere('nim', 'like', '%'.$search.'%');
+                });
+            })
+            ->orderByRaw('CAST(semester AS UNSIGNED) ASC')
+            ->orderBy('nama');
     }
 }
