@@ -39,14 +39,34 @@ class MahasiswaImportCepat implements ToModel, WithHeadingRow
             }
         }
 
-        return new Mahasiswa([
+        $attributes = [
             'nama' => $nama,
             'nim' => $nim,
             'email' => trim((string) ($row['email'] ?? '')) ?: $nim.'@mahasiswa.sbh.ac.id',
-            'password' => Hash::make($nim),
             'jurusan_id' => $row['jurusan_id'],
             'kelas' => $kelas,
             'dosen_id' => $dosenId,
+        ];
+
+        $mahasiswa = Mahasiswa::query()
+            ->whereRaw('UPPER(TRIM(nim)) = ?', [strtoupper($nim)])
+            ->orderBy('mahasiswa_id')
+            ->first();
+
+        if ($mahasiswa) {
+            // Import ulang memperbarui data, tetapi tidak mereset password dan
+            // tidak mengosongkan dospem jika kolom dosen pada Excel dikosongkan.
+            if ($dosenId === null) {
+                unset($attributes['dosen_id']);
+            }
+
+            $mahasiswa->fill($attributes);
+
+            return $mahasiswa;
+        }
+
+        return new Mahasiswa($attributes + [
+            'password' => Hash::make($nim),
             'nama_ibu' => '', 'nama_ayah' => '', 'jenis_kelamin' => '', 'agama' => '',
             'alamat' => '', 'no_telp' => '', 'no_telp_ortu' => '', 'no_telp_ibu' => '',
             'alamat_ortu' => '', 'asal_sekolah' => '', 'jurusan_sekolah' => '',
