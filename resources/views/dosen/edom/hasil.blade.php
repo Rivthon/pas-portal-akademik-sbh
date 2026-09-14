@@ -4,17 +4,46 @@
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="row">
             <div class="col-12 mb-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <form method="GET" action="{{ route('dosen.edom.hasil') }}" class="row g-3 align-items-end">
+                            <div class="col-md-8 col-lg-6">
+                                <label for="ta_id" class="form-label fw-semibold">Tahun Ajaran EDOM</label>
+                                <select name="ta_id" id="ta_id" class="form-select">
+                                    @forelse($tahunAkademikList as $tahunAkademik)
+                                        <option value="{{ $tahunAkademik->ta_id }}" @selected((int) $selectedTaId === (int) $tahunAkademik->ta_id)>
+                                            {{ $tahunAkademik->nama }} - {{ ucfirst($tahunAkademik->semester) }}{{ $tahunAkademik->status_ta ? ' (Aktif)' : '' }}
+                                        </option>
+                                    @empty
+                                        <option value="">Belum ada riwayat EDOM</option>
+                                    @endforelse
+                                </select>
+                            </div>
+                            <div class="col-md-auto">
+                                <button type="submit" class="btn btn-primary" @disabled($tahunAkademikList->isEmpty())>
+                                    <i class="bx bx-search-alt me-1"></i>Tampilkan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 mb-4">
                 <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between align-items-center flex-wrap">
                             <div>
                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                     <h4 class="text-white mb-0 fw-bold">Rata-rata Nilai Evaluasi Keseluruhan</h4>
-                                    @if($tahunAkademikAktif)
-                                        <span class="badge bg-white text-primary">{{ $tahunAkademikAktif->nama }} - {{ $tahunAkademikAktif->semester }}</span>
+                                    @if($tahunAkademikDipilih)
+                                        <span class="badge bg-white text-primary">{{ $tahunAkademikDipilih->nama }} - {{ ucfirst($tahunAkademikDipilih->semester) }}</span>
+                                        @if(!$tahunAkademikDipilih->status_ta)
+                                            <span class="badge bg-warning text-dark">Riwayat</span>
+                                        @endif
                                     @endif
                                 </div>
-                                <p class="text-white-50 mb-0">Hanya berdasarkan EDOM pada tahun ajaran yang sedang aktif.</p>
+                                <p class="text-white-50 mb-0">Berdasarkan EDOM pada tahun ajaran yang sedang dipilih.</p>
                             </div>
                             <div class="text-end mt-3 mt-md-0">
                                 <div class="display-4 text-white fw-bold mb-0">
@@ -40,7 +69,7 @@
                         @if($hasilEdom->isEmpty())
                             <div class="alert alert-info text-center py-4">
                                 <i class="bx bx-info-circle fs-2 mb-2"></i><br>
-                                Belum ada data evaluasi dari mahasiswa untuk mata kuliah yang Anda ampu.
+                                Belum ada data evaluasi mahasiswa pada tahun ajaran yang dipilih.
                             </div>
                         @else
                             <div class="table-responsive text-nowrap">

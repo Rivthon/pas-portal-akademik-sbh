@@ -15,6 +15,7 @@ use App\Models\RpsRevision;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardDosenController extends Controller
@@ -261,16 +262,38 @@ class DashboardDosenController extends Controller
             ->values();
     }
 
-    public function hasilEdom()
+    public function hasilEdom(Request $request)
     {
         $dosen = auth('dosen')->user();
         $tahunAkademikAktif = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
 
-        if (! $tahunAkademikAktif) {
+        $tahunAkademikList = TahunAkademik::query()
+            ->where(function ($query) use ($dosen) {
+                $query->where('status_ta', 1)
+                    ->orWhereExists(function ($subQuery) use ($dosen) {
+                        $subQuery->selectRaw('1')
+                            ->from('kurikulum')
+                            ->join('penilaian', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
+                            ->whereColumn('kurikulum.ta_id', 'tahun_ajaran.ta_id')
+                            ->where('penilaian.dosen_id', $dosen->dosen_id);
+                    });
+            })
+            ->orderByDesc('ta_id')
+            ->get(['ta_id', 'nama', 'semester', 'status_ta']);
+
+        $selectedTaId = $request->integer('ta_id') ?: (int) ($tahunAkademikAktif?->ta_id ?? $tahunAkademikList->first()?->ta_id);
+        $tahunAkademikDipilih = $tahunAkademikList->firstWhere('ta_id', $selectedTaId);
+
+        abort_if($request->filled('ta_id') && ! $tahunAkademikDipilih, 404, 'Riwayat EDOM tidak ditemukan.');
+
+        if (! $tahunAkademikDipilih) {
             return view('dosen.edom.hasil', [
                 'hasilEdom' => collect(),
                 'rataRataKeseluruhan' => 0,
-                'tahunAkademikAktif' => null,
+                'tahunAkademikAktif' => $tahunAkademikAktif,
+                'tahunAkademikDipilih' => null,
+                'tahunAkademikList' => $tahunAkademikList,
+                'selectedTaId' => null,
             ]);
         }
 
@@ -278,7 +301,7 @@ class DashboardDosenController extends Controller
             ->join('kurikulum', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
             ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
             ->where('penilaian.dosen_id', $dosen->dosen_id)
-            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
+            ->where('kurikulum.ta_id', $selectedTaId)
             ->select(
                 'kurikulum.kurikulum_id',
                 'matakuliah.matakuliah_id',
@@ -293,7 +316,7 @@ class DashboardDosenController extends Controller
         $komentarPerKurikulum = DB::table('saran')
             ->join('kurikulum', 'saran.kurikulum_id', '=', 'kurikulum.kurikulum_id')
             ->where('saran.dosen_id', $dosen->dosen_id)
-            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
+            ->where('kurikulum.ta_id', $selectedTaId)
             ->whereNotNull('saran.saran')
             ->whereRaw("TRIM(saran.saran) != ''")
             ->select('saran.kurikulum_id', 'saran.saran')
@@ -310,13 +333,23 @@ class DashboardDosenController extends Controller
         $rataRataKeseluruhan = DB::table('penilaian')
             ->join('kurikulum', 'penilaian.kurikulum_id', '=', 'kurikulum.kurikulum_id')
             ->where('penilaian.dosen_id', $dosen->dosen_id)
-            ->where('kurikulum.ta_id', $tahunAkademikAktif->ta_id)
+            ->where('kurikulum.ta_id', $selectedTaId)
             ->avg(DB::raw('CAST(nilai AS UNSIGNED)'));
 
         $rataRataKeseluruhan = $rataRataKeseluruhan ? round($rataRataKeseluruhan, 2) : 0;
 
-        activity_log('lihat_edom', 'Dosen melihat hasil evaluasi EDOM');
+        activity_log(
+            'lihat_edom',
+            'Dosen melihat hasil evaluasi EDOM '.$tahunAkademikDipilih->nama.' '.$tahunAkademikDipilih->semester
+        );
 
-        return view('dosen.edom.hasil', compact('hasilEdom', 'rataRataKeseluruhan', 'tahunAkademikAktif'));
+        return view('dosen.edom.hasil', compact(
+            'hasilEdom',
+            'rataRataKeseluruhan',
+            'tahunAkademikAktif',
+            'tahunAkademikDipilih',
+            'tahunAkademikList',
+            'selectedTaId'
+        ));
     }
 }
