@@ -136,6 +136,8 @@
                     @csrf
                     <input type="hidden" name="krs_id" value="{{ $krs->krs_id }}">
                     <input type="hidden" name="ta_id" value="{{ $krs->ta_id }}">
+                    <input type="hidden" name="jenis_dosen" value="{{ $jenis_dosen }}">
+                    <input type="hidden" name="jenis_kelas" value="{{ $jenis_kelas }}">
                     <!-- Evaluation Questions -->
                     @foreach ($evaluasis as $index => $evaluasi)
                     <div class="card mb-3 step-card shadow-none border border-secondary border-start-0">

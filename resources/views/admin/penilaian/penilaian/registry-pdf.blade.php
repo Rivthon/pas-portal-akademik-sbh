@@ -127,8 +127,9 @@
                 <th width="25%">Mata Kuliah</th>
                 <th width="5%" class="text-center">SKS</th>
                 <th width="5%" class="text-center">SMT</th>
-                <th width="10%" class="text-center">Metode</th>
-                <th width="13%" class="text-center">Status EDOM</th>
+                <th width="8%" class="text-center">Metode</th>
+                <th width="9%" class="text-center">Kelas</th>
+                <th width="10%" class="text-center">Status EDOM</th>
             </tr>
         </thead>
         <tbody>
@@ -144,6 +145,9 @@
                         {{ ucfirst($row->jenis_dosen) }}
                     </td>
                     <td class="text-center">
+                        {{ strtolower((string) $row->jenis_kelas) === 'karyawan' ? 'Reguler B' : 'Reguler A' }}
+                    </td>
+                    <td class="text-center">
                         @if($row->status_edom)
                             <span class="badge bg-success">SUDAH</span>
                         @else
@@ -153,7 +157,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="text-center" style="padding: 20px;">Tidak ada data ditemukan untuk kriteria ini.
+                    <td colspan="9" class="text-center" style="padding: 20px;">Tidak ada data ditemukan untuk kriteria ini.
                     </td>
                 </tr>
             @endforelse

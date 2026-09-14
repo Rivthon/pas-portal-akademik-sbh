@@ -42,19 +42,19 @@ class LmsIndexCardPresentationTest extends TestCase
             ->assertSee('Quiz');
     }
 
-    public function test_dosen_who_teaches_a_meeting_can_access_both_regular_and_employee_lms_classes(): void
+    public function test_old_meeting_does_not_grant_access_to_an_unassigned_class(): void
     {
         $dosen = Dosen::findOrFail(15);
-        $regular = Jadwal::findOrFail(1669);
-        $karyawan = Jadwal::findOrFail(1778);
+        $regular = Jadwal::findOrFail(1879);
+        $karyawan = Jadwal::findOrFail(1919);
+        $oldUnassignedClassWithMeeting = Jadwal::findOrFail(1778);
 
         $this->actingAs($dosen, 'dosen')->get(route('dosen.lms.index'))
             ->assertOk()
             ->assertSee(route('dosen.lms.kelola', $regular), false)
-            ->assertSee(route('dosen.lms.kelola', $karyawan), false)
-            ->assertSee('Reguler A')
-            ->assertSee('Reguler B');
+            ->assertDontSee(route('dosen.lms.kelola', $karyawan), false);
 
-        $this->actingAs($dosen, 'dosen')->get(route('dosen.lms.kelola', $karyawan))->assertOk();
+        $this->actingAs($dosen, 'dosen')->get(route('dosen.lms.kelola', $karyawan))->assertNotFound();
+        $this->actingAs($dosen, 'dosen')->get(route('dosen.lms.kelola', $oldUnassignedClassWithMeeting))->assertNotFound();
     }
 }

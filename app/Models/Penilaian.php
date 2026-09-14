@@ -24,6 +24,7 @@ class Penilaian extends Model
         'evaluasi_id',
         'nilai',
         'jenis_dosen',
+        'jenis_kelas',
     ];
 
     public function mahasiswa()

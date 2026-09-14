@@ -38,10 +38,7 @@ class PerkuliahanDosenController extends Controller
 
         // Tampilkan seluruh jadwal teori yang ditugaskan, termasuk penugasan lintas program studi.
         $jadwalList = Jadwal::where('ta_id', $activeTA->ta_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->with([
                 'kurikulum.mataKuliah',
                 'kurikulum.programStudi',
@@ -76,8 +73,9 @@ class PerkuliahanDosenController extends Controller
                                     'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                                 ];
                             })
-                            ->filter(function ($dosen) {
-                                return strtolower((string) $dosen['jenis_dosen']) === 'teori';
+                            ->filter(function ($dosen) use ($jadwal) {
+                                return strtolower((string) $dosen['jenis_dosen']) === 'teori'
+                                    && strtolower((string) $dosen['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas);
                             })
                             ->unique('id')
                             ->values(),
@@ -101,10 +99,7 @@ class PerkuliahanDosenController extends Controller
         }
 
         $jadwalList = Jadwal::where('ta_id', $activeTA->ta_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->with(['kurikulum.mataKuliah', 'kurikulum.programStudi', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
             ->get()
             ->groupBy(function ($jadwal) {
@@ -129,8 +124,9 @@ class PerkuliahanDosenController extends Controller
                                 'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
                                 'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
-                        })->filter(function ($dosen) {
-                            return strtolower((string) $dosen['jenis_dosen']) === 'teori';
+                        })->filter(function ($dosen) use ($jadwal) {
+                            return strtolower((string) $dosen['jenis_dosen']) === 'teori'
+                                && strtolower((string) $dosen['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas);
                         })->unique('id')->values(),
                     ];
                 });
@@ -171,10 +167,7 @@ class PerkuliahanDosenController extends Controller
             $query->where('ta_id', $activeTA->ta_id)
                 ->where('jurusan_id', $dosen->jurusan_id);
         })
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->where('jenis_dosen', 'praktik'); // Periksa jenis_dosen praktik
-            })
+            ->assignedToDosen($dosen->dosen_id, 'praktik')
             ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
             ->get()
             ->groupBy(function ($jadwal) {
@@ -199,8 +192,9 @@ class PerkuliahanDosenController extends Controller
                                 'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
                                 'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
-                        })->filter(function ($dosen) {
-                            return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                        })->filter(function ($dosen) use ($jadwal) {
+                            return strtolower((string) $dosen['jenis_dosen']) === 'praktik'
+                                && strtolower((string) $dosen['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas);
                         })->unique('id')->values(),
                     ];
                 });
@@ -223,10 +217,7 @@ class PerkuliahanDosenController extends Controller
             $q->where('ta_id', $activeTA->ta_id)
                 ->where('jurusan_id', $dosen->jurusan_id);
         })
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->where('jenis_dosen', 'praktik'); // Periksa jenis_dosen praktik
-            })
+            ->assignedToDosen($dosen->dosen_id, 'praktik')
             ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
             ->get()
             ->groupBy(function ($jadwal) {
@@ -250,8 +241,9 @@ class PerkuliahanDosenController extends Controller
                                 'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
                                 'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
-                        })->filter(function ($dosen) {
-                            return $dosen['jenis_dosen'] === 'praktik'; // Hanya ambil dosen praktik
+                        })->filter(function ($dosen) use ($jadwal) {
+                            return strtolower((string) $dosen['jenis_dosen']) === 'praktik'
+                                && strtolower((string) $dosen['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas);
                         })->unique('id')->values(),
                     ];
                 });
@@ -293,10 +285,7 @@ class PerkuliahanDosenController extends Controller
             $query->where('ta_id', $activeTA->ta_id)
                 ->where('jurusan_id', $dosen->jurusan_id);
         })
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id);
-            })
-        // ->where('jenis_kelas', $dosen->jenis_kelas)
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen'])
             ->get()
             ->groupBy(function ($jadwal) {
@@ -319,8 +308,11 @@ class PerkuliahanDosenController extends Controller
                                 'id' => $dosenToMatakuliah->dosen->dosen_id ?? null,
                                 'nama' => $dosenToMatakuliah->dosen->nama ?? 'Tidak ada data',
                                 'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
-                        })->unique('id')->values(),
+                        })->filter(fn ($item) => strtolower((string) $item['jenis_dosen']) === 'teori'
+                            && strtolower((string) $item['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas))
+                            ->unique('id')->values(),
                     ];
                 });
             });
@@ -343,10 +335,7 @@ class PerkuliahanDosenController extends Controller
 
         $query = Jadwal::query()
             ->where('ta_id', $activeTA->ta_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->with([
                 'kurikulum.mataKuliah',
                 'kurikulum.programStudi',
@@ -402,7 +391,11 @@ class PerkuliahanDosenController extends Controller
                                 'id' => $assignment->dosen?->dosen_id,
                                 'nama' => $assignment->dosen?->nama ?? '-',
                                 'jenis_dosen' => $assignment->jenis_dosen,
-                            ])->filter(fn ($item) => $item['id'])->unique('id')->values() ?? collect(),
+                                'jenis_kelas' => $assignment->jenis_kelas,
+                            ])->filter(fn ($item) => $item['id']
+                                && strtolower((string) $item['jenis_dosen']) === 'teori'
+                                && strtolower((string) $item['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas))
+                            ->unique('id')->values() ?? collect(),
                     ];
                 });
             })
@@ -435,9 +428,7 @@ class PerkuliahanDosenController extends Controller
                 ->where('jurusan_id', $dosen->jurusan_id);
 
         })
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id);
-            })
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->with(['kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'ruangan'])
             ->get()
             ->groupBy(function ($jadwal) {
@@ -455,14 +446,16 @@ class PerkuliahanDosenController extends Controller
                         'nama_matakuliah' => optional($jadwal->kurikulum->mataKuliah)->nama ?? 'Tidak ada data',
                         'ruangan' => optional($jadwal->ruangan)->nama ?? 'Tidak ada data',
                         'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
-                        'jenis_kelas' => $jadwal->jenis_kelas ?? 'Tidak ada data',
                         'dosen' => optional($jadwal->kurikulum->dosenToMatakuliah)->map(function ($dosenToMatakuliah) {
                             return [
                                 'id' => optional($dosenToMatakuliah->dosen)->dosen_id ?? null,
                                 'nama' => optional($dosenToMatakuliah->dosen)->nama ?? 'Tidak ada data',
                                 'jenis_dosen' => $dosenToMatakuliah->jenis_dosen ?? 'tidak diketahui',
+                                'jenis_kelas' => $dosenToMatakuliah->jenis_kelas ?? 'tidak diketahui',
                             ];
-                        })->unique('id')->values() ?? [],
+                        })->filter(fn ($item) => strtolower((string) $item['jenis_dosen']) === 'teori'
+                            && strtolower((string) $item['jenis_kelas']) === strtolower((string) $jadwal->jenis_kelas))
+                            ->unique('id')->values() ?? [],
                     ];
                 });
             });
@@ -497,10 +490,8 @@ class PerkuliahanDosenController extends Controller
 
         $dosen = auth('dosen')->user();
         $jadwalDiampu = Jadwal::whereKey($request->jadwal_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })->exists();
+            ->assignedToDosen($dosen->dosen_id, 'teori')
+            ->exists();
         abort_unless($jadwalDiampu, 403, 'Jadwal teori ini tidak diampu oleh Anda.');
 
         try {
@@ -604,10 +595,8 @@ class PerkuliahanDosenController extends Controller
     {
         $dosen = auth('dosen')->user();
         $jadwalDiampu = Jadwal::whereKey($jadwal_id)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })->exists();
+            ->assignedToDosen($dosen->dosen_id, 'teori')
+            ->exists();
         abort_unless($jadwalDiampu, 403);
 
         $pertemuan = Pertemuan::where('jadwal_id', $jadwal_id)->orderBy('tanggal_pertemuan', 'desc')->get();
@@ -684,7 +673,7 @@ class PerkuliahanDosenController extends Controller
     public function storePertemuanPraktik(Request $request)
     {
         $request->validate([
-            // 'jadwal_id' => 'required|exists:jadwal,id',
+            'jadwal_praktik_id' => 'required|exists:jadwal_praktik,id',
             'tanggal_pertemuan' => 'required|date',
             'jam_mulai' => 'required|date_format:H:i',
             'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
@@ -692,6 +681,11 @@ class PerkuliahanDosenController extends Controller
             'topik' => 'required|string|max:255',
             'sub_topik' => 'required|string|max:255',
         ]);
+
+        $dosen = auth('dosen')->user();
+        $jadwal = JadwalPraktik::with('kurikulum.matakuliah')
+            ->assignedToDosen($dosen->dosen_id, 'praktik')
+            ->findOrFail($request->jadwal_praktik_id);
 
         try {
             DB::beginTransaction();
@@ -707,9 +701,6 @@ class PerkuliahanDosenController extends Controller
                 'sub_topik' => $request->sub_topik,
                 'dosen_id' => auth('dosen')->user()->dosen_id, // Menyimpan dosen_id dari user yang login
             ]);
-
-            // Ambil jadwal beserta relasi ke kurikulum dan matakuliah
-            $jadwal = JadwalPraktik::with('kurikulum.matakuliah')->find($request->jadwal_praktik_id);
 
             if (! $jadwal || ! $jadwal->kurikulum || ! $jadwal->kurikulum->matakuliah) {
                 return response()->json(['message' => 'Jadwal atau mata kuliah tidak ditemukan'], 404);
@@ -785,6 +776,11 @@ class PerkuliahanDosenController extends Controller
 
     public function listPertemuanPraktik($jadwal_praktik_id)
     {
+        $dosen = auth('dosen')->user();
+        JadwalPraktik::query()
+            ->assignedToDosen($dosen->dosen_id, 'praktik')
+            ->findOrFail($jadwal_praktik_id);
+
         $pertemuan = PertemuanPraktik::where('jadwal_praktik_id', $jadwal_praktik_id)->orderBy('tanggal_pertemuan', 'desc')->get();
 
         return response()->json($pertemuan);
@@ -793,7 +789,10 @@ class PerkuliahanDosenController extends Controller
     public function lihatPraktik($pertemuan_praktik_id)
     {
         // Ambil data pertemuan beserta relasi lengkap
-        $pertemuan = PertemuanPraktik::with('jadwal.kurikulum.mataKuliah')->findOrFail($pertemuan_praktik_id);
+        $pertemuan = PertemuanPraktik::with('jadwal.kurikulum.mataKuliah')
+            ->where('dosen_id', auth('dosen')->id())
+            ->whereHas('jadwal', fn ($query) => $query->assignedToDosen(auth('dosen')->id(), 'praktik'))
+            ->findOrFail($pertemuan_praktik_id);
         // Ambil data absensi berdasarkan pertemuan
         $absensi = AbsensiPraktik::where('pertemuan_praktik_id', $pertemuan_praktik_id)
             ->with('mahasiswa') // Pastikan ada relasi ke Mahasiswa
@@ -817,6 +816,10 @@ class PerkuliahanDosenController extends Controller
             'status.*' => 'in:hadir,izin,sakit,tidak hadir',
             'keterangan' => 'nullable|array',
         ]);
+
+        $pertemuan = PertemuanPraktik::where('dosen_id', auth('dosen')->id())
+            ->whereHas('jadwal', fn ($query) => $query->assignedToDosen(auth('dosen')->id(), 'praktik'))
+            ->findOrFail($request->pertemuan_praktik_id);
 
         try {
             DB::beginTransaction();

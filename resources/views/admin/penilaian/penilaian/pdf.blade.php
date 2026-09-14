@@ -173,6 +173,10 @@
                 <td>: {{ $jenisDosen ? ucfirst($jenisDosen) : '-' }}</td>
             </tr>
             <tr>
+                <th>Kelas</th>
+                <td>: {{ $jenisKelas === 'karyawan' ? 'Reguler B' : 'Reguler A' }}</td>
+            </tr>
+            <tr>
                 <th>Tanggal Cetak</th>
                 <td>: {{ now()->format('d F Y H:i') }}</td>
             </tr>

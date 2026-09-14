@@ -9,7 +9,7 @@
                 <p class="text-muted mb-0">Laporan performa dan analisa presisi hasil evaluasi EDOM mahasiswa.</p>
             </div>
             <div>
-                <a href="{{ route('admin.penilaian.index', ['ta_id' => request('ta_id'), 'jurusan_id' => request('jurusan_id')]) }}"
+                <a href="{{ route('admin.penilaian.index', ['ta_id' => request('ta_id'), 'jurusan_id' => request('jurusan_id'), 'jenis_kelas' => $jenis_kelas]) }}"
                     class="btn btn-secondary me-2">
                     <i class="fas fa-arrow-left"></i> Kembali
                 </a>
@@ -20,6 +20,7 @@
                     <input type="hidden" name="kurikulum_id" value="{{ $kurikulum_id }}">
                     <input type="hidden" name="dosen_id" value="{{ $dosen_id }}">
                     <input type="hidden" name="jenis_dosen" value="{{ $jenis_dosen ?? '' }}">
+                    <input type="hidden" name="jenis_kelas" value="{{ $jenis_kelas }}">
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-file-pdf"></i> Cetak PDF
                     </button>
@@ -65,6 +66,10 @@
                         <div class="d-flex align-items-start mb-0">
                             <i class="bx bx-chalkboard text-primary me-2 mt-1"></i>
                             <div><small class="text-muted d-block">Metode</small><span class="badge bg-label-primary rounded-pill px-3">{{ ucfirst($jenis_dosen) }}</span></div>
+                        </div>
+                        <div class="d-flex align-items-start mt-2">
+                            <i class="bx bx-group text-primary me-2 mt-1"></i>
+                            <div><small class="text-muted d-block">Kelas</small><span class="badge bg-label-info rounded-pill px-3">{{ $jenis_kelas === 'karyawan' ? 'Reguler B' : 'Reguler A' }}</span></div>
                         </div>
                     </div>
                 </div>

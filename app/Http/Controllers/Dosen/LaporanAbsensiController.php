@@ -88,16 +88,12 @@ class LaporanAbsensiController extends Controller
 
     private function queryJadwalTeori($dosenId)
     {
-        return Jadwal::query()->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosenId) {
-            $query->where('dosen_id', $dosenId)->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-        });
+        return Jadwal::query()->assignedToDosen($dosenId, 'teori');
     }
 
     private function queryJadwalPraktik($dosenId)
     {
-        return JadwalPraktik::query()->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosenId) {
-            $query->where('dosen_id', $dosenId)->whereRaw('LOWER(jenis_dosen) = ?', ['praktik']);
-        });
+        return JadwalPraktik::query()->assignedToDosen($dosenId, 'praktik');
     }
 
     private function jadwalTeoriMilikDosen(int $jadwalId): Jadwal

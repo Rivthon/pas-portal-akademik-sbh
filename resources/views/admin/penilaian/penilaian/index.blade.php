@@ -92,6 +92,16 @@
                             </option>
                         </select>
                     </div>
+
+                    <div class="col-md-4">
+                        <label for="jenis_kelas"
+                            class="form-label small fw-bold text-muted text-uppercase mb-1">Kelas</label>
+                        <select name="jenis_kelas" id="jenis_kelas" class="form-select select2">
+                            <option value="">Semua Kelas</option>
+                            <option value="reguler" {{ request('jenis_kelas') === 'reguler' ? 'selected' : '' }}>Reguler A</option>
+                            <option value="karyawan" {{ request('jenis_kelas') === 'karyawan' ? 'selected' : '' }}>Reguler B</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Validation Info & Buttons -->
@@ -129,6 +139,7 @@
                         <input type="hidden" name="jurusan_id" value="{{ request('jurusan_id') }}">
                         <input type="hidden" name="kurikulum_id" value="{{ request('kurikulum_id') }}">
                         <input type="hidden" name="jenis_dosen" value="{{ request('jenis_dosen') }}">
+                        <input type="hidden" name="jenis_kelas" value="{{ request('jenis_kelas') }}">
                         <button type="submit" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
                             <i class="bx bx-printer me-1"></i> Print Result
                         </button>
@@ -145,7 +156,8 @@
                                 <th class="ps-4 py-3 fw-bold border-bottom-0" width="5%">No</th>
                                 <th class="py-3 fw-bold border-bottom-0" width="25%">Lecturer Name</th>
                                 <th class="py-3 fw-bold border-bottom-0" width="25%">Course</th>
-                                <th class="py-3 fw-bold border-bottom-0" width="15%">Method</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="10%">Method</th>
+                                <th class="py-3 fw-bold border-bottom-0" width="10%">Class</th>
                                 <th class="py-3 fw-bold border-bottom-0" width="15%">Status</th>
                                 <th class="py-3 fw-bold border-bottom-0 pe-4" width="15%">Action</th>
                             </tr>
@@ -173,12 +185,18 @@
                                     </td>
                                     <td>
                                         <h6 class="mb-0 text-dark">{{ $row->kurikulum->mataKuliah->nama ?? '-' }}</h6>
-                                        <small class="text-muted">SMT {{ $row->kurikulum->semester ?? '-' }} •
+                                        <small class="text-muted">SMT {{ $row->kurikulum->mataKuliah?->smt ?? '-' }} &bull;
                                             {{ $row->kurikulum->mataKuliah->sks ?? '-' }} SKS</small>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-dark border px-3 py-2 rounded-pill shadow-sm">
                                             {{ ucfirst($row->jenis_dosen) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @php($kelasLabel = strtolower((string) $row->jenis_kelas) === 'karyawan' ? 'Reguler B' : 'Reguler A')
+                                        <span class="badge {{ $kelasLabel === 'Reguler B' ? 'bg-label-warning' : 'bg-label-info' }} px-3 py-2 rounded-pill">
+                                            {{ $kelasLabel }}
                                         </span>
                                     </td>
                                     <td>
@@ -194,7 +212,7 @@
                                     </td>
                                     <td class="pe-4">
                                         @if($row->status_edom)
-                                            <a href="{{ route('admin.penilaian.detail', ['dosen_id' => $row->dosen_id, 'kurikulum_id' => $row->kurikulum_id, 'jenis_dosen' => $row->jenis_dosen, 'ta_id' => request('ta_id'), 'jurusan_id' => request('jurusan_id')]) }}"
+                                            <a href="{{ route('admin.penilaian.detail', ['dosen_id' => $row->dosen_id, 'kurikulum_id' => $row->kurikulum_id, 'jenis_dosen' => $row->jenis_dosen, 'jenis_kelas' => strtolower((string) $row->jenis_kelas) === 'karyawan' ? 'karyawan' : 'reguler', 'ta_id' => request('ta_id'), 'jurusan_id' => request('jurusan_id')]) }}"
                                                 class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
                                                 View Report
                                             </a>
@@ -208,7 +226,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-5">
+                                    <td colspan="7" class="text-center py-5">
                                         <div class="text-muted">
                                             <i class="fas fa-folder-open mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
                                             <h5>Tidak ada data ditemukan</h5>

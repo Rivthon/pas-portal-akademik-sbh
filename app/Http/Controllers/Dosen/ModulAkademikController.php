@@ -39,10 +39,7 @@ class ModulAkademikController extends Controller
                 'kurikulum.programStudi',
             ])
                 ->where('ta_id', $activeTA->ta_id)
-                ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                    $query->where('dosen_id', $dosen->dosen_id)
-                        ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-                })
+                ->assignedToDosen($dosen->dosen_id, 'teori')
                 ->orderBy('jurusan_id')
                 ->orderBy('kurikulum_id')
                 ->orderBy('jenis_kelas')
@@ -70,10 +67,7 @@ class ModulAkademikController extends Controller
         $jadwalList = Jadwal::with(['kurikulum.mataKuliah', 'kurikulum.programStudi'])
             ->where('ta_id', $tahunAjaranId)
             ->where('jurusan_id', $programStudiId)
-            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) use ($dosen) {
-                $query->where('dosen_id', $dosen->dosen_id)
-                    ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']);
-            })
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->orderBy('kurikulum_id')
             ->orderBy('jenis_kelas')
             ->get();
@@ -102,9 +96,8 @@ class ModulAkademikController extends Controller
         abort_unless($dosen, 401);
 
         $jadwal->load(['kurikulum.mataKuliah', 'kurikulum.programStudi']);
-        $isAssigned = $jadwal->kurikulum?->dosenToMatakuliah()
-            ->where('dosen_id', $dosen->dosen_id)
-            ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+        $isAssigned = Jadwal::whereKey($jadwal->getKey())
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->exists();
         abort_unless($isAssigned, 403, 'Jadwal ini bukan pengajaran Anda.');
 
@@ -249,12 +242,8 @@ class ModulAkademikController extends Controller
 
         $dosen = auth('dosen')->user();
         $jadwal = Jadwal::with(['kurikulum.mataKuliah', 'kurikulum.programStudi'])
+            ->assignedToDosen($dosen->dosen_id, 'teori')
             ->findOrFail($request->jadwal_id);
-        $isAssigned = $jadwal->kurikulum?->dosenToMatakuliah()
-            ->where('dosen_id', $dosen->dosen_id)
-            ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
-            ->exists();
-        abort_unless($isAssigned, 403, 'Jadwal ini bukan pengajaran Anda.');
 
         $programStudi = $jadwal->kurikulum?->programStudi;
         $mataKuliah = $jadwal->kurikulum?->mataKuliah;

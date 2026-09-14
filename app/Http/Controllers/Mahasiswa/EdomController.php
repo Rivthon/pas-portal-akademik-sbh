@@ -52,15 +52,7 @@ class EdomController extends Controller
         $mahasiswaId = $mahasiswa->mahasiswa_id;
         $isHistorical = (int) $activeTA->ta_id !== (int) $tahunAkademikAktif->ta_id;
 
-        $kelasMap = [
-            'pagi' => 'reguler',
-            'reguler' => 'reguler',
-            'reguler a' => 'reguler',
-            'reguler b' => 'karyawan',
-            'karyawan' => 'karyawan',
-        ];
-        $searchKelas = $kelasMap[strtolower(trim((string) $mahasiswa->kelas))]
-            ?? strtolower(trim((string) $mahasiswa->kelas));
+        $searchKelas = $this->normalizeJenisKelas($mahasiswa->kelas);
 
         // Seluruh data EDOM wajib berasal dari KRS pada TA yang sedang dipilih.
         $krsData = Krs::with([
@@ -75,11 +67,12 @@ class EdomController extends Controller
         $existingRatings = DB::table('penilaian')
             ->where('mahasiswa_id', $mahasiswaId)
             ->whereIn('kurikulum_id', $kurikulumIds)
-            ->select('dosen_id', 'kurikulum_id')
+            ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
             ->distinct()
             ->get()
-            ->groupBy('kurikulum_id')
-            ->map(fn ($items) => $items->pluck('dosen_id')->map(fn ($id) => (int) $id)->all());
+            ->mapWithKeys(fn ($row) => [
+                $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas) => true,
+            ]);
 
         $krsList = $krsData->map(function ($krs) use ($existingRatings, $searchKelas) {
             $dosenAssignments = collect($krs->kurikulum?->dosenToMatakuliah)
@@ -106,13 +99,17 @@ class EdomController extends Controller
                 'dosen' => $dosenAssignments
                     ->map(function ($dtm) use ($existingRatings, $krs) {
                         $dosenId = (int) ($dtm->dosen?->dosen_id ?? 0);
-                        $ratedDosens = $existingRatings->get($krs->kurikulum_id, []);
+                        $jenisDosen = strtolower(trim((string) ($dtm->jenis_dosen ?? '')));
+                        $jenisKelas = $this->normalizeJenisKelas($dtm->jenis_kelas);
 
                         return [
                             'id' => $dosenId,
                             'nama' => $dtm->dosen?->nama ?? 'Tidak ada data',
-                            'jenis_dosen' => strtolower((string) ($dtm->jenis_dosen ?? '')),
-                            'is_rated' => in_array($dosenId, $ratedDosens, true),
+                            'jenis_dosen' => $jenisDosen,
+                            'jenis_kelas' => $jenisKelas,
+                            'is_rated' => $existingRatings->has(
+                                $this->edomKey($dosenId, $krs->kurikulum_id, $jenisDosen, $jenisKelas)
+                            ),
                         ];
                     })
                     ->filter(fn ($dosen) => $dosen['id'] > 0)
@@ -145,7 +142,8 @@ class EdomController extends Controller
     public function form(Request $request, $krs_id)
     {
         try {
-            $dosen_id = request('dosen_id');  // Ambil dosen_id dari request
+            $dosen_id = $request->integer('dosen_id');
+            $jenis_dosen = strtolower(trim((string) $request->input('jenis_dosen')));
 
             // Ambil data KRS berdasarkan id dengan relasi terkait
             $krs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.programStudi', 'tahunAjaran'])
@@ -164,18 +162,20 @@ class EdomController extends Controller
             // Ambil kurikulum_id dari KRS
             $kurikulum_id = $krs->kurikulum_id;
 
-            // Periksa apakah mahasiswa sudah mengisi penilaian
-            $existingPenilaian = \DB::table('penilaian')
-                ->where('mahasiswa_id', auth('mahasiswa')->id())
-                ->where('dosen_id', $dosen_id)
-                ->where('kurikulum_id', $kurikulum_id) // Menggunakan kurikulum dari KRS
-                ->exists();
+            $jenis_kelas = $this->normalizeJenisKelas($krs->mahasiswa?->kelas ?? auth('mahasiswa')->user()?->kelas);
 
-            // Ambil data jenis_dosen dari tabel dosen_mata_kuliah
-            $dosenData = \DB::table('dosen_mata_kuliah')
+            // Pastikan dosen memang ditugaskan pada metode dan kelas mahasiswa ini.
+            $dosenData = DB::table('dosen_mata_kuliah')
                 ->where('kurikulum_id', $kurikulum_id)
                 ->where('dosen_id', $dosen_id)
-                ->select('dosen_id', 'jenis_dosen')
+                ->whereRaw('LOWER(jenis_dosen) = ?', [$jenis_dosen])
+                ->where(function ($query) use ($jenis_kelas, $jenis_dosen) {
+                    $query->whereRaw('LOWER(COALESCE(jenis_kelas, "")) = ?', [$jenis_kelas]);
+                    if ($jenis_kelas === 'reguler' && $jenis_dosen === 'praktik') {
+                        $query->orWhereNull('jenis_kelas')->orWhere('jenis_kelas', '');
+                    }
+                })
+                ->select('dosen_id', 'jenis_dosen', 'jenis_kelas')
                 ->first();
 
             if (! $dosenData) {
@@ -186,12 +186,23 @@ class EdomController extends Controller
 
             // Masukkan jenis_dosen ke dalam $dosen
             $dosen->jenis_dosen = $dosenData->jenis_dosen;
+            $jenis_kelas = $this->normalizeJenisKelas($dosenData->jenis_kelas) ?? $jenis_kelas;
 
-            // Cek apakah mahasiswa sudah mengisi saran
-            $existingSaran = \DB::table('saran')
+            $existingPenilaian = DB::table('penilaian')
                 ->where('mahasiswa_id', auth('mahasiswa')->id())
                 ->where('dosen_id', $dosen_id)
-                ->where('kurikulum_id', $kurikulum_id) // Menggunakan kurikulum dari KRS
+                ->where('kurikulum_id', $kurikulum_id)
+                ->where('jenis_dosen', $jenis_dosen)
+                ->where('jenis_kelas', $jenis_kelas)
+                ->exists();
+
+            // Cek apakah mahasiswa sudah mengisi saran
+            $existingSaran = DB::table('saran')
+                ->where('mahasiswa_id', auth('mahasiswa')->id())
+                ->where('dosen_id', $dosen_id)
+                ->where('kurikulum_id', $kurikulum_id)
+                ->where('jenis_dosen', $jenis_dosen)
+                ->where('jenis_kelas', $jenis_kelas)
                 ->exists();
 
             if ($existingPenilaian || $existingSaran) {
@@ -210,6 +221,7 @@ class EdomController extends Controller
                 'dosen' => $dosen,
                 'evaluasis' => $evaluasis,
                 'jenis_dosen' => $dosenData->jenis_dosen,
+                'jenis_kelas' => $jenis_kelas,
                 'title' => 'Formulir EDOM', // Judul halaman
             ]);
         } catch (ModelNotFoundException $e) {
@@ -223,6 +235,7 @@ class EdomController extends Controller
     public function submit(Request $request, $krs_id, $dosen_id)
     {
         $mahasiswaId = auth('mahasiswa')->id();
+        $jenisDosen = strtolower(trim((string) $request->input('jenis_dosen')));
 
         // Cari data KRS berdasarkan ID
         $krs = Krs::with('kurikulum')
@@ -236,30 +249,42 @@ class EdomController extends Controller
 
         // Ambil `kurikulum_id` dari `KRS`
         $kurikulum_id = $krs->kurikulum_id;
+        $jenisKelas = $this->normalizeJenisKelas(auth('mahasiswa')->user()?->kelas);
+
+        $assignment = DB::table('dosen_mata_kuliah')
+            ->where('kurikulum_id', $kurikulum_id)
+            ->where('dosen_id', $dosen_id)
+            ->whereRaw('LOWER(jenis_dosen) = ?', [$jenisDosen])
+            ->where(function ($query) use ($jenisKelas, $jenisDosen) {
+                $query->whereRaw('LOWER(COALESCE(jenis_kelas, "")) = ?', [$jenisKelas]);
+                if ($jenisKelas === 'reguler' && $jenisDosen === 'praktik') {
+                    $query->orWhereNull('jenis_kelas')->orWhere('jenis_kelas', '');
+                }
+            })
+            ->first(['jenis_dosen', 'jenis_kelas']);
+
+        if (! $assignment) {
+            return redirect()
+                ->route('mahasiswa.edom.index', array_filter(['ta_id' => $request->integer('ta_id')]))
+                ->with('error', 'Penugasan dosen tidak sesuai dengan kelas mahasiswa.');
+        }
+
+        $jenisDosen = strtolower((string) $assignment->jenis_dosen);
+        $jenisKelas = $this->normalizeJenisKelas($assignment->jenis_kelas) ?? $jenisKelas;
 
         // 🛡️ Proteksi duplikasi: cek apakah sudah pernah submit untuk kombinasi ini
         $alreadySubmitted = DB::table('penilaian')
             ->where('mahasiswa_id', $mahasiswaId)
             ->where('dosen_id', $dosen_id)
             ->where('kurikulum_id', $kurikulum_id)
+            ->where('jenis_dosen', $jenisDosen)
+            ->where('jenis_kelas', $jenisKelas)
             ->exists();
 
         if ($alreadySubmitted) {
             Alert::error('Error', 'Anda sudah mengisi evaluasi untuk dosen ini. Data tidak dapat diubah.');
 
             return redirect()->route('mahasiswa.edom.index', array_filter(['ta_id' => $request->integer('ta_id')]));
-        }
-
-        // Cari jenis_dosen dari tabel pivot `dosen_mata_kuliah`
-        $jenisDosen = DB::table('dosen_mata_kuliah')
-            ->where('kurikulum_id', $kurikulum_id)
-            ->where('dosen_id', $dosen_id)
-            ->value('jenis_dosen');
-
-        if (! $jenisDosen) {
-            return redirect()
-                ->route('mahasiswa.edom.index', array_filter(['ta_id' => $request->integer('ta_id')]))
-                ->with('error', 'Jenis dosen tidak ditemukan.');
         }
 
         // Validasi input form
@@ -303,6 +328,7 @@ class EdomController extends Controller
                     'evaluasi_id' => $evaluasi_id,
                     'nilai' => $nilai,
                     'jenis_dosen' => $jenisDosen,
+                    'jenis_kelas' => $jenisKelas,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -318,6 +344,7 @@ class EdomController extends Controller
                 'kurikulum_id' => $kurikulum_id,
                 'saran' => $validatedData['suggestion'],
                 'jenis_dosen' => $jenisDosen,
+                'jenis_kelas' => $jenisKelas,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -395,18 +422,18 @@ class EdomController extends Controller
                     });
                 }
             })
-            ->select('dosen_id', 'kurikulum_id')
+            ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
             ->distinct()
             ->get()
-            ->map(fn ($row) => $row->dosen_id.'-'.$row->kurikulum_id);
+            ->map(fn ($row) => $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas));
 
         $filledPairs = DB::table('penilaian')
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereIn('kurikulum_id', $kurikulumIds)
-            ->select('dosen_id', 'kurikulum_id')
+            ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
             ->distinct()
             ->get()
-            ->map(fn ($row) => $row->dosen_id.'-'.$row->kurikulum_id);
+            ->map(fn ($row) => $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas));
 
         $belumTerisi = $requiredPairs->diff($filledPairs)->count();
         if ($requiredPairs->isEmpty() || $belumTerisi > 0) {
@@ -433,5 +460,23 @@ class EdomController extends Controller
         Alert::success('Berhasil', 'Konfirmasi EDOM berhasil!');
 
         return redirect()->route('mahasiswa.edom.index', $redirectParameters);
+    }
+
+    private function normalizeJenisKelas(?string $jenisKelas): string
+    {
+        return match (strtolower(trim((string) $jenisKelas))) {
+            'karyawan', 'reguler b' => 'karyawan',
+            default => 'reguler',
+        };
+    }
+
+    private function edomKey($dosenId, $kurikulumId, ?string $jenisDosen, ?string $jenisKelas): string
+    {
+        return implode('|', [
+            (int) $dosenId,
+            (int) $kurikulumId,
+            strtolower(trim((string) $jenisDosen)),
+            $this->normalizeJenisKelas($jenisKelas),
+        ]);
     }
 }

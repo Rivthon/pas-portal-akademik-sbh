@@ -55,4 +55,13 @@ class JadwalPraktik extends Model
     {
         return $this->hasMany(AbsensiPraktik::class, 'jadwal_praktik_id', 'id');
     }
+
+    public function scopeAssignedToDosen($query, $dosenId, string $jenisDosen = 'praktik')
+    {
+        return $query->whereHas('kurikulum.dosenToMatakuliah', function ($assignment) use ($dosenId, $jenisDosen) {
+            $assignment->where('dosen_id', $dosenId)
+                ->whereRaw('LOWER(jenis_dosen) = ?', [strtolower($jenisDosen)])
+                ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal_praktik.jenis_kelas)');
+        });
+    }
 }

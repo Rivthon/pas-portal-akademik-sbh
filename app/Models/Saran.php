@@ -21,6 +21,10 @@ class Saran extends Model
         'mahasiswa_id',
         'dosen_id',
         'saran',
+        'krs_id',
+        'kurikulum_id',
+        'jenis_dosen',
+        'jenis_kelas',
     ];
 
     // Relasi ke model Evaluasi

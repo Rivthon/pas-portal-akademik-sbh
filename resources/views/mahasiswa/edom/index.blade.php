@@ -142,7 +142,7 @@
                                                                 <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
                                                             </div>
                                                         @else
-                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'jenis_dosen' => $dosen['jenis_dosen'], 'jenis_kelas' => $dosen['jenis_kelas'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                                                                 <div class="d-flex align-items-center text-warning">
                                                                     <i class="bx bx-user me-2 fs-4"></i>
                                                                     <span class="fw-bold">{{ $dosen['nama'] }}</span>
@@ -178,7 +178,7 @@
                                                                 <i class="bx bxs-check-circle text-success fs-3 flex-shrink-0"></i>
                                                             </div>
                                                         @else
-                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                                                            <a href="{{ route('mahasiswa.edom.form', ['krs_id' => $kurikulum['krs_id'], 'dosen_id' => $dosen['id'], 'jenis_dosen' => $dosen['jenis_dosen'], 'jenis_kelas' => $dosen['jenis_kelas'], 'ta_id' => $selectedTaId]) }}" class="p-3 border rounded border-warning bg-label-warning d-flex justify-content-between align-items-center text-decoration-none" style="transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                                                                 <div class="d-flex align-items-center text-warning">
                                                                     <i class="bx bx-user me-2 fs-4"></i>
                                                                     <span class="fw-bold">{{ $dosen['nama'] }}</span>
