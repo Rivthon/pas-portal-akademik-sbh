@@ -378,6 +378,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/mahasiswa/{id}/update-dosen', [MahasiswaController::class, 'updateDosen'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateDosen');
         Route::put('/mahasiswa/{mahasiswa}/update-kelas', [MahasiswaController::class, 'updateKelas'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.updateKelas');
         Route::post('/mahasiswa/update-kelas-massal', [MahasiswaController::class, 'bulkUpdateKelas'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.bulkUpdateKelas');
+        Route::post('/mahasiswa/update-status-massal', [MahasiswaController::class, 'bulkUpdateStatus'])->middleware('permission:mahasiswa-edit')->name('mahasiswa.bulkUpdateStatus');
         Route::put('/mahasiswa/search-dosen', [MahasiswaController::class, 'searchDosen'])->middleware('permission:mahasiswa-list')->name('mahasiswa.searchDosen');
 
         Route::get('/export', [MahasiswaController::class, 'exportExcel'])->middleware('permission:mahasiswa-export')->name('export');

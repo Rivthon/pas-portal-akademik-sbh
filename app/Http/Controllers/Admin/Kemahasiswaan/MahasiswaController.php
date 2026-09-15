@@ -14,6 +14,7 @@ use App\Models\ProgramStudi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -46,51 +47,9 @@ class MahasiswaController extends Controller
     private function searchMahasiswa(Request $request)
     {
         // Ambil input pencarian
-        $search = $request->input('search');
-        $programStudi = $request->input('jurusan_id');
-        $tahunMasuk = $request->input('tahun_masuk');
-        $status = $request->input('status');
-        $kelas = $request->input('kelas');
         $dosen = Dosen::all();
-        // Query mahasiswa dengan relasi program studi
-        $query = Mahasiswa::with('programStudi');
-
-        // Jika ada input pencarian umum
-        if ($search) {
-            $keywords = explode(' ', $search);
-            $query->where(function ($q) use ($keywords) {
-                foreach ($keywords as $keyword) {
-                    $q->orWhere('nama', 'like', '%'.$keyword.'%')
-                        ->orWhere('nim', 'like', '%'.$keyword.'%')
-                        ->orWhere('tahun_masuk', 'like', '%'.$keyword.'%')
-                        ->orWhere('status_mhs', 'like', '%'.$keyword.'%')
-                        ->orWhereHas('programStudi', function ($subQuery) use ($keyword) {
-                            $subQuery->where('nama', 'like', '%'.$keyword.'%');
-                        });
-                }
-            });
-        }
-
-        // Jika ada filter program studi
-        if ($request->filled('jurusan_id')) {
-            $query->where('jurusan_id', $programStudi);
-        }
-
-        // Jika ada filter tahun masuk
-        if ($request->filled('tahun_masuk')) {
-            $query->where('tahun_masuk', $tahunMasuk);
-        }
-
-        // Jika ada filter status mahasiswa
-        if ($request->filled('status')) {
-            $query->where('status_mhs', $status);
-        }
-
-        if ($request->filled('kelas')) {
-            $kelas === 'pagi'
-                ? $query->whereIn('kelas', ['pagi', 'reguler', 'regular'])
-                : $query->where('kelas', 'karyawan');
-        }
+        // Query mahasiswa dengan filter yang juga dipakai oleh aksi massal.
+        $query = $this->mahasiswaFilterQuery($request)->with('programStudi');
 
         // Mahasiswa lulus ditempatkan setelah mahasiswa aktif/non-lulus.
         $mahasiswa = $query->orderByRaw("CASE WHEN status_mhs = 'lulus' THEN 1 WHEN status_mhs = 'nonaktif' THEN 2 ELSE 0 END")->orderBy('nama')->paginate(15)->withQueryString();
@@ -99,6 +58,7 @@ class MahasiswaController extends Controller
         return response()->json([
             'html' => view('admin.kemahasiswaan.mahasiswa.partials_list', compact('mahasiswa', 'dosen'))->render(),
             'pagination' => $mahasiswa->links('pagination::bootstrap-4')->render(),
+            'total' => $mahasiswa->total(),
         ]);
     }
 
@@ -110,9 +70,10 @@ class MahasiswaController extends Controller
         $tahunMasuk = $request->input('tahun_masuk');
         $status = $request->input('status');
         $kelas = $request->input('kelas');
+        $nimPrefix = $request->input('nim_prefix');
 
         // Simpan semua filter dalam array
-        $filters = compact('search', 'programStudi', 'tahunMasuk', 'status', 'kelas');
+        $filters = compact('search', 'programStudi', 'tahunMasuk', 'status', 'kelas', 'nimPrefix');
 
         try {
             // Export ke Excel
@@ -400,6 +361,104 @@ class MahasiswaController extends Controller
             'message' => $updated.' mahasiswa berhasil diklasifikasikan sebagai '.$label.'.',
             'updated' => $updated,
         ]);
+    }
+
+    public function bulkUpdateStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'scope' => 'required|in:selected,filtered',
+            'status_mhs' => 'required|in:aktif,nonaktif,lulus,dropout,cuti',
+            'mahasiswa_ids' => 'required_if:scope,selected|array|max:500',
+            'mahasiswa_ids.*' => 'integer|distinct|exists:mahasiswa,mahasiswa_id',
+            'search' => 'nullable|string|max:100',
+            'nim_prefix' => ['nullable', 'string', 'regex:/^[0-9]{2,20}$/'],
+            'jurusan_id' => 'nullable|integer|exists:program_studi,jurusan_id',
+            'tahun_masuk' => 'nullable|integer|min:1900|max:'.(date('Y') + 1),
+            'status' => 'nullable|in:aktif,nonaktif,lulus,dropout,cuti,Aktif,Nonaktif,Lulus,Dropout,Cuti',
+            'kelas' => 'nullable|in:pagi,karyawan',
+        ]);
+
+        if ($validated['scope'] === 'filtered' && ! $this->hasMahasiswaFilter($request)) {
+            return response()->json([
+                'message' => 'Gunakan minimal satu filter sebelum menerapkan status ke seluruh hasil pencarian.',
+            ], 422);
+        }
+
+        $query = $validated['scope'] === 'filtered'
+            ? $this->mahasiswaFilterQuery($request)
+            : Mahasiswa::query()->whereIn('mahasiswa_id', $validated['mahasiswa_ids']);
+
+        $targetCount = (clone $query)->count();
+        if ($targetCount === 0) {
+            return response()->json(['message' => 'Tidak ada mahasiswa yang sesuai untuk diperbarui.'], 422);
+        }
+
+        $updated = DB::transaction(fn () => $query
+            ->where('status_mhs', '!=', $validated['status_mhs'])
+            ->update([
+                'status_mhs' => $validated['status_mhs'],
+                'updated_at' => now(),
+            ]));
+
+        activity_log(
+            'bulk_update_status_mahasiswa',
+            'Admin mengubah status '.$targetCount.' mahasiswa menjadi '.$validated['status_mhs']
+                .' melalui pilihan '.($validated['scope'] === 'filtered' ? 'seluruh hasil filter' : 'baris terpilih')
+        );
+
+        return response()->json([
+            'message' => $targetCount.' mahasiswa diproses: '.$updated.' status diperbarui dan '
+                .($targetCount - $updated).' sudah berstatus '.ucfirst($validated['status_mhs']).'.',
+            'target_count' => $targetCount,
+            'updated' => $updated,
+        ]);
+    }
+
+    private function mahasiswaFilterQuery(Request $request)
+    {
+        $query = Mahasiswa::query();
+        $search = trim((string) $request->input('search'));
+
+        if ($request->filled('nim_prefix')) {
+            $query->where('nim', 'like', trim((string) $request->input('nim_prefix')).'%');
+        }
+
+        if ($search !== '') {
+            $keywords = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            $query->where(function ($q) use ($keywords) {
+                foreach ($keywords as $keyword) {
+                    $q->orWhere('nama', 'like', '%'.$keyword.'%')
+                        ->orWhere('nim', 'like', '%'.$keyword.'%')
+                        ->orWhere('tahun_masuk', 'like', '%'.$keyword.'%')
+                        ->orWhere('status_mhs', 'like', '%'.$keyword.'%')
+                        ->orWhereHas('programStudi', fn ($programStudi) => $programStudi
+                            ->where('nama', 'like', '%'.$keyword.'%'));
+                }
+            });
+        }
+
+        if ($request->filled('jurusan_id')) {
+            $query->where('jurusan_id', $request->input('jurusan_id'));
+        }
+        if ($request->filled('tahun_masuk')) {
+            $query->where('tahun_masuk', $request->input('tahun_masuk'));
+        }
+        if ($request->filled('status')) {
+            $query->where('status_mhs', strtolower((string) $request->input('status')));
+        }
+        if ($request->filled('kelas')) {
+            $request->input('kelas') === 'pagi'
+                ? $query->whereIn('kelas', ['pagi', 'reguler', 'regular'])
+                : $query->where('kelas', 'karyawan');
+        }
+
+        return $query;
+    }
+
+    private function hasMahasiswaFilter(Request $request): bool
+    {
+        return collect(['search', 'nim_prefix', 'jurusan_id', 'tahun_masuk', 'status', 'kelas'])
+            ->contains(fn ($filter) => $request->filled($filter));
     }
 
     public function importExcel(Request $request): RedirectResponse

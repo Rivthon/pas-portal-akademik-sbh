@@ -34,6 +34,10 @@ class MahasiswaExport implements FromView
             });
         }
 
+        if (! empty($this->filters['nimPrefix'])) {
+            $query->where('nim', 'like', trim((string) $this->filters['nimPrefix']).'%');
+        }
+
         if (! empty($this->filters['programStudi'])) {
             $query->where('jurusan_id', $this->filters['programStudi']);
         }

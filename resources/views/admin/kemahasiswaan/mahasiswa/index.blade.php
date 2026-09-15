@@ -77,6 +77,12 @@
                     <input type="text" id="search" class="form-control border-primary text-primary" placeholder="Ketik Nama / NIM...">
                 </div>
 
+                <!-- <div class="col-md-4"> -->
+                    <label for="nim-prefix" class="form-label fw-bold text-primary" hidden><i class="bx bx-id-card"></i> Awalan NIM</label>
+                    <input type="text" id="nim-prefix" class="form-control border-primary text-primary" inputmode="numeric" placeholder="Contoh: 0122" maxlength="20" hidden>
+                    <!-- <small class="text-muted">Hanya NIM yang dimulai dengan angka ini.</small> -->
+                <!-- </div> -->
+
                 <!-- Program Studi -->
                 <div class="col-md-2">
                     <label class="form-label fw-bold text-primary"><i class="bx bx-book"></i> Program Studi</label>
@@ -143,6 +149,36 @@
         <div class="card border shadow-none mb-3">
             <div class="card-body py-3">
                 <div class="row align-items-end g-2">
+                    <div class="col-md-4">
+                        <label for="bulk-status" class="form-label fw-semibold mb-1">Ubah status mahasiswa</label>
+                        <select id="bulk-status" class="form-select">
+                            <option value="">-- Pilih status tujuan --</option>
+                            <option value="lulus">Lulus</option>
+                            <option value="aktif">Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                            <option value="cuti">Cuti</option>
+                            <option value="dropout">Dropout</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="bulk-status-scope" class="form-label fw-semibold mb-1">Cakupan perubahan</label>
+                        <select id="bulk-status-scope" class="form-select">
+                            <option value="selected">Mahasiswa yang dicentang (halaman ini)</option>
+                            <option value="filtered">Semua hasil filter (seluruh halaman)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" id="bulk-status-btn" class="btn btn-outline-primary w-100">
+                            <i class="bx bx-user-check me-1"></i>Terapkan Status Massal
+                        </button>
+                    </div>
+                </div>
+                <small id="bulk-status-hint" class="text-muted">Centang baris pada tabel untuk mengubah status halaman ini. Untuk NIM seperti 0122, terapkan filter lalu pilih “Semua hasil filter” agar seluruh halaman ikut diproses.</small>
+            </div>
+        </div>
+        <div class="card border shadow-none mb-3">
+            <div class="card-body py-3">
+                <div class="row align-items-end g-2">
                     <div class="col-md-8">
                         <label for="bulk-kelas" class="form-label fw-semibold mb-1">Klasifikasi mahasiswa terpilih</label>
                         <select id="bulk-kelas" class="form-select">
@@ -175,13 +211,25 @@
 @push('script')
 <script>
 $(document).ready(function () {
+    let appliedFilters = null;
+    let filteredTotal = 0;
+
+    function currentFilters() {
+        return {
+            search: $('#search').val().trim(),
+            nim_prefix: $('#nim-prefix').val().trim(),
+            jurusan_id: $('#program-studi').val(),
+            tahun_masuk: $('#tahun-masuk').val(),
+            status: $('#status').val(),
+            kelas: $('#kelas').val()
+        };
+    }
+
     // Fungsi untuk Fetch Data Mahasiswa
     function fetchMahasiswa(url) {
-        var search = $('#search').val();
-        var programStudi = $('#program-studi').val();
-        var tahunMasuk = $('#tahun-masuk').val();
-        var status = $('#status').val();
-        var kelas = $('#kelas').val();
+        const filters = currentFilters();
+        appliedFilters = null;
+        filteredTotal = 0;
 
         // Menampilkan loading indicator
         $('#table-container').html('<div class="text-center my-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Memuat data...</div>');
@@ -189,17 +237,14 @@ $(document).ready(function () {
         $.ajax({
             url: url,
             type: 'GET',
-            data: {
-                search: search,
-                jurusan_id: programStudi,
-                tahun_masuk: tahunMasuk,
-                status: status,
-                kelas: kelas
-            },
+            data: filters,
             dataType: 'json',
             success: function (response) {
                 $('#table-container').html(response.html);
                 $('#pagination-container').html(response.pagination);
+                appliedFilters = filters;
+                filteredTotal = Number(response.total) || 0;
+                $('#bulk-status-hint').text(`${filteredTotal} mahasiswa sesuai filter. Centang baris pada halaman ini, atau pilih “Semua hasil filter” untuk seluruh halaman.`);
             },
             error: function (xhr) {
                 $('#table-container').html('<div class="alert alert-danger">Terjadi kesalahan saat memuat data.</div>');
@@ -215,6 +260,70 @@ $(document).ready(function () {
 
     $(document).on('change', '#select-all-mahasiswa', function () {
         $('.mahasiswa-checkbox').prop('checked', this.checked);
+    });
+
+    $(document).on('change', '.mahasiswa-checkbox', function () {
+        const checkboxes = $('.mahasiswa-checkbox');
+        $('#select-all-mahasiswa').prop('checked', checkboxes.length > 0 && checkboxes.filter(':checked').length === checkboxes.length);
+    });
+
+    $('#bulk-status-btn').on('click', function () {
+        const status = $('#bulk-status').val();
+        const scope = $('#bulk-status-scope').val();
+        const selectedIds = $('.mahasiswa-checkbox:checked').map(function () {
+            return Number(this.value);
+        }).get();
+
+        if (!status || !appliedFilters || JSON.stringify(appliedFilters) !== JSON.stringify(currentFilters())) {
+            showStatusAlert('warning', 'Pilih status dan terapkan filter terbaru terlebih dahulu.');
+            return;
+        }
+
+        if (scope === 'selected' && selectedIds.length === 0) {
+            showStatusAlert('warning', 'Centang minimal satu mahasiswa pada tabel.');
+            return;
+        }
+
+        if (scope === 'filtered' && (!Object.values(appliedFilters).some(Boolean) || filteredTotal === 0)) {
+            showStatusAlert('warning', 'Pencarian massal memerlukan minimal satu filter dengan hasil mahasiswa.');
+            return;
+        }
+
+        const targetCount = scope === 'filtered' ? filteredTotal : selectedIds.length;
+        const label = $('#bulk-status option:selected').text();
+        const detail = scope === 'filtered'
+            ? `seluruh ${targetCount} mahasiswa hasil filter pada semua halaman`
+            : `${targetCount} mahasiswa yang dicentang di halaman ini`;
+
+        if (!confirm(`Ubah status ${detail} menjadi ${label}? Periksa kembali filter dan pilihan Anda.`)) {
+            return;
+        }
+
+        const button = $(this);
+        $.ajax({
+            url: "{{ route('admin.mahasiswa.bulkUpdateStatus') }}",
+            type: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                scope: scope,
+                status_mhs: status,
+                mahasiswa_ids: scope === 'selected' ? selectedIds : [],
+                ...appliedFilters
+            },
+            beforeSend: function () {
+                button.prop('disabled', true);
+            },
+            success: function (response) {
+                showStatusAlert('success', response.message);
+                fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
+            },
+            error: function (xhr) {
+                showStatusAlert('danger', xhr.responseJSON?.message || 'Gagal memperbarui status mahasiswa.');
+            },
+            complete: function () {
+                button.prop('disabled', false);
+            }
+        });
     });
 
     $(document).on('change', '.kelas-dropdown', function () {
@@ -287,7 +396,7 @@ $(document).ready(function () {
     });
 
     // Event ketika menekan Enter di input pencarian
-    $('#search').on('keypress', function (e) {
+    $('#search, #nim-prefix').on('keypress', function (e) {
         if (e.which === 13) { // 13 = Enter
             fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
         }
@@ -402,18 +511,19 @@ $(document).ready(function () {
 
         const baseUrl = $('#export-url').val();
         const search = $('#search').val();
+        const nimPrefix = $('#nim-prefix').val();
         const programStudi = $('#program-studi').val();
         const tahunMasuk = $('#tahun-masuk').val();
         const status = $('#status').val();
         const kelas = $('#kelas').val();
 
-        if (!search && !programStudi && !tahunMasuk && !status && !kelas) {
+        if (!search && !nimPrefix && !programStudi && !tahunMasuk && !status && !kelas) {
             if (!confirm("Tidak ada filter diterapkan. Apakah Anda yakin ingin mengekspor semua data mahasiswa?")) {
                 return;
             }
         }
 
-        const exportUrl = `${baseUrl}?search=${encodeURIComponent(search)}&jurusan_id=${programStudi}&tahun_masuk=${tahunMasuk}&status=${status}&kelas=${kelas}`;
+        const exportUrl = `${baseUrl}?search=${encodeURIComponent(search)}&nim_prefix=${encodeURIComponent(nimPrefix)}&jurusan_id=${programStudi}&tahun_masuk=${tahunMasuk}&status=${status}&kelas=${kelas}`;
 
         window.location.href = exportUrl;
     });
