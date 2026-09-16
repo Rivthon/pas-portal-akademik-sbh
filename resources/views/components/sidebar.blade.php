@@ -230,7 +230,7 @@
             {{-- Manajemen Penilaian --}}
             @canany(['evaluasi-list', 'input-nilai', 'list-nilai', 'list-uap', 'nilai-publish'])
                 <li
-                    class="menu-item @if(Route::is('admin.penilaian.index') || Route::is('admin.cek-nilai.*') || Route::is('admin.nilai.index') || Route::is('admin.nilai-publish.*') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index') || Route::is('admin.uap.index')) active open @endif">
+                    class="menu-item @if(Route::is('admin.penilaian.*') || Route::is('admin.cek-nilai.*') || Route::is('admin.nilai.index') || Route::is('admin.nilai-publish.*') || Route::is('admin.transkrip.index') || Route::is('admin.input-nilai.index') || Route::is('admin.uap.index')) active open @endif">
                     <a href="javascript:void(0);" class="menu-link menu-toggle">
                         <i class="menu-icon tf-icons bx bxs-file-archive"></i>
                         <div data-i18n="Manajemen Penilaian">Manajemen Penilaian</div>
@@ -244,6 +244,9 @@
                                 <a href="{{ route('admin.penilaian.index') }}" class="menu-link">
                                     <div data-i18n="Penilaian Dosen">Penilaian Dosen</div>
                                 </a>
+                            </li>
+                            <li class="menu-item @if(Route::is('admin.penilaian.overview')) active @endif">
+                                <a href="{{ route('admin.penilaian.overview') }}" class="menu-link"><div>Ringkasan EDOM</div></a>
                             </li>
                         @endcan
                         @can('input-nilai')

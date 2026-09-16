@@ -9,6 +9,7 @@
             <p class="text-muted mb-0">Analisis presisi dan laporan performa dosen untuk semester akademik berjalan.</p>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ route('admin.penilaian.overview') }}" class="btn btn-primary"><i class="bx bx-bar-chart-alt-2 me-1"></i>Ringkasan EDOM</a>
             <form action="{{ route('admin.reset.edom') }}" method="POST" id="resetEdomForm">
                 @csrf
                 <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmResetEdom()">

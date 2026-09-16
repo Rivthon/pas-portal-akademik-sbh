@@ -547,6 +547,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::get('/penilaian', [PenilaianController::class, 'index'])->name('penilaian.index');
+        Route::get('/penilaian/ringkasan', [PenilaianController::class, 'overview'])->name('penilaian.overview');
         Route::get('/penilaian/get-kurikulum', [PenilaianController::class, 'getKurikulumAjax'])->name('penilaian.getKurikulum');
         Route::get('/penilaian/get-dosen', [PenilaianController::class, 'getDosenAjax'])->name('penilaian.getDosen');
         Route::get('/penilaian/detail/{dosen_id}/{kurikulum_id}/{jenis_dosen}', [PenilaianController::class, 'detail'])->name('penilaian.detail');

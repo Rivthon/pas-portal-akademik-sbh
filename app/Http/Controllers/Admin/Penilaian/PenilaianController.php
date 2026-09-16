@@ -21,7 +21,7 @@ class PenilaianController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:evaluasi-list', ['only' => ['index', 'detail', 'getKurikulumAjax', 'getDosenAjax', 'cetakRegistry', 'cetakPdf']]);
+        $this->middleware('permission:evaluasi-list', ['only' => ['index', 'overview', 'detail', 'getKurikulumAjax', 'getDosenAjax', 'cetakRegistry', 'cetakPdf']]);
         $this->middleware('permission:penilaian-reset-edom', ['only' => ['resetEdom', 'setupEdom']]);
     }
 
@@ -109,6 +109,72 @@ class PenilaianController extends Controller
             'tahunAjaran', 'programStudi', 'kurikulumList', 'dosenList',
             'ta_id', 'jurusan_id', 'kurikulum_id', 'dosen_id', 'jenis_dosen', 'jenis_kelas',
             'assignments', 'sarans'
+        ));
+    }
+
+    public function overview(Request $request)
+    {
+        $search = trim((string) $request->input('search'));
+        $jurusanId = $request->integer('jurusan_id') ?: null;
+        $sort = in_array($request->input('sort'), ['highest', 'lowest', 'name'], true)
+            ? $request->input('sort')
+            : 'highest';
+
+        $dosenRows = Dosen::query()
+            ->leftJoin('program_studi', 'program_studi.jurusan_id', '=', 'dosen.jurusan_id')
+            ->leftJoin('penilaian', 'penilaian.dosen_id', '=', 'dosen.dosen_id')
+            ->leftJoin('kurikulum', 'kurikulum.kurikulum_id', '=', 'penilaian.kurikulum_id')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('dosen.nama', 'like', '%'.$search.'%')
+                        ->orWhere('dosen.nidn', 'like', '%'.$search.'%')
+                        ->orWhere('dosen.kd_dosen', 'like', '%'.$search.'%');
+                });
+            })
+            ->when($jurusanId, fn ($query) => $query->where('dosen.jurusan_id', $jurusanId))
+            ->select([
+                'dosen.dosen_id',
+                'dosen.nama',
+                'dosen.nidn',
+                'dosen.kd_dosen',
+                'dosen.status_dosen',
+                'program_studi.nama as program_studi',
+                DB::raw('ROUND(AVG(CAST(penilaian.nilai AS DECIMAL(10,2))), 2) as rata_rata_edom'),
+                DB::raw("COUNT(DISTINCT CONCAT(penilaian.mahasiswa_id, '|', penilaian.kurikulum_id, '|', COALESCE(penilaian.jenis_dosen, ''), '|', COALESCE(penilaian.jenis_kelas, ''))) as jumlah_formulir"),
+                DB::raw('COUNT(DISTINCT penilaian.mahasiswa_id) as jumlah_mahasiswa'),
+                DB::raw('COUNT(DISTINCT kurikulum.ta_id) as jumlah_tahun_ajaran'),
+            ])
+            ->groupBy(
+                'dosen.dosen_id',
+                'dosen.nama',
+                'dosen.nidn',
+                'dosen.kd_dosen',
+                'dosen.status_dosen',
+                'program_studi.nama'
+            )
+            ->when($sort === 'highest', fn ($query) => $query
+                ->orderByRaw('AVG(penilaian.nilai) IS NULL')
+                ->orderByDesc('rata_rata_edom'))
+            ->when($sort === 'lowest', fn ($query) => $query
+                ->orderByRaw('AVG(penilaian.nilai) IS NULL')
+                ->orderBy('rata_rata_edom'))
+            ->when($sort === 'name', fn ($query) => $query->orderBy('dosen.nama'))
+            ->orderBy('dosen.nama')
+            ->paginate(20)
+            ->withQueryString();
+
+        $statistics = $this->edomCompletionStatistics();
+        $programStudi = ProgramStudi::query()->orderBy('nama')->get(['jurusan_id', 'nama']);
+
+        activity_log('lihat_ringkasan_edom', 'Admin melihat ringkasan nilai dan statistik pengisian EDOM');
+
+        return view('admin.penilaian.penilaian.overview', compact(
+            'dosenRows',
+            'statistics',
+            'programStudi',
+            'search',
+            'jurusanId',
+            'sort'
         ));
     }
 
@@ -382,6 +448,57 @@ class PenilaianController extends Controller
         Alert::success('Success', 'EDOM telah dipulihkan kembali.');
 
         return redirect()->back();
+    }
+
+    private function edomCompletionStatistics(): array
+    {
+        // Satu baris jawaban per pertanyaan tidak boleh dihitung sebagai satu formulir.
+        $submitted = DB::table('penilaian')
+            ->select('mahasiswa_id', 'kurikulum_id', 'dosen_id', 'jenis_dosen', 'jenis_kelas')
+            ->distinct()->get()->mapWithKeys(fn ($row) => [
+                $row->mahasiswa_id.'|'.$this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas) => true,
+            ]);
+
+        $required = DB::table('krs')
+            ->join('mahasiswa', 'mahasiswa.mahasiswa_id', '=', 'krs.mahasiswa_id')
+            ->join('kurikulum', 'kurikulum.kurikulum_id', '=', 'krs.kurikulum_id')
+            ->join('dosen_mata_kuliah as assignment', 'assignment.kurikulum_id', '=', 'krs.kurikulum_id')
+            ->join('dosen', 'dosen.dosen_id', '=', 'assignment.dosen_id')
+            ->whereColumn('krs.ta_id', 'kurikulum.ta_id')
+            ->whereIn('assignment.jenis_dosen', ['teori', 'praktik'])
+            ->whereRaw("CASE WHEN LOWER(TRIM(mahasiswa.kelas)) IN ('karyawan', 'reguler b') THEN 'karyawan' ELSE 'reguler' END = CASE WHEN LOWER(TRIM(assignment.jenis_kelas)) IN ('karyawan', 'reguler b') THEN 'karyawan' ELSE 'reguler' END")
+            ->select('krs.ta_id', 'krs.mahasiswa_id', 'krs.kurikulum_id', 'assignment.dosen_id', 'assignment.jenis_dosen', 'assignment.jenis_kelas')
+            ->distinct()->get()
+            ->unique(fn ($row) => $row->ta_id.'|'.$row->mahasiswa_id.'|'.$this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas))
+            ->groupBy('ta_id');
+
+        $years = TahunAkademik::orderByDesc('ta_id')->get()->map(function ($year) use ($required, $submitted) {
+            $items = $required->get($year->ta_id, collect());
+            $filled = $items->filter(fn ($row) => $submitted->has(
+                $row->mahasiswa_id.'|'.$this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas)
+            ))->count();
+
+            return [
+                'ta_id' => $year->ta_id,
+                'label' => $year->nama.' - '.ucfirst($year->semester),
+                'active' => (bool) $year->status_ta,
+                'total' => $items->count(),
+                'filled' => $filled,
+                'unfilled' => $items->count() - $filled,
+                'percent' => $items->count() ? round($filled / $items->count() * 100, 1) : null,
+            ];
+        });
+
+        $total = $years->sum('total');
+        $filled = $years->sum('filled');
+
+        return [
+            'years' => $years,
+            'total' => $total,
+            'filled' => $filled,
+            'unfilled' => $total - $filled,
+            'percent' => $total ? round($filled / $total * 100, 1) : null,
+        ];
     }
 
     private function normalizeJenisKelas(?string $jenisKelas): ?string
