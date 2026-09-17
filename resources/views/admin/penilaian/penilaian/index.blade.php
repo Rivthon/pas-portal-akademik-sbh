@@ -10,6 +10,17 @@
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('admin.penilaian.overview') }}" class="btn btn-primary"><i class="bx bx-bar-chart-alt-2 me-1"></i>Ringkasan EDOM</a>
+            @can('penilaian-reset-edom')
+            <form action="{{ route('admin.penilaian.toggle-edom') }}" method="POST" class="d-inline"
+                onsubmit="return confirm('{{ $edomEnabled ? 'Nonaktifkan EDOM untuk seluruh mahasiswa?' : 'Aktifkan EDOM untuk seluruh mahasiswa?' }}')">
+                @csrf
+                <input type="hidden" name="enabled" value="{{ $edomEnabled ? 0 : 1 }}">
+                <button type="submit" class="btn {{ $edomEnabled ? 'btn-outline-warning' : 'btn-success' }} shadow-sm">
+                    <i class="bx {{ $edomEnabled ? 'bx-lock' : 'bx-lock-open-alt' }} me-1"></i>
+                    {{ $edomEnabled ? 'Nonaktifkan EDOM' : 'Aktifkan EDOM' }}
+                </button>
+            </form>
+            @endcan
             <form action="{{ route('admin.reset.edom') }}" method="POST" id="resetEdomForm">
                 @csrf
                 <button type="button" class="btn btn-outline-danger shadow-sm" onclick="confirmResetEdom()">
@@ -22,6 +33,14 @@
                     <i class="fas fa-check-double me-1"></i> Pulihkan Status Mhs
                 </button>
             </form>
+        </div>
+    </div>
+
+    <div class="alert {{ $edomEnabled ? 'alert-success' : 'alert-warning' }} d-flex align-items-center mb-4" role="alert">
+        <i class="bx {{ $edomEnabled ? 'bx-check-circle' : 'bx-lock-alt' }} fs-4 me-2"></i>
+        <div>
+            Akses EDOM mahasiswa saat ini <strong>{{ $edomEnabled ? 'AKTIF' : 'NONAKTIF' }}</strong>.
+            {{ $edomEnabled ? 'Mahasiswa dapat membuka dan mengisi EDOM.' : 'Menu mahasiswa terkunci dan akses langsung ke URL EDOM dialihkan ke dashboard.' }}
         </div>
     </div>
 

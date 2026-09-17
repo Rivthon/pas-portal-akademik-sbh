@@ -134,10 +134,14 @@ $user = Auth::guard('mahasiswa')->user();
             </ul>
         </li>
 
+        @php($edomEnabled = (bool) ($settings?->edom_enabled ?? true))
         <li class="menu-item {{ Route::is('mahasiswa.edom.*') ? 'active' : '' }}">
-            <a href="{{ route('mahasiswa.edom.index') }}" class="menu-link">
+            <a href="{{ $edomEnabled ? route('mahasiswa.edom.index') : '#' }}"
+                class="menu-link {{ $edomEnabled ? '' : 'disabled opacity-50' }}"
+                @unless($edomEnabled) data-bs-toggle="modal" data-bs-target="#edomClosedModal" @endunless>
                 <i class="menu-icon bx bx-message-square-check text-info"></i>
                 <span class="menu-text fw-medium">EDOM</span>
+                @unless($edomEnabled)<i class="bx bxs-lock-alt ms-auto text-warning"></i>@endunless
             </a>
         </li>
 
@@ -288,6 +292,24 @@ $user = Auth::guard('mahasiswa')->user();
                 <button type="button" class="btn btn-secondary shadow-sm rounded-pill px-4" data-bs-dismiss="modal">
                     Mengerti
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edomClosedModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold"><i class="bx bxs-lock-alt me-2"></i>EDOM Belum Dibuka</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bx bx-calendar-x text-warning mb-3" style="font-size:4rem"></i>
+                <p class="mb-0 text-muted">Pengisian EDOM belum diaktifkan oleh admin. Silakan coba kembali sesuai jadwal akademik.</p>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
             </div>
         </div>
     </div>

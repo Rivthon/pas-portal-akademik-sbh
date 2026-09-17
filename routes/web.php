@@ -168,10 +168,12 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/riwayat-nilai-ujian', [UjianController::class, 'riwayatNilaiUjian'])->name('nilai-ujian.riwayat');
         Route::get('/nilai-akhir', [UjianController::class, 'tampilkanNilaiAkhir'])->name('nilai-akhir.index');
 
-        Route::get('/edom', [EdomController::class, 'index'])->name('edom.index');
-        Route::get('/edom/form/{krs_id}', [EdomController::class, 'form'])->name('edom.form');
-        Route::post('/edom/submit/{krs_id}/{dosen_id}', [EdomController::class, 'submit'])->name('edom.submit');
-        Route::post('/edom/konfirmasi', [EdomController::class, 'konfirmasiEdom'])->name('edom.konfirmasi');
+        Route::middleware('edom.enabled')->group(function () {
+            Route::get('/edom', [EdomController::class, 'index'])->name('edom.index');
+            Route::get('/edom/form/{krs_id}', [EdomController::class, 'form'])->name('edom.form');
+            Route::post('/edom/submit/{krs_id}/{dosen_id}', [EdomController::class, 'submit'])->name('edom.submit');
+            Route::post('/edom/konfirmasi', [EdomController::class, 'konfirmasiEdom'])->name('edom.konfirmasi');
+        });
         // Absensi
         Route::get('jadwal/{jadwalId}/absensi', [App\Http\Controllers\Mahasiswa\AbsensiController::class, 'index'])->name('absensi.index');
         Route::post('absensi', [App\Http\Controllers\Mahasiswa\AbsensiController::class, 'store'])->name('absensi.store');
@@ -555,6 +557,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/penilaian/cetak-registry', [PenilaianController::class, 'cetakRegistry'])->name('penilaian.cetak-registry');
         Route::post('/mahasiswa/reset-edom', [PenilaianController::class, 'resetEdom'])->name('reset.edom');
         Route::post('/mahasiswa/setup-edom', [PenilaianController::class, 'setupEdom'])->name('setup.edom');
+        Route::post('/penilaian/toggle-edom', [PenilaianController::class, 'toggleEdom'])
+            ->middleware('permission:penilaian-reset-edom')
+            ->name('penilaian.toggle-edom');
 
         Route::patch('/tahun-ajaran/{id}/update-status', [TahunAkademikController::class, 'updateStatus'])->middleware('permission:tahun-ajaran-status')->name('tahun-ajaran.updateStatus');
         Route::post('/mahasiswa/{id}/reset-password', [MahasiswaController::class, 'resetPassword'])->middleware('permission:mahasiswa-reset-password')->name('resetPassword');

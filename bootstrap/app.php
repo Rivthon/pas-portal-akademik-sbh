@@ -2,6 +2,7 @@
 
 use App\Exceptions\InvalidOrderException;
 use App\Http\Middleware\CheckMahasiswaStatus;
+use App\Http\Middleware\EnsureEdomIsEnabled;
 use App\Http\Middleware\LogActivity;
 use App\Http\Middleware\ProgressiveLoginThrottle;
 use App\Http\Middleware\SecurityHeaders;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'mhs.status' => CheckMahasiswaStatus::class,
+            'edom.enabled' => EnsureEdomIsEnabled::class,
             'log.activity' => LogActivity::class,
             'login.progressive' => ProgressiveLoginThrottle::class,
         ]);

@@ -36,6 +36,7 @@ class PenilaianController extends Controller
 
         $tahunAjaran = TahunAkademik::orderBy('created_at', 'desc')->get();
         $programStudi = ProgramStudi::all();
+        $edomEnabled = (bool) (Setting::query()->value('edom_enabled') ?? true);
         $sarans = collect();
 
         $assignments = collect();
@@ -108,7 +109,7 @@ class PenilaianController extends Controller
         return view('admin.penilaian.penilaian.index', compact(
             'tahunAjaran', 'programStudi', 'kurikulumList', 'dosenList',
             'ta_id', 'jurusan_id', 'kurikulum_id', 'dosen_id', 'jenis_dosen', 'jenis_kelas',
-            'assignments', 'sarans'
+            'assignments', 'sarans', 'edomEnabled'
         ));
     }
 
@@ -446,6 +447,31 @@ class PenilaianController extends Controller
         activity_log('setup_edom', 'Admin mengaktifkan kembali status EDOM seluruh mahasiswa');
 
         Alert::success('Success', 'EDOM telah dipulihkan kembali.');
+
+        return redirect()->back();
+    }
+
+    public function toggleEdom(Request $request)
+    {
+        $validated = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $setting = Setting::query()->firstOrFail();
+        $enabled = (bool) $validated['enabled'];
+        $setting->update(['edom_enabled' => $enabled]);
+
+        activity_log(
+            'toggle_edom_mahasiswa',
+            'Admin '.($enabled ? 'mengaktifkan' : 'menonaktifkan').' akses EDOM mahasiswa'
+        );
+
+        Alert::success(
+            'Berhasil',
+            $enabled
+                ? 'EDOM mahasiswa telah diaktifkan dan sekarang dapat diakses.'
+                : 'EDOM mahasiswa telah dinonaktifkan.'
+        );
 
         return redirect()->back();
     }
