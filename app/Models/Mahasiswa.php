@@ -153,9 +153,16 @@ class Mahasiswa extends Authenticatable
         return $this->hasMany(Krs::class, 'mahasiswa_id', 'mahasiswa_id');
     }
 
-    public function getProfileImageURL()
+    public function getAvatarUrlAttribute(): string
     {
-        return $this->avatar ? asset('storage/'.$this->avatar) : null;
+        return $this->avatar
+            ? asset('storage/'.$this->avatar)
+            : asset('dashboard_assets/assets/img/avatars/1.png');
+    }
+
+    public function getProfileImageURL(): string
+    {
+        return $this->avatar_url;
     }
 
     public function dosen()
