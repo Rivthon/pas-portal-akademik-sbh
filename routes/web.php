@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Akademik\AbsensiController;
 use App\Http\Controllers\Admin\Akademik\AdminKrsController;
 use App\Http\Controllers\Admin\Akademik\CalendarAkademikController;
 use App\Http\Controllers\Admin\Akademik\JadwalController;
+use App\Http\Controllers\Admin\Akademik\JadwalKeseluruhanController;
 use App\Http\Controllers\Admin\Akademik\JadwalPraktikController;
 use App\Http\Controllers\Admin\Akademik\JadwalUapController;
 use App\Http\Controllers\Admin\Akademik\JadwalUasController;
@@ -454,6 +455,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/jadwal-uas/delete/{id}', [JadwalUasController::class, 'destroy'])->middleware('permission:jadwal-uas-delete')->name('jadwal-uas.destroy');
 
         Route::get('/jadwal', [JadwalController::class, 'index'])->middleware('permission:jadwal-list')->name('jadwal.index');
+        Route::get('/jadwal-keseluruhan', [JadwalKeseluruhanController::class, 'index'])->middleware('permission:jadwal-list')->name('jadwal-keseluruhan.index');
         Route::get('/jadwal/filter', [JadwalController::class, 'filter'])->middleware('permission:jadwal-list')->name('jadwal.filter');
         Route::post('/jadwal-kuliah/update/{id}', [JadwalController::class, 'update'])->middleware('permission:jadwal-edit')->name('jadwal.update');
         Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->middleware('permission:jadwal-delete')->name('jadwal.destroy');

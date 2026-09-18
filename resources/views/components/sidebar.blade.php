@@ -183,13 +183,18 @@
 
             {{-- Perkuliahan --}}
             <li
-                class="menu-item @if(Route::is('admin.jadwal.index') || Route::is('admin.jadwal-praktik.index') || Route::is('admin.jadwal-uts.index') || Route::is('admin.jadwal-uas.index') || Route::is('admin.jadwal-uap.index')) active open @endif">
+                class="menu-item @if(Route::is('admin.jadwal.index') || Route::is('admin.jadwal-keseluruhan.index') || Route::is('admin.jadwal-praktik.index') || Route::is('admin.jadwal-uts.index') || Route::is('admin.jadwal-uas.index') || Route::is('admin.jadwal-uap.index')) active open @endif">
                 <a href="javascript:void(0);" class="menu-link menu-toggle">
                     <i class="menu-icon tf-icons bx bxs-calendar"></i>
                     <div data-i18n="Perkuliahan">Perkuliahan</div>
                 </a>
                 <ul class="menu-sub">
                     @can('jadwal-list')
+                        <li class="menu-item @if(Route::is('admin.jadwal-keseluruhan.index')) active @endif">
+                            <a href="{{ route('admin.jadwal-keseluruhan.index') }}" class="menu-link">
+                                <div>Jadwal Keseluruhan</div>
+                            </a>
+                        </li>
                         <li class="menu-item @if(Route::is('admin.jadwal.index')) active @endif">
                             <a href="{{ route('admin.jadwal.index') }}" class="menu-link">
                                 <div data-i18n="Jadwal Kuliah">Jadwal Kuliah</div>
