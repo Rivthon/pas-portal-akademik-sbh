@@ -12,12 +12,12 @@
             <a href="{{ route('admin.penilaian.overview') }}" class="btn btn-primary"><i class="bx bx-bar-chart-alt-2 me-1"></i>Ringkasan EDOM</a>
             @can('penilaian-reset-edom')
             <form action="{{ route('admin.penilaian.toggle-edom') }}" method="POST" class="d-inline"
-                onsubmit="return confirm('{{ $edomEnabled ? 'Nonaktifkan EDOM untuk seluruh mahasiswa?' : 'Aktifkan EDOM untuk seluruh mahasiswa?' }}')">
+                onsubmit="return confirm('{{ $edomEnabled ? 'Nonaktifkan EDOM tahun akademik aktif untuk seluruh mahasiswa?' : 'Aktifkan EDOM tahun akademik aktif untuk seluruh mahasiswa?' }}')">
                 @csrf
                 <input type="hidden" name="enabled" value="{{ $edomEnabled ? 0 : 1 }}">
                 <button type="submit" class="btn {{ $edomEnabled ? 'btn-outline-warning' : 'btn-success' }} shadow-sm">
                     <i class="bx {{ $edomEnabled ? 'bx-lock' : 'bx-lock-open-alt' }} me-1"></i>
-                    {{ $edomEnabled ? 'Nonaktifkan EDOM' : 'Aktifkan EDOM' }}
+                    {{ $edomEnabled ? 'Nonaktifkan EDOM Aktif' : 'Aktifkan EDOM Aktif' }}
                 </button>
             </form>
             @endcan
@@ -39,8 +39,8 @@
     <div class="alert {{ $edomEnabled ? 'alert-success' : 'alert-warning' }} d-flex align-items-center mb-4" role="alert">
         <i class="bx {{ $edomEnabled ? 'bx-check-circle' : 'bx-lock-alt' }} fs-4 me-2"></i>
         <div>
-            Akses EDOM mahasiswa saat ini <strong>{{ $edomEnabled ? 'AKTIF' : 'NONAKTIF' }}</strong>.
-            {{ $edomEnabled ? 'Mahasiswa dapat membuka dan mengisi EDOM.' : 'Menu mahasiswa terkunci dan akses langsung ke URL EDOM dialihkan ke dashboard.' }}
+            Akses EDOM tahun akademik berjalan saat ini <strong>{{ $edomEnabled ? 'AKTIF' : 'NONAKTIF' }}</strong>.
+            {{ $edomEnabled ? 'Mahasiswa dapat membuka dan mengisi EDOM semester aktif.' : 'EDOM semester aktif dikunci; EDOM lama yang sudah diterbitkan BAAK tetap dapat diisi.' }}
         </div>
     </div>
 

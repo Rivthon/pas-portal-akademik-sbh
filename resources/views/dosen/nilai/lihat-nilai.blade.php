@@ -299,7 +299,8 @@
                 <div class="modal-body">
                     <x-krs-guidance-thread :messages="$guidedStudent->guidanceMessages"
                         :action="route('dosen.mahasiswa.guidance.store', $guidedStudent)" viewer="dosen"
-                        title="Riwayat Percakapan" submit-label="Kirim Komentar" />
+                        title="Riwayat Percakapan" submit-label="Kirim Komentar"
+                        :locked="$guidedStudent->krs_aktif_count > 0 && $guidedStudent->krs_disetujui_count === $guidedStudent->krs_aktif_count" />
                 </div>
             </div>
         </div>

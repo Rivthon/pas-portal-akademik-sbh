@@ -583,6 +583,19 @@ class ModulAkademikController extends Controller
             return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
 
+        $krsAktif = Krs::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $activeTA->ta_id);
+        $krsSudahDisetujui = (clone $krsAktif)->exists()
+            && ! (clone $krsAktif)->whereNull('disetujui_pada')->exists();
+
+        if ($krsSudahDisetujui) {
+            return back()->with(
+                'error',
+                'Diskusi KRS sudah ditutup karena KRS telah disetujui. Batalkan ACC untuk membuka kembali forum.'
+            );
+        }
+
         $validated = $request->validate([
             'message' => ['required', 'string', 'max:2000'],
         ], [

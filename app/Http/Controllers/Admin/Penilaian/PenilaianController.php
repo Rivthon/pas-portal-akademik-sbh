@@ -463,14 +463,14 @@ class PenilaianController extends Controller
 
         activity_log(
             'toggle_edom_mahasiswa',
-            'Admin '.($enabled ? 'mengaktifkan' : 'menonaktifkan').' akses EDOM mahasiswa'
+            'Admin '.($enabled ? 'mengaktifkan' : 'menonaktifkan').' akses EDOM tahun akademik aktif'
         );
 
         Alert::success(
             'Berhasil',
             $enabled
-                ? 'EDOM mahasiswa telah diaktifkan dan sekarang dapat diakses.'
-                : 'EDOM mahasiswa telah dinonaktifkan.'
+                ? 'EDOM tahun akademik aktif telah diaktifkan dan sekarang dapat diakses.'
+                : 'EDOM tahun akademik aktif telah dinonaktifkan. EDOM lama yang diterbitkan BAAK tetap dapat diakses.'
         );
 
         return redirect()->back();

@@ -100,7 +100,8 @@
                 <div class="card-body">
                     <x-krs-guidance-thread :messages="$guidanceMessages ?? collect()"
                         :action="route('dosen.mahasiswa.guidance.store', $mahasiswa)" viewer="dosen"
-                        title="Diskusi KRS dengan Mahasiswa" submit-label="Kirim Komentar" />
+                        title="Diskusi KRS dengan Mahasiswa" submit-label="Kirim Komentar"
+                        :locked="$sudahDisetujui" />
                 </div>
             </div>
         @endif

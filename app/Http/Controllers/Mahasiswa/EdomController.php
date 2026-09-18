@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\Dosen;
 use App\Models\Evaluasi;
+use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
@@ -62,6 +63,12 @@ class EdomController extends Controller
             ->where('mahasiswa_id', $mahasiswaId)
             ->where('ta_id', $selectedTaId)
             ->get();
+
+        // Pada periode lama, hanya KRS yang sudah dicakup penerbitan KHS BAAK
+        // yang boleh ditampilkan dan diisi EDOM-nya.
+        if ($isHistorical) {
+            $krsData = KhsPublication::filterPublishedKrs($krsData, $mahasiswa);
+        }
 
         $kurikulumIds = $krsData->pluck('kurikulum_id')->unique()->values();
         $existingRatings = DB::table('penilaian')
@@ -392,9 +399,16 @@ class EdomController extends Controller
                 ->with('error', 'Tahun Akademik EDOM tidak ditemukan.');
         }
 
-        $krsList = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+        $krsRecords = Krs::with('kurikulum.mataKuliah')
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('ta_id', $selectedTaId)
-            ->pluck('krs_id');
+            ->get();
+
+        if ((int) $selectedTA->status_ta !== 1) {
+            $krsRecords = KhsPublication::filterPublishedKrs($krsRecords, $mahasiswa);
+        }
+
+        $krsList = $krsRecords->pluck('krs_id');
 
         if ($krsList->isEmpty()) {
             Alert::error('Error', 'KRS pada Tahun Akademik yang dipilih tidak ditemukan.')->persistent('Close');
@@ -402,7 +416,7 @@ class EdomController extends Controller
             return redirect()->route('mahasiswa.edom.index', $redirectParameters);
         }
 
-        $kurikulumIds = Krs::whereIn('krs_id', $krsList)->pluck('kurikulum_id');
+        $kurikulumIds = $krsRecords->pluck('kurikulum_id');
         $kelasMahasiswa = strtolower(trim((string) $mahasiswa->kelas));
         $searchKelas = match ($kelasMahasiswa) {
             'karyawan', 'reguler b' => 'karyawan',

@@ -141,7 +141,7 @@ $user = Auth::guard('mahasiswa')->user();
                 @unless($edomEnabled) data-bs-toggle="modal" data-bs-target="#edomClosedModal" @endunless>
                 <i class="menu-icon bx bx-message-square-check text-info"></i>
                 <span class="menu-text fw-medium">EDOM</span>
-                @unless($edomEnabled)<i class="bx bxs-lock-alt ms-auto text-warning"></i>@endunless
+                @unless($edomEnabled)<i class="bx bxs-lock-alt ms-auto text-warning" title="EDOM tahun akademik aktif belum dibuka"></i>@endunless
             </a>
         </li>
 
@@ -306,7 +306,8 @@ $user = Auth::guard('mahasiswa')->user();
             </div>
             <div class="modal-body text-center py-4">
                 <i class="bx bx-calendar-x text-warning mb-3" style="font-size:4rem"></i>
-                <p class="mb-0 text-muted">Pengisian EDOM belum diaktifkan oleh admin. Silakan coba kembali sesuai jadwal akademik.</p>
+                <p class="mb-2 text-muted">Pengisian EDOM untuk tahun akademik yang sedang berjalan belum diaktifkan oleh admin.</p>
+                <small class="text-muted">EDOM tahun sebelumnya tetap dapat dibuka melalui Riwayat KHS setelah KHS diterbitkan oleh BAAK.</small>
             </div>
             <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>

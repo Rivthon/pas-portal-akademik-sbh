@@ -4,6 +4,7 @@
     'viewer' => 'mahasiswa',
     'title' => 'Diskusi KRS',
     'submitLabel' => 'Kirim Pesan',
+    'locked' => false,
 ])
 
 <div>
@@ -35,14 +36,24 @@
         @endforelse
     </div>
 
-    <form method="POST" action="{{ $action }}">
-        @csrf
-        <label class="form-label fw-semibold">Tulis {{ $viewer === 'dosen' ? 'komentar' : 'umpan balik' }}</label>
-        <textarea name="message" class="form-control mb-2" rows="3" maxlength="2000" required
-            placeholder="{{ $viewer === 'dosen' ? 'Contoh: Jumlah SKS masih kurang, silakan diperbaiki.' : 'Contoh: Sudah diperbaiki Pak/Bu, mohon diperiksa kembali.' }}"></textarea>
-        <div class="d-flex justify-content-between align-items-center gap-2">
-            <small class="text-muted">Maksimal 2.000 karakter</small>
-            <button type="submit" class="btn btn-primary"><i class="bx bx-send me-1"></i>{{ $submitLabel }}</button>
+    @if($locked)
+        <div class="alert alert-success border-0 mb-0 d-flex align-items-start gap-2">
+            <i class="bx bx-lock-alt fs-4"></i>
+            <div>
+                <div class="fw-semibold">Diskusi KRS telah ditutup</div>
+                <small>KRS sudah disetujui. Forum akan aktif kembali secara otomatis apabila ACC KRS dibatalkan.</small>
+            </div>
         </div>
-    </form>
+    @else
+        <form method="POST" action="{{ $action }}">
+            @csrf
+            <label class="form-label fw-semibold">Tulis {{ $viewer === 'dosen' ? 'komentar' : 'umpan balik' }}</label>
+            <textarea name="message" class="form-control mb-2" rows="3" maxlength="2000" required
+                placeholder="{{ $viewer === 'dosen' ? 'Contoh: Jumlah SKS masih kurang, silakan diperbaiki.' : 'Contoh: Sudah diperbaiki Pak/Bu, mohon diperiksa kembali.' }}"></textarea>
+            <div class="d-flex justify-content-between align-items-center gap-2">
+                <small class="text-muted">Maksimal 2.000 karakter</small>
+                <button type="submit" class="btn btn-primary"><i class="bx bx-send me-1"></i>{{ $submitLabel }}</button>
+            </div>
+        </form>
+    @endif
 </div>

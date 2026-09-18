@@ -29,7 +29,7 @@ class AdminEdomAccessToggleTest extends TestCase
         $this->actingAs($mahasiswa, 'mahasiswa')
             ->get(route('mahasiswa.edom.index'))
             ->assertRedirect(route('mahasiswa.dashboard'))
-            ->assertSessionHas('warning', 'Pengisian EDOM belum dibuka oleh admin. Silakan coba kembali sesuai jadwal akademik.');
+            ->assertSessionHas('warning', 'Pengisian EDOM tahun akademik aktif belum dibuka oleh admin. Silakan coba kembali sesuai jadwal akademik.');
 
         $this->actingAs($admin)->post(route('admin.penilaian.toggle-edom'), [
             'enabled' => 1,

@@ -128,7 +128,8 @@
             <div class="card-body">
                 <x-krs-guidance-thread :messages="$guidanceMessages ?? collect()"
                     :action="route('mahasiswa.status.krs.comment.store')" viewer="mahasiswa"
-                    title="Diskusi dengan Dosen Pembimbing" submit-label="Kirim Umpan Balik" />
+                    title="Diskusi dengan Dosen Pembimbing" submit-label="Kirim Umpan Balik"
+                    :locked="$krsDisetujui" />
             </div>
         </div>
         <div class="card bg-light">
