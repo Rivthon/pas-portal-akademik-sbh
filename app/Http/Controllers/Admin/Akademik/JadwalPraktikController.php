@@ -137,7 +137,17 @@ class JadwalPraktikController extends Controller
                 ->where('jadwal_praktik.jurusan_id', $programStudi)
                 ->where('jadwal_praktik.jenis_kelas', $jenisKelas)
                 ->where('jadwal_praktik.ta_id', $tahunAjaran->ta_id) // Sesuaikan dengan tahun ajaran aktif
+                ->orderByRaw("CASE LOWER(TRIM(COALESCE(jadwal_praktik.hari, '')))
+                    WHEN 'senin' THEN 1
+                    WHEN 'selasa' THEN 2
+                    WHEN 'rabu' THEN 3
+                    WHEN 'kamis' THEN 4
+                    WHEN 'jumat' THEN 5
+                    WHEN 'sabtu' THEN 6
+                    WHEN 'minggu' THEN 7
+                    ELSE 8 END")
                 ->orderBy('jadwal_praktik.jam_mulai', 'asc')
+                ->orderBy('matakuliah.nama', 'asc')
                 ->get();
 
             if ($jadwalPraktik->isEmpty()) {
