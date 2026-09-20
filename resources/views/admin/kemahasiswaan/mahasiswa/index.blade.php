@@ -146,6 +146,27 @@
         <div id="alert-container"></div>
 
         @can('mahasiswa-edit')
+        <div class="card border shadow-none mb-3 overflow-hidden">
+            <button type="button"
+                class="card-header bg-white border-0 py-3 px-4 w-100 d-flex align-items-center justify-content-between text-start collapsed"
+                data-bs-toggle="collapse" data-bs-target="#aksi-massal-mahasiswa"
+                aria-expanded="false" aria-controls="aksi-massal-mahasiswa">
+                <span class="d-flex align-items-center gap-3">
+                    <span class="avatar-initial rounded bg-label-primary p-2">
+                        <i class="bx bx-layer fs-5"></i>
+                    </span>
+                    <span>
+                        <span class="fw-bold text-dark d-block">Aksi Massal Mahasiswa</span>
+                        <small class="text-muted">Ubah status atau klasifikasi kelas mahasiswa terpilih</small>
+                    </span>
+                </span>
+                <span class="d-flex align-items-center gap-2">
+                    <span class="badge bg-label-primary" id="aksi-massal-label">Buka Pengaturan</span>
+                    <i class="bx bx-chevron-down fs-4 text-primary" id="aksi-massal-icon"></i>
+                </span>
+            </button>
+            <div class="collapse" id="aksi-massal-mahasiswa">
+                <div class="card-body border-top pb-0">
         <div class="card border shadow-none mb-3">
             <div class="card-body py-3">
                 <div class="row align-items-end g-2">
@@ -196,6 +217,9 @@
                 <small class="text-muted">Centang mahasiswa pada tabel, pilih kelas, lalu terapkan.</small>
             </div>
         </div>
+                </div>
+            </div>
+        </div>
         @endcan
 
         <!-- Tabel Hasil Pencarian -->
@@ -210,6 +234,22 @@
 <div id="pagination-container" class="d-flex justify-content-center mt-3"></div>
 @push('script')
 <script>
+const aksiMassalPanel = document.getElementById('aksi-massal-mahasiswa');
+if (aksiMassalPanel) {
+    const aksiMassalLabel = document.getElementById('aksi-massal-label');
+    const aksiMassalIcon = document.getElementById('aksi-massal-icon');
+
+    aksiMassalPanel.addEventListener('shown.bs.collapse', function () {
+        aksiMassalLabel.textContent = 'Tutup Pengaturan';
+        aksiMassalIcon.classList.replace('bx-chevron-down', 'bx-chevron-up');
+    });
+
+    aksiMassalPanel.addEventListener('hidden.bs.collapse', function () {
+        aksiMassalLabel.textContent = 'Buka Pengaturan';
+        aksiMassalIcon.classList.replace('bx-chevron-up', 'bx-chevron-down');
+    });
+}
+
 $(document).ready(function () {
     let appliedFilters = null;
     let filteredTotal = 0;
