@@ -121,7 +121,7 @@ class ProfileUserController extends Controller
     {
         // Validasi input
         $request->validate([
-            'semester' => 'required|string',
+            'semester' => 'required|integer|between:1,8',
         ]);
 
         try {

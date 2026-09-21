@@ -7,6 +7,7 @@ use App\Models\Absensi;
 use App\Models\AbsensiPraktik;
 use App\Models\Jadwal;
 use App\Models\JadwalPraktik;
+use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\Pertemuan;
 use App\Models\PertemuanPraktik;
@@ -517,37 +518,25 @@ class PerkuliahanDosenController extends Controller
                 return response()->json(['message' => 'Jadwal atau mata kuliah tidak ditemukan'], 404);
             }
 
-            $matakuliah = $jadwal->kurikulum->matakuliah;
-            $semester = $matakuliah->smt;
-            $jurusan_id = $matakuliah->jurusan_id;
-
-            // Tarik mahasiswa berdasarkan semester, jurusan, status aktif, dan jenis kelas
-            $mahasiswaList = Mahasiswa::where('semester', $semester)
-                ->where('jurusan_id', $jurusan_id)
-                ->where('status_mhs', 'aktif') // Tambahkan kondisi status_mhs aktif
-                ->when($jadwal->jenis_kelas === 'reguler', function ($query) {
-                    return $query->whereIn('kelas', ['pagi', 'reguler']);
-                })
-                ->when($jadwal->jenis_kelas === 'karyawan', function ($query) {
-                    return $query->where('kelas', 'karyawan'); // Cocokan dengan kelas yang ada di mahasiswa karyawan
-                })
-                ->pluck('mahasiswa_id'); // Ambil hanya ID untuk efisiensi
+            // Peserta absensi harus mengikuti KRS yang telah disetujui untuk kelas ini.
+            // Semester pada profil mahasiswa dapat berubah dan bukan sumber kepesertaan mata kuliah.
+            $mahasiswaList = $this->pesertaKrsJadwal($jadwal);
 
             if ($mahasiswaList->isEmpty()) {
-                Log::error('Daftar mahasiswa kosong berdasarkan filter yang diberikan', [
-                    'semester' => $semester,
-                    'jurusan_id' => $jurusan_id,
+                Log::error('Peserta KRS yang disetujui tidak ditemukan untuk jadwal teori', [
+                    'kurikulum_id' => $jadwal->kurikulum_id,
+                    'ta_id' => $jadwal->ta_id,
                     'jenis_kelas' => $jadwal->jenis_kelas,
                 ]);
 
                 DB::rollBack();
 
                 return response()->json([
-                    'message' => 'Tidak ada mahasiswa yang cocok',
-                    'error' => 'Daftar mahasiswa kosong berdasarkan filter yang diberikan',
+                    'message' => 'Belum ada peserta KRS yang disetujui untuk mata kuliah dan kelas ini.',
+                    'error' => 'Peserta KRS tidak ditemukan',
                     'details' => [
-                        'semester' => $semester,
-                        'jurusan_id' => $jurusan_id,
+                        'kurikulum_id' => $jadwal->kurikulum_id,
+                        'ta_id' => $jadwal->ta_id,
                         'jenis_kelas' => $jadwal->jenis_kelas,
                     ],
                 ], 404);
@@ -561,7 +550,9 @@ class PerkuliahanDosenController extends Controller
                     'mahasiswa_id' => $mahasiswa_id,
                     'status' => 'tidak hadir',
                     'keterangan' => null,
-                    'tanggal' => now('Asia/Jakarta'),
+                    'tanggal' => $request->tanggal_pertemuan,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
             })->toArray();
 
@@ -703,14 +694,20 @@ class PerkuliahanDosenController extends Controller
             ->where('dosen_id', auth('dosen')->id())
             ->findOrFail($pertemuan_id);
 
+        // Pertemuan lama ikut diperbaiki: tambahkan peserta KRS yang belum tercatat,
+        // tanpa mengubah status/keterangan absensi yang sudah pernah disimpan.
+        $this->syncPesertaAbsensi($pertemuan);
+
         // Ambil data absensi berdasarkan pertemuan
         $absensi = Absensi::where('pertemuan_id', $pertemuan_id)
             ->with('mahasiswa') // Pastikan ada relasi ke Mahasiswa
+            ->orderBy('absensi_id')
             ->get();
 
         $mahasiswaAbsensi = Absensi::where('pertemuan_id', $pertemuan_id)->pluck('mahasiswa_id');
-        // Ambil semua mahasiswa berdasarkan jurusan yang belum ada di absensi
-        $mahasiswaTambahan = Mahasiswa::where('jurusan_id', $pertemuan->jadwal->kurikulum->jurusan_id)
+        // Penambahan manual tetap dibatasi pada peserta KRS kelas yang sama.
+        $pesertaKrs = $this->pesertaKrsJadwal($pertemuan->jadwal);
+        $mahasiswaTambahan = Mahasiswa::whereIn('mahasiswa_id', $pesertaKrs)
             ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
             ->get();
 
@@ -729,6 +726,20 @@ class PerkuliahanDosenController extends Controller
 
         $pertemuan = Pertemuan::where('dosen_id', auth('dosen')->id())
             ->findOrFail($request->pertemuan_id);
+
+        $mahasiswaDikirim = collect(array_keys($request->status))
+            ->map(fn ($mahasiswaId) => (int) $mahasiswaId);
+        $mahasiswaDiizinkan = Absensi::where('pertemuan_id', $pertemuan->pertemuan_id)
+            ->pluck('mahasiswa_id')
+            ->merge($this->pesertaKrsJadwal($pertemuan->jadwal))
+            ->map(fn ($mahasiswaId) => (int) $mahasiswaId)
+            ->unique();
+
+        abort_if(
+            $mahasiswaDikirim->diff($mahasiswaDiizinkan)->isNotEmpty(),
+            403,
+            'Daftar mahasiswa tidak sesuai dengan peserta KRS mata kuliah ini.'
+        );
 
         try {
             DB::beginTransaction();
@@ -760,6 +771,54 @@ class PerkuliahanDosenController extends Controller
         }
 
         return redirect()->back();
+    }
+
+    /**
+     * Ambil mahasiswa aktif yang memiliki KRS disetujui untuk jadwal dan kelas yang tepat.
+     */
+    private function pesertaKrsJadwal(Jadwal $jadwal)
+    {
+        $jenisKelas = strtolower(trim((string) $jadwal->jenis_kelas));
+
+        return Krs::query()
+            ->where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->whereNotNull('disetujui_pada')
+            ->whereHas('mahasiswa', function ($query) use ($jenisKelas) {
+                $query->whereRaw('LOWER(status_mhs) = ?', ['aktif']);
+
+                if ($jenisKelas === 'karyawan') {
+                    $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
+                } else {
+                    $query->whereIn(DB::raw('LOWER(kelas)'), ['pagi', 'reguler']);
+                }
+            })
+            ->pluck('mahasiswa_id')
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Lengkapi peserta pada pertemuan lama tanpa menimpa absensi yang sudah ada.
+     */
+    private function syncPesertaAbsensi(Pertemuan $pertemuan): void
+    {
+        $pesertaKrs = $this->pesertaKrsJadwal($pertemuan->jadwal);
+
+        foreach ($pesertaKrs as $mahasiswaId) {
+            Absensi::firstOrCreate(
+                [
+                    'pertemuan_id' => $pertemuan->pertemuan_id,
+                    'mahasiswa_id' => $mahasiswaId,
+                ],
+                [
+                    'jadwal_id' => $pertemuan->jadwal_id,
+                    'tanggal' => $pertemuan->tanggal_pertemuan,
+                    'status' => 'tidak hadir',
+                    'keterangan' => null,
+                ]
+            );
+        }
     }
 
     public function storePertemuanPraktik(Request $request)

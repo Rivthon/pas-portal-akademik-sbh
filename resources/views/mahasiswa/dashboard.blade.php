@@ -1,6 +1,15 @@
 @extends('layouts.mahasiswa')
 @section('title', 'Dashboard')
 @section('content')
+@php
+    $semesterMahasiswa = (int) auth('mahasiswa')->user()->semester;
+    $periodeAkademik = strtolower(trim((string) optional($ta)->semester));
+    $semesterTidakSesuai = $semesterMahasiswa > 0 && (
+        ($periodeAkademik === 'ganjil' && $semesterMahasiswa % 2 === 0) ||
+        ($periodeAkademik === 'genap' && $semesterMahasiswa % 2 === 1)
+    );
+    $semesterYangDisarankan = $periodeAkademik === 'ganjil' ? '1, 3, 5, atau 7' : '2, 4, 6, atau 8';
+@endphp
 <div class="row">
     <div class="col-xxl-12 mt-auto mb-auto order-0">
         <div class="card shadow-sm mb-4">
@@ -16,11 +25,39 @@
                             Tetap semangat dalam menjalankan tugas Anda!
                         </p>
                         <div class="mb-3">
-                            <p class="mb-1"><strong>Semester:</strong> {{ auth('mahasiswa')->user()->semester }}</p>
+                            <p class="mb-1 d-flex align-items-center flex-wrap gap-2">
+                                <strong>Semester:</strong>
+                                <span class="{{ $semesterTidakSesuai ? 'badge bg-danger semester-mismatch-badge' : '' }}">
+                                    {{ $semesterMahasiswa ?: '-' }}
+                                </span>
+                                @if($semesterTidakSesuai)
+                                    <span class="badge bg-label-danger">Tidak sesuai periode {{ ucfirst($periodeAkademik) }}</span>
+                                @endif
+                            </p>
                             <p class="mb-1"><strong>Tanggal:</strong> {{ now()->format('l, d F Y') }}</p>
                             <p class="mb-0"><strong>Jam:</strong> <span id="current-time">{{ now()->format('H:i:s')
                                     }}</span></p>
                         </div>
+
+                        @if($semesterTidakSesuai)
+                            <div class="alert alert-danger border-danger semester-mismatch-warning" role="alert">
+                                <div class="d-flex align-items-start gap-2">
+                                    <i class="bx bxs-error-circle fs-3 flex-shrink-0"></i>
+                                    <div class="flex-grow-1">
+                                        <strong>Semester Anda tidak sesuai dengan tahun ajaran aktif!</strong>
+                                        <div class="small mt-1">
+                                            Saat ini periode <strong>{{ $ta->nama }} ({{ ucfirst($periodeAkademik) }})</strong>,
+                                            tetapi profil Anda tercatat Semester <strong>{{ $semesterMahasiswa }}</strong>.
+                                            Segera periksa dan ubah ke semester {{ $semesterYangDisarankan }} sesuai posisi akademik Anda.
+                                        </div>
+                                        <button type="button" class="btn btn-danger btn-sm mt-3"
+                                            data-bs-toggle="modal" data-bs-target="#semesterModal">
+                                            <i class="bx bx-edit-alt me-1"></i> Perbaiki Semester Sekarang
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Kalender Akademik -->
                         @if ($kalenderAkademik->isNotEmpty())
@@ -176,6 +213,22 @@
         </div>
 
         <style>
+            .semester-mismatch-warning {
+                box-shadow: 0 0 0 rgba(255, 62, 29, 0.35);
+                animation: semesterWarningPulse 1.8s ease-in-out infinite;
+            }
+            .semester-mismatch-badge { animation: semesterBadgePulse 1.2s ease-in-out infinite alternate; }
+            @keyframes semesterWarningPulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(255, 62, 29, 0); }
+                50% { box-shadow: 0 0 0 .3rem rgba(255, 62, 29, .13); }
+            }
+            @keyframes semesterBadgePulse {
+                from { transform: scale(1); }
+                to { transform: scale(1.12); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .semester-mismatch-warning, .semester-mismatch-badge { animation: none; }
+            }
             .lms-announcement-card { border-radius: 1rem; }
             .lms-announcement-item { border: 1px solid transparent; transition: .2s ease; }
             .lms-announcement-item + .lms-announcement-item { margin-top: .35rem; }
@@ -196,7 +249,7 @@
                 <!-- Modal Header -->
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="semesterModalLabel">
-                        <i class="bx bx-calendar"></i> Pilih Semester Aktif
+                        <i class="bx bx-calendar-check"></i> Konfirmasi Semester Perkuliahan
                     </h5>
                     <button type="button" class="btn-close text-white" data-bs-dismiss="modal"
                         aria-label="Close"></button>
@@ -208,7 +261,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-4">
-                                <h6 class="text-muted">Semester Aktif Saat Ini:</h6>
+                                <h6 class="text-muted">Semester Anda Saat Ini:</h6>
                                 <strong class="fs-5 text-primary">Semester - {{ auth('mahasiswa')->user()->semester
                                     }}</strong>
                             </div>
@@ -225,13 +278,27 @@
                     <!-- Divider -->
                     <hr class="my-3">
 
-                    <!-- Notifikasi atau Icon dengan Keterangan -->
+                    <!-- Pengingat pemilihan semester -->
                     <div class="mb-4 text-center">
                         <img src="../assets/img/illustrations/danger-chat-ill.png"
                             class="img-fluid mx-auto d-block mb-3" alt="Illustration of a student"
                             style="max-height: 150px;">
-                        <p class="text-muted small">
-                            Pastikan memilih semester dengan benar sesuai dengan jadwal perkuliahan Anda.
+                        <div class="alert alert-warning text-start mb-2" role="alert">
+                            <div class="d-flex">
+                                <i class="bx bx-info-circle fs-4 me-2 mt-1"></i>
+                                <div>
+                                    <strong>Pastikan semester Anda sudah benar.</strong>
+                                    <div class="small mt-1">
+                                        Pilihan semester membantu PAS menampilkan jadwal dan informasi akademik yang sesuai.
+                                        Untuk periode <strong>{{ $ta->nama }} ({{ $ta->semester }})</strong>,
+                                        pilih semester yang sedang Anda jalani saat ini.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Mahasiswa pindahan atau yang mengambil mata kuliah lintas semester tetap memilih semester utama saat ini;
+                            mata kuliah yang diikuti tetap mengikuti KRS.
                         </p>
                     </div>
 
@@ -240,11 +307,12 @@
                         @csrf
                         <div class="mb-3">
                             <label for="semester" class="form-label fw-semibold">Pilih Semester</label>
-                            <select name="semester" class="form-select" id="semester">
-                                <option disabled selected>-- Pilih Semester --</option>
-                                @for ($i = 1; $i <= 8; $i++) <option value="{{ $i }}">Semester {{ $i }}</option>
+                            <select name="semester" class="form-select" id="semester" required>
+                                <option value="" disabled @selected(! auth('mahasiswa')->user()->semester)>-- Pilih Semester --</option>
+                                @for ($i = 1; $i <= 8; $i++) <option value="{{ $i }}" @selected((int) auth('mahasiswa')->user()->semester === $i)>Semester {{ $i }}</option>
                                     @endfor
                             </select>
+                            <div class="form-text">Periksa kembali sebelum menyimpan agar informasi pada dashboard tidak keliru.</div>
                         </div>
                 </div>
                 <!-- Modal Footer -->
@@ -253,7 +321,7 @@
                         <i class="bx bx-x-circle"></i> Tutup
                     </button>
                     <button type="submit" class="btn btn-primary">
-                        <i class="bx bx-save"></i> Simpan
+                        <i class="bx bx-check-circle"></i> Ya, Gunakan Semester Ini
                     </button>
                 </div>
                 </form>
