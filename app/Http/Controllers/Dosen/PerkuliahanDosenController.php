@@ -599,9 +599,56 @@ class PerkuliahanDosenController extends Controller
             ->exists();
         abort_unless($jadwalDiampu, 403);
 
-        $pertemuan = Pertemuan::where('jadwal_id', $jadwal_id)->orderBy('tanggal_pertemuan', 'desc')->get();
+        $pertemuan = Pertemuan::where('jadwal_id', $jadwal_id)
+            ->withCount('absensi')
+            ->orderBy('tanggal_pertemuan', 'desc')
+            ->orderByDesc('jam_mulai')
+            ->get()
+            ->each(function (Pertemuan $item) use ($dosen) {
+                $item->setAttribute('can_delete', (int) $item->dosen_id === (int) $dosen->dosen_id);
+            });
 
         return response()->json($pertemuan);
+    }
+
+    public function destroyPertemuan(Pertemuan $pertemuan)
+    {
+        $dosen = auth('dosen')->user();
+        abort_unless($dosen, 401);
+
+        $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
+        abort_unless($activeTaId, 422, 'Tidak ada Tahun Akademik aktif.');
+
+        $jadwalDiampu = Jadwal::whereKey($pertemuan->jadwal_id)
+            ->where('ta_id', $activeTaId)
+            ->assignedToDosen($dosen->dosen_id, 'teori')
+            ->exists();
+
+        abort_unless(
+            $jadwalDiampu && (int) $pertemuan->dosen_id === (int) $dosen->dosen_id,
+            403,
+            'Anda hanya dapat menghapus pertemuan yang Anda buat sendiri.'
+        );
+
+        if ($pertemuan->materi()->exists() || $pertemuan->tugas()->exists() || $pertemuan->quiz()->exists()) {
+            return response()->json([
+                'message' => 'Pertemuan tidak dapat dihapus karena sudah memiliki materi, tugas, atau kuis LMS. Hapus konten LMS terkait terlebih dahulu.',
+            ], 422);
+        }
+
+        $identitasPertemuan = $pertemuan->tanggal_pertemuan.' - '.$pertemuan->topik;
+        $jumlahAbsensi = $pertemuan->absensi()->count();
+
+        DB::transaction(fn () => $pertemuan->delete());
+
+        activity_log(
+            'hapus_pertemuan',
+            'Dosen menghapus pertemuan teori '.$identitasPertemuan.' beserta '.$jumlahAbsensi.' data absensi'
+        );
+
+        return response()->json([
+            'message' => 'Pertemuan dan data absensi terkait berhasil dihapus.',
+        ]);
     }
 
     public function lihat($pertemuan_id)

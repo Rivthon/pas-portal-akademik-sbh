@@ -702,6 +702,7 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             // Teori Absensi
             Route::post('/absensi/pertemuan', [PerkuliahanDosenController::class, 'storePertemuan'])->name('absensi.store');
             Route::get('/pertemuan/list/{jadwal_id}', [PerkuliahanDosenController::class, 'listPertemuan'])->name('pertemuan.list');
+            Route::delete('/pertemuan/{pertemuan}', [PerkuliahanDosenController::class, 'destroyPertemuan'])->name('pertemuan.destroy');
             Route::get('/absensi/buat/{pertemuan_id}', [PerkuliahanDosenController::class, 'lihat'])->name('absensi.create');
             Route::post('/absensi/store', [PerkuliahanDosenController::class, 'store'])->name('absensi-store');
 

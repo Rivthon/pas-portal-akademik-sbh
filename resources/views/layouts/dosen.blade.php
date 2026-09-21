@@ -67,6 +67,13 @@
     {{-- Select2 CSS --}}
     <link rel="stylesheet" href="{{ asset('dashboard_assets/assets/vendor/libs/select2/css/select2.min.css') }}">
 
+    <style>
+        /* SweetAlert harus berada di atas modal Bootstrap (z-index modal: 1090). */
+        .swal2-container {
+            z-index: 2000 !important;
+        }
+    </style>
+
     <!-- Page CSS -->
 
     <!-- Helpers -->
@@ -249,15 +256,22 @@
                                 let startTime = new Date(`2024-01-01T${item.jam_mulai}`);
                                 let endTime = new Date(`2024-01-01T${item.jam_selesai}`);
                                 let durasiMenit = (endTime - startTime) / (1000 * 60);
+                                const tombolHapus = item.can_delete ? `
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-hapus-pertemuan"
+                                        data-pertemuan-id="${item.pertemuan_id}"
+                                        data-jumlah-absensi="${item.absensi_count || 0}">
+                                        <i class="bx bx-trash me-1"></i>Hapus
+                                    </button>` : '';
 
                                 pertemuanHTML += `
                                     <li class="list-group-item">
                                         <strong>${item.tanggal_pertemuan}</strong> - ${item.topik} <br>
                                         ⏰ <span class="text-muted">${item.jam_mulai} - ${item.jam_selesai} (${durasiMenit} menit)</span>
                                         <span class="badge bg-label-${(item.metode_pbm || 'offline').toLowerCase() === 'online' ? 'primary' : 'secondary'} ms-1">${(item.metode_pbm || 'offline').charAt(0).toUpperCase() + (item.metode_pbm || 'offline').slice(1)}</span>
-                                        <a href="/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary float-end">
-                                            Lihat Absensi
-                                        </a>
+                                        <span class="float-end d-flex flex-wrap gap-2 ms-2">
+                                            <a href="/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary">Lihat Absensi</a>
+                                            ${tombolHapus}
+                                        </span>
                                     </li>
                                 `;
                             });
@@ -272,6 +286,84 @@
             }
 
             // 🔹 Submit Form Tambah Pertemuan
+            async function hapusPertemuan(pertemuanId, jumlahAbsensi) {
+                const modalElement = document.getElementById('pertemuanModal');
+                const modalInstance = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
+                const modalSedangTerbuka = modalElement?.classList.contains('show') === true;
+
+                // Tutup modal dahulu agar dialog konfirmasi tidak tertutup form pertemuan.
+                if (modalSedangTerbuka && modalInstance) {
+                    await new Promise((resolve) => {
+                        modalElement.addEventListener('hidden.bs.modal', resolve, { once: true });
+                        modalInstance.hide();
+                    });
+                }
+
+                const result = await Swal.fire({
+                    title: 'Hapus pertemuan?',
+                    text: `Pertemuan dan ${jumlahAbsensi} data absensi mahasiswa terkait akan dihapus permanen.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                });
+
+                if (!result.isConfirmed) {
+                    if (modalSedangTerbuka && modalInstance) {
+                        modalInstance.show();
+                    }
+
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/dosen/pertemuan/${pertemuanId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    });
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Pertemuan gagal dihapus.');
+                    }
+
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil',
+                        text: data.message,
+                        timer: 1800,
+                        showConfirmButton: false
+                    });
+                    window.location.reload();
+                } catch (error) {
+                    await Swal.fire({
+                        icon: 'error',
+                        title: 'Tidak dapat menghapus',
+                        text: error.message || 'Terjadi kesalahan saat menghapus pertemuan.'
+                    });
+
+                    if (modalSedangTerbuka && modalInstance) {
+                        modalInstance.show();
+                    }
+                }
+            }
+
+            $(document).on('click', '.btn-hapus-pertemuan', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                hapusPertemuan(
+                    Number($(this).data('pertemuan-id')),
+                    Number($(this).data('jumlah-absensi'))
+                );
+            });
+
            $(document).ready(function () {
             $(document).on('submit', '#pertemuanForm', function (e) {
                 e.preventDefault();
