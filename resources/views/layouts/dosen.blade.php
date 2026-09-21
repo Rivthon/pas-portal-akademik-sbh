@@ -229,7 +229,33 @@
             });
         });
 
+            let pertemuanDataCache = new Map();
+
+            function tampilkanPesanFormPertemuan(message, type = 'danger') {
+                $('#pertemuanFormMessage')
+                    .removeClass('d-none alert-success alert-danger')
+                    .addClass(`alert-${type}`)
+                    .text(message);
+            }
+
+            function resetFormPertemuan() {
+                const form = document.getElementById('pertemuanForm');
+                if (!form) return;
+
+                const jadwalId = $('#jadwal_id').val();
+                const namaMatakuliah = $('#nama_matakuliah').val();
+
+                form.reset();
+                $('#jadwal_id').val(jadwalId);
+                $('#nama_matakuliah').val(namaMatakuliah);
+                $('#pertemuan_id').val('');
+                $('#pertemuanFormMessage').addClass('d-none').text('');
+                $('#simpanPertemuanButton span').text('Simpan Pertemuan & Lanjut Absensi');
+                $('#batalEditPertemuanButton').addClass('d-none');
+            }
+
            function openPertemuanModal(jadwal_id, nama_matakuliah, kode_matakuliah) {
+                resetFormPertemuan();
                 document.getElementById("jadwal_id").value = jadwal_id;
                 document.getElementById("nama_matakuliah").value = nama_matakuliah;
 
@@ -237,7 +263,7 @@
                 loadListPertemuan(jadwal_id);
 
                 // Tampilkan modal
-                var pertemuanModal = new bootstrap.Modal(document.getElementById("pertemuanModal"));
+                var pertemuanModal = bootstrap.Modal.getOrCreateInstance(document.getElementById("pertemuanModal"));
                 pertemuanModal.show();
             }
 
@@ -247,6 +273,10 @@
                     url: `/dosen/pertemuan/list/${jadwal_id}`,
                     type: "GET",
                     success: function (data) {
+                        pertemuanDataCache = new Map(
+                            data.map((item) => [Number(item.pertemuan_id), item])
+                        );
+
                         let pertemuanHTML = "";
                         if (data.length === 0) {
                             pertemuanHTML = '<li class="list-group-item text-muted">Belum ada pertemuan.</li>';
@@ -256,6 +286,11 @@
                                 let startTime = new Date(`2024-01-01T${item.jam_mulai}`);
                                 let endTime = new Date(`2024-01-01T${item.jam_selesai}`);
                                 let durasiMenit = (endTime - startTime) / (1000 * 60);
+                                const tombolEdit = item.can_delete ? `
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-edit-pertemuan"
+                                        data-pertemuan-id="${item.pertemuan_id}">
+                                        <i class="bx bx-edit-alt me-1"></i>Edit
+                                    </button>` : '';
                                 const tombolHapus = item.can_delete ? `
                                     <button type="button" class="btn btn-sm btn-outline-danger btn-hapus-pertemuan"
                                         data-pertemuan-id="${item.pertemuan_id}"
@@ -270,6 +305,7 @@
                                         <span class="badge bg-label-${(item.metode_pbm || 'offline').toLowerCase() === 'online' ? 'primary' : 'secondary'} ms-1">${(item.metode_pbm || 'offline').charAt(0).toUpperCase() + (item.metode_pbm || 'offline').slice(1)}</span>
                                         <span class="float-end d-flex flex-wrap gap-2 ms-2">
                                             <a href="/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary">Lihat Absensi</a>
+                                            ${tombolEdit}
                                             ${tombolHapus}
                                         </span>
                                     </li>
@@ -286,6 +322,37 @@
             }
 
             // 🔹 Submit Form Tambah Pertemuan
+            $(document).on('click', '.btn-edit-pertemuan', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const pertemuanId = Number($(this).data('pertemuan-id'));
+                const item = pertemuanDataCache.get(pertemuanId);
+
+                if (!item) {
+                    tampilkanPesanFormPertemuan('Data pertemuan tidak ditemukan. Muat ulang halaman dan coba kembali.');
+                    return;
+                }
+
+                $('#pertemuan_id').val(item.pertemuan_id);
+                $('#tanggal_pertemuan').val(item.tanggal_pertemuan);
+                $('#jam_mulai').val((item.jam_mulai || '').slice(0, 5));
+                $('#jam_selesai').val((item.jam_selesai || '').slice(0, 5));
+                $('#metode_pbm').val((item.metode_pbm || 'offline').toLowerCase());
+                $('#topik').val(item.topik || '');
+                $('#sub_topik').val(item.sub_topik || '');
+                $('#pertemuanFormMessage').addClass('d-none').text('');
+                $('#simpanPertemuanButton span').text('Simpan Perubahan Pertemuan');
+                $('#batalEditPertemuanButton').removeClass('d-none');
+
+                document.getElementById('pertemuanForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('tanggal_pertemuan').focus({ preventScroll: true });
+            });
+
+            $(document).on('click', '#batalEditPertemuanButton', function () {
+                resetFormPertemuan();
+            });
+
             async function hapusPertemuan(pertemuanId, jumlahAbsensi) {
                 const modalElement = document.getElementById('pertemuanModal');
                 const modalInstance = modalElement ? bootstrap.Modal.getInstance(modalElement) : null;
@@ -368,9 +435,16 @@
             $(document).on('submit', '#pertemuanForm', function (e) {
                 e.preventDefault();
 
+                const pertemuanId = $('#pertemuan_id').val();
+                const sedangEdit = pertemuanId !== '';
+                const submitButton = $('#simpanPertemuanButton');
+
+                submitButton.prop('disabled', true);
+                $('#pertemuanFormMessage').addClass('d-none').text('');
+
                 $.ajax({
-                    url: "{{ route('dosen.absensi.store') }}",
-                    type: "POST",
+                    url: sedangEdit ? `/dosen/pertemuan/${pertemuanId}` : "{{ route('dosen.absensi.store') }}",
+                    type: sedangEdit ? "PUT" : "POST",
                     data: $(this).serialize(),
                     success: function (response) {
                         if (response.redirect_url) {
@@ -379,14 +453,21 @@
                         }
 
                         // Sembunyikan modal
-                        bootstrap.Modal.getInstance(document.getElementById('pertemuanModal')).hide();
+                        resetFormPertemuan();
 
                         // 🔹 Perbarui daftar pertemuan dalam modal
                         loadListPertemuan(response.jadwal_id);
+                        tampilkanPesanFormPertemuan(response.message || 'Pertemuan berhasil diperbarui.', 'success');
                     },
                     error: function (xhr) {
-                        let errorMessage = xhr.responseJSON?.message || "Terjadi kesalahan. Silakan coba lagi Pertemuan Teori.";
-                        Swal.fire({ icon: 'error', title: 'Gagal', text: errorMessage });
+                        const validationMessage = Object.values(xhr.responseJSON?.errors || {})
+                            .flat()
+                            .join(' ');
+                        const errorMessage = validationMessage || xhr.responseJSON?.message || "Terjadi kesalahan. Silakan coba lagi Pertemuan Teori.";
+                        tampilkanPesanFormPertemuan(errorMessage);
+                    },
+                    complete: function () {
+                        submitButton.prop('disabled', false);
                     }
                 });
             });

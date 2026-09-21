@@ -611,6 +611,51 @@ class PerkuliahanDosenController extends Controller
         return response()->json($pertemuan);
     }
 
+    public function updatePertemuan(Request $request, Pertemuan $pertemuan)
+    {
+        $validated = $request->validate([
+            'tanggal_pertemuan' => 'required|date',
+            'jam_mulai' => 'required|date_format:H:i',
+            'jam_selesai' => 'required|date_format:H:i|after:jam_mulai',
+            'metode_pbm' => 'required|in:online,offline',
+            'topik' => 'required|string|max:255',
+            'sub_topik' => 'required|string|max:255',
+        ]);
+
+        $dosen = auth('dosen')->user();
+        abort_unless($dosen, 401);
+
+        $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
+        abort_unless($activeTaId, 422, 'Tidak ada Tahun Akademik aktif.');
+
+        $jadwalDiampu = Jadwal::whereKey($pertemuan->jadwal_id)
+            ->where('ta_id', $activeTaId)
+            ->assignedToDosen($dosen->dosen_id, 'teori')
+            ->exists();
+
+        abort_unless(
+            $jadwalDiampu && (int) $pertemuan->dosen_id === (int) $dosen->dosen_id,
+            403,
+            'Anda hanya dapat mengubah pertemuan yang Anda buat sendiri.'
+        );
+
+        DB::transaction(function () use ($pertemuan, $validated) {
+            $pertemuan->update($validated);
+
+            // Tanggal pada detail absensi harus tetap sama dengan tanggal pertemuan.
+            $pertemuan->absensi()->update([
+                'tanggal' => $validated['tanggal_pertemuan'],
+            ]);
+        });
+
+        activity_log('ubah_pertemuan', 'Dosen mengubah pertemuan teori: '.$pertemuan->topik);
+
+        return response()->json([
+            'message' => 'Pertemuan berhasil diperbarui.',
+            'jadwal_id' => $pertemuan->jadwal_id,
+        ]);
+    }
+
     public function destroyPertemuan(Pertemuan $pertemuan)
     {
         $dosen = auth('dosen')->user();

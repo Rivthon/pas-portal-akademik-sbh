@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Absensi;
 use App\Models\Dosen;
 use App\Models\Jadwal;
+use App\Models\Mahasiswa;
 use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -59,6 +61,68 @@ class DosenPertemuanDeletionTest extends TestCase
         $this->assertNotNull($item);
         $this->assertTrue($item['can_delete']);
         $this->assertArrayHasKey('absensi_count', $item);
+    }
+
+    public function test_dosen_can_update_their_meeting_and_attendance_date_stays_in_sync(): void
+    {
+        [$dosen, $jadwal] = $this->assignedTheorySchedule();
+        $pertemuan = $this->createMeeting($jadwal, $dosen->dosen_id);
+        $mahasiswa = Mahasiswa::query()->firstOrFail();
+        $absensi = Absensi::create([
+            'jadwal_id' => $jadwal->id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'pertemuan_id' => $pertemuan->pertemuan_id,
+            'tanggal' => now()->toDateString(),
+            'status' => 'hadir',
+        ]);
+        $tanggalBaru = now()->addDay()->toDateString();
+
+        $this->actingAs($dosen, 'dosen')
+            ->putJson(route('dosen.pertemuan.update', $pertemuan), [
+                'tanggal_pertemuan' => $tanggalBaru,
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:30',
+                'metode_pbm' => 'online',
+                'topik' => 'Topik pertemuan diperbarui',
+                'sub_topik' => 'Subtopik pertemuan diperbarui',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Pertemuan berhasil diperbarui.');
+
+        $this->assertDatabaseHas('pertemuan', [
+            'pertemuan_id' => $pertemuan->pertemuan_id,
+            'tanggal_pertemuan' => $tanggalBaru,
+            'jam_mulai' => '09:00:00',
+            'jam_selesai' => '10:30:00',
+            'metode_pbm' => 'online',
+            'topik' => 'Topik pertemuan diperbarui',
+        ]);
+        $this->assertDatabaseHas('absensi', [
+            'absensi_id' => $absensi->absensi_id,
+            'tanggal' => $tanggalBaru,
+        ]);
+    }
+
+    public function test_dosen_cannot_update_a_meeting_created_by_another_lecturer(): void
+    {
+        [$dosen, $jadwal] = $this->assignedTheorySchedule();
+        $dosenLain = Dosen::query()
+            ->whereKeyNot($dosen->dosen_id)
+            ->firstOrFail();
+        $pertemuan = $this->createMeeting($jadwal, $dosenLain->dosen_id);
+
+        $this->actingAs($dosen, 'dosen')
+            ->putJson(route('dosen.pertemuan.update', $pertemuan), [
+                'tanggal_pertemuan' => now()->toDateString(),
+                'jam_mulai' => '09:00',
+                'jam_selesai' => '10:30',
+                'metode_pbm' => 'offline',
+                'topik' => 'Perubahan tidak sah',
+                'sub_topik' => 'Perubahan tidak sah',
+            ])
+            ->assertForbidden();
+
+        $this->assertNotSame('Perubahan tidak sah', $pertemuan->fresh()->topik);
     }
 
     private function assignedTheorySchedule(): array

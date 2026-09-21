@@ -12,6 +12,9 @@
                 <form id="pertemuanForm">
                     @csrf
                     <input type="hidden" id="jadwal_id" name="jadwal_id">
+                    <input type="hidden" id="pertemuan_id" value="">
+
+                    <div id="pertemuanFormMessage" class="alert d-none" role="alert"></div>
 
                     <div class="mb-3">
                         <label for="nama_matakuliah" class="form-label">Mata Kuliah</label>
@@ -55,9 +58,15 @@
                             placeholder="Detail bahasan..."></textarea>
                     </div>
 
-                    <div class="d-grid mt-4">
-                        <button type="submit" class="btn btn-primary rounded-pill"><i class="bx bx-save me-1"></i>Simpan
-                            Pertemuan & Lanjut Absensi</button>
+                    <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
+                        <button type="submit" id="simpanPertemuanButton" class="btn btn-primary rounded-pill flex-grow-1">
+                            <i class="bx bx-save me-1"></i>
+                            <span>Simpan Pertemuan & Lanjut Absensi</span>
+                        </button>
+                        <button type="button" id="batalEditPertemuanButton"
+                            class="btn btn-outline-secondary rounded-pill d-none">
+                            <i class="bx bx-x me-1"></i>Batal Edit
+                        </button>
                     </div>
                 </form>
 
