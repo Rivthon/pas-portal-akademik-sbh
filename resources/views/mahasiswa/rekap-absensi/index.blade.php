@@ -13,7 +13,8 @@
                     <div class="col-md-8 text-white p-3">
                         <h4 class="card-title mb-3 fw-bold text-white"><i class="bx bx-calendar-check me-2"></i>Rekap Absensi Perkuliahan</h4>
                         <p class="mb-0 text-white-50" style="line-height: 1.6;">
-                            Pantau tingkat kehadiran Anda pada setiap mata kuliah Semester {{ $selectedSemester }}.<br>
+                            Pantau tingkat kehadiran Semester {{ $selectedSemester }} pada
+                            {{ $selectedTahunAkademik?->nama ?? '-' }} ({{ $selectedTahunAkademik?->semester ?? '-' }}).<br>
                             Pastikan persentase kehadiran memenuhi syarat untuk dapat mengikuti Ujian Akhir Semester (UAS).
                         </p>
                     </div>
@@ -31,17 +32,29 @@
             <!-- Filter / Pencarian -->
             <div class="card-header bg-white pt-4 pb-3 border-bottom">
                 <div class="row align-items-center gx-3">
-                    <div class="col-lg-5 mb-3 mb-lg-0">
+                    <div class="col-lg-4 mb-3 mb-lg-0">
                         <div class="input-group input-group-merge shadow-sm rounded-pill border">
                             <span class="input-group-text bg-white border-0 rounded-pill-start" id="basic-addon-search"><i class="bx bx-search"></i></span>
                             <input type="text" id="filterAbsensi" class="form-control border-0 rounded-pill-end ps-0" placeholder="Cari Mata Kuliah..." aria-label="Search...">
                         </div>
                     </div>
-                    <div class="col-lg-7">
+                    <div class="col-lg-3 mb-3 mb-lg-0">
+                        <form method="GET" action="{{ route('mahasiswa.rekap.absensi') }}">
+                            <label for="taFilter" class="form-label small fw-semibold text-muted mb-1">Tahun Ajaran</label>
+                            <select name="ta_id" id="taFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+                                @foreach($tahunAkademikList as $tahunAkademik)
+                                    <option value="{{ $tahunAkademik->ta_id }}" @selected($selectedTaId === (int) $tahunAkademik->ta_id)>
+                                        {{ $tahunAkademik->nama }} - {{ $tahunAkademik->semester }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
+                    </div>
+                    <div class="col-lg-5">
                         <div class="d-flex flex-wrap justify-content-lg-end align-items-center gap-2">
                             <span class="small fw-semibold text-muted me-1">Pilih Semester:</span>
                             @foreach($semesterList as $semester)
-                                <a href="{{ route('mahasiswa.rekap.absensi', ['semester' => $semester]) }}"
+                                <a href="{{ route('mahasiswa.rekap.absensi', ['ta_id' => $selectedTaId, 'semester' => $semester]) }}"
                                     class="btn btn-sm rounded-pill {{ $selectedSemester === $semester ? 'btn-primary' : 'btn-outline-primary' }}">
                                     Semester {{ $semester }}
                                     @if($semester === $semesterBerjalan)
@@ -82,7 +95,7 @@
 
                                     <td>
                                         @if($item->detail_id)
-                                            <a href="{{ route('mahasiswa.rekap.absensi.detail', ['jadwalId' => $item->detail_id, 'semester' => $selectedSemester]) }}" class="fw-medium text-primary text-decoration-none">
+                                            <a href="{{ route('mahasiswa.rekap.absensi.detail', ['jadwalId' => $item->detail_id, 'ta_id' => $selectedTaId, 'semester' => $selectedSemester]) }}" class="fw-medium text-primary text-decoration-none">
                                                 <i class="bx bx-link-external me-1"></i> {{ $item->kurikulum->mataKuliah->nama ?? '-' }}
                                             </a>
                                         @else
@@ -115,7 +128,8 @@
                                 <tr id="emptyRow">
                                     <td colspan="8" class="text-center py-5 text-muted">
                                         <i class="bx bx-folder-open fs-2 mb-2 d-block"></i>
-                                        Belum ada data rekap absensi untuk Semester {{ $selectedSemester }}.
+                                        Belum ada KRS yang sudah disetujui untuk Semester {{ $selectedSemester }} pada
+                                        {{ $selectedTahunAkademik?->nama ?? '-' }} ({{ $selectedTahunAkademik?->semester ?? '-' }}).
                                     </td>
                                 </tr>
                             @endforelse

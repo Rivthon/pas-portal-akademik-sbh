@@ -17,13 +17,14 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
 {
     use DatabaseTransactions;
 
-    public function test_new_meeting_uses_approved_krs_even_when_profile_semester_is_different(): void
+    public function test_new_meeting_uses_approved_krs_when_profile_semester_has_matching_parity(): void
     {
         [$dosen, $jadwal, $pesertaKrs] = $this->scheduleWithApprovedParticipants(2);
         $mahasiswa = $pesertaKrs->first();
+        $periodeGanjil = strtolower((string) $jadwal->tahunAjaran->semester) === 'ganjil';
 
         $mahasiswa->update([
-            'semester' => (int) $mahasiswa->semester === 8 ? 1 : 8,
+            'semester' => $periodeGanjil ? 7 : 8,
         ]);
 
         $response = $this->actingAs($dosen, 'dosen')
@@ -43,6 +44,31 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
             'mahasiswa_id' => $mahasiswa->mahasiswa_id,
             'status' => 'tidak hadir',
             'tanggal' => now()->toDateString(),
+        ]);
+    }
+
+    public function test_new_meeting_excludes_approved_krs_when_profile_semester_parity_is_outdated(): void
+    {
+        [$dosen, $jadwal, $pesertaKrs] = $this->scheduleWithApprovedParticipants(2);
+        $mahasiswa = $pesertaKrs->first();
+        $periodeGanjil = strtolower((string) $jadwal->tahunAjaran->semester) === 'ganjil';
+        $mahasiswa->update(['semester' => $periodeGanjil ? 2 : 1]);
+
+        $response = $this->actingAs($dosen, 'dosen')
+            ->postJson(route('dosen.absensi.store'), [
+                'jadwal_id' => $jadwal->id,
+                'tanggal_pertemuan' => now()->toDateString(),
+                'jam_mulai' => '08:00',
+                'jam_selesai' => '09:30',
+                'metode_pbm' => 'offline',
+                'topik' => 'Uji semester belum diperbarui '.uniqid(),
+                'sub_topik' => 'Mahasiswa harus memperbarui semester profil',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseMissing('absensi', [
+            'pertemuan_id' => $response->json('pertemuan_id'),
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
         ]);
     }
 
@@ -162,8 +188,14 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
             ->whereNotNull('disetujui_pada')
-            ->whereHas('mahasiswa', function ($query) use ($jenisKelas) {
+            ->whereHas('mahasiswa', function ($query) use ($jenisKelas, $jadwal) {
                 $query->whereRaw('LOWER(status_mhs) = ?', ['aktif']);
+
+                if (strtolower((string) $jadwal->tahunAjaran->semester) === 'ganjil') {
+                    $query->whereIn('semester', [1, 3, 5, 7]);
+                } else {
+                    $query->whereIn('semester', [2, 4, 6, 8]);
+                }
 
                 if ($jenisKelas === 'karyawan') {
                     $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);

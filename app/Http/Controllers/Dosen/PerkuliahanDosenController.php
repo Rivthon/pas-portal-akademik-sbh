@@ -698,15 +698,18 @@ class PerkuliahanDosenController extends Controller
         // tanpa mengubah status/keterangan absensi yang sudah pernah disimpan.
         $this->syncPesertaAbsensi($pertemuan);
 
-        // Ambil data absensi berdasarkan pertemuan
+        $pesertaKrs = $this->pesertaKrsJadwal($pertemuan->jadwal);
+
+        // Hanya tampilkan peserta KRS yang saat ini memenuhi syarat untuk jadwal tersebut.
+        // Baris lama tetap disimpan agar riwayat dapat muncul kembali setelah semester diperbarui.
         $absensi = Absensi::where('pertemuan_id', $pertemuan_id)
+            ->whereIn('mahasiswa_id', $pesertaKrs)
             ->with('mahasiswa') // Pastikan ada relasi ke Mahasiswa
             ->orderBy('absensi_id')
             ->get();
 
-        $mahasiswaAbsensi = Absensi::where('pertemuan_id', $pertemuan_id)->pluck('mahasiswa_id');
+        $mahasiswaAbsensi = $absensi->pluck('mahasiswa_id');
         // Penambahan manual tetap dibatasi pada peserta KRS kelas yang sama.
-        $pesertaKrs = $this->pesertaKrsJadwal($pertemuan->jadwal);
         $mahasiswaTambahan = Mahasiswa::whereIn('mahasiswa_id', $pesertaKrs)
             ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
             ->get();
@@ -779,13 +782,24 @@ class PerkuliahanDosenController extends Controller
     private function pesertaKrsJadwal(Jadwal $jadwal)
     {
         $jenisKelas = strtolower(trim((string) $jadwal->jenis_kelas));
+        $periodeAkademik = strtolower(trim((string) $jadwal->tahunAjaran()->value('semester')));
+        $tahunAkademikAktifId = (int) TahunAkademik::query()
+            ->where('status_ta', 1)
+            ->value('ta_id');
+        $wajibSesuaiPeriodeAktif = (int) $jadwal->ta_id === $tahunAkademikAktifId;
 
         return Krs::query()
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
             ->whereNotNull('disetujui_pada')
-            ->whereHas('mahasiswa', function ($query) use ($jenisKelas) {
+            ->whereHas('mahasiswa', function ($query) use ($jenisKelas, $periodeAkademik, $wajibSesuaiPeriodeAktif) {
                 $query->whereRaw('LOWER(status_mhs) = ?', ['aktif']);
+
+                if ($wajibSesuaiPeriodeAktif && $periodeAkademik === 'ganjil') {
+                    $query->whereIn('semester', [1, 3, 5, 7]);
+                } elseif ($wajibSesuaiPeriodeAktif && $periodeAkademik === 'genap') {
+                    $query->whereIn('semester', [2, 4, 6, 8]);
+                }
 
                 if ($jenisKelas === 'karyawan') {
                     $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);

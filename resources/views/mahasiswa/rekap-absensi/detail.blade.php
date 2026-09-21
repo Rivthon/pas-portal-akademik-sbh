@@ -14,11 +14,14 @@
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <div>
-            <a href="{{ route('mahasiswa.rekap.absensi', ['semester' => $selectedSemester]) }}" class="btn btn-sm btn-label-secondary mb-3">
+            <a href="{{ route('mahasiswa.rekap.absensi', ['ta_id' => $selectedTaId, 'semester' => $selectedSemester]) }}" class="btn btn-sm btn-label-secondary mb-3">
                 <i class="bx bx-arrow-back me-1"></i>Kembali
             </a>
             <h4 class="fw-bold mb-1">Rekap Absensi</h4>
-            <p class="text-muted mb-0">{{ $mataKuliah?->nama ?? '-' }}</p>
+            <p class="text-muted mb-0">
+                {{ $mataKuliah?->nama ?? '-' }} &bull;
+                {{ $selectedTahunAkademik->nama }} ({{ $selectedTahunAkademik->semester }})
+            </p>
         </div>
         @if($lmsJadwal)
             <a href="{{ route('mahasiswa.lms.show', $lmsJadwal) }}" class="btn btn-primary">
