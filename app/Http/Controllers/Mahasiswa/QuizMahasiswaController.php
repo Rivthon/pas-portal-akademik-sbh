@@ -9,6 +9,7 @@ use App\Models\LmsQuiz;
 use App\Models\LmsQuizAttempt;
 use App\Models\LmsQuizJawaban;
 use App\Services\GradebookKhsSyncService;
+use App\Support\KrsClassResolver;
 use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -225,10 +226,10 @@ class QuizMahasiswaController extends Controller
     private function terdaftar(Jadwal $jadwal, $mahasiswa): bool
     {
         $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->where('kurikulum_id', $jadwal->kurikulum_id)->where('ta_id', $jadwal->ta_id)->exists();
-        $kelasMahasiswa = strtolower((string) $mahasiswa->kelas);
-        $kelasJadwal = strtolower((string) $jadwal->jenis_kelas);
+            ->where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->first();
 
-        return $krs && ($kelasMahasiswa === 'karyawan' ? $kelasJadwal === 'karyawan' : $kelasJadwal === 'reguler');
+        return $krs && KrsClassResolver::matches($krs, $jadwal, $mahasiswa);
     }
 }

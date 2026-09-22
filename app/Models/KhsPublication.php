@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\KrsClassResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -77,13 +78,13 @@ class KhsPublication extends Model
             ->whereIn('ta_id', $krsItems->pluck('ta_id')->filter()->unique())
             ->get()
             ->groupBy('ta_id');
-        $kelasMahasiswa = strtolower((string) $mahasiswa->kelas) === 'karyawan' ? 'karyawan' : 'reguler';
 
-        return $krsItems->filter(function (Krs $krs) use ($publications, $kelasMahasiswa) {
+        return $krsItems->filter(function (Krs $krs) use ($publications, $mahasiswa) {
             $items = $publications->get($krs->ta_id, collect());
             $semester = (int) ($krs->kurikulum?->mataKuliah?->smt ?? 0);
+            $kelasKrs = KrsClassResolver::forKrs($krs, $mahasiswa);
 
-            return $items->contains(function (KhsPublication $publication) use ($krs, $semester, $kelasMahasiswa) {
+            return $items->contains(function (KhsPublication $publication) use ($krs, $semester, $kelasKrs) {
                 if ($publication->scope_type === 'all') {
                     return true;
                 }
@@ -97,7 +98,7 @@ class KhsPublication extends Model
                 }
 
                 return (int) $publication->jadwal->kurikulum_id === (int) $krs->kurikulum_id
-                    && strtolower((string) $publication->jadwal->jenis_kelas) === $kelasMahasiswa;
+                    && KrsClassResolver::normalize($publication->jadwal->jenis_kelas) === $kelasKrs;
             });
         })->values();
     }

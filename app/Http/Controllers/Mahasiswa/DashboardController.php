@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\CalendarAkademik;
-use App\Models\Jadwal;
 use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\LmsMateri;
@@ -12,6 +11,7 @@ use App\Models\LmsQuiz;
 use App\Models\LmsTugas;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\KrsClassResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -124,17 +124,7 @@ class DashboardController extends Controller
             return collect();
         }
 
-        $kurikulumIds = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->where('ta_id', $ta->ta_id)
-            ->pluck('kurikulum_id');
-
-        $jadwalIds = Jadwal::where('ta_id', $ta->ta_id)
-            ->whereIn('kurikulum_id', $kurikulumIds)
-            ->when(strtolower((string) $mahasiswa->kelas) === 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['karyawan']))
-            ->when(strtolower((string) $mahasiswa->kelas) !== 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['reguler']))
-            ->pluck('id');
+        $jadwalIds = KrsClassResolver::jadwalIdsForMahasiswa($mahasiswa, (int) $ta->ta_id);
 
         if ($jadwalIds->isEmpty()) {
             return collect();

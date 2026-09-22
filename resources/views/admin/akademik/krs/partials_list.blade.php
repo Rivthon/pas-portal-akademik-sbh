@@ -88,6 +88,7 @@
                                                 <th>Nama Mata Kuliah</th>
                                                 <th>SKS</th>
                                                 <th>Semester</th>
+                                                <th style="min-width: 190px;">Kelas Perkuliahan</th>
                                                 <th>Nilai KHS</th>
                                                 <th style="width: 60px;">Aksi</th>
                                             </tr>
@@ -103,6 +104,23 @@
                                                     <td>{{ $mk->nama ?? 'N/A' }}</td>
                                                     <td class="text-center">{{ $mk->sks ?? 0 }}</td>
                                                     <td class="text-center">{{ $mk->smt ?? '-' }}</td>
+                                                    <td>
+                                                        @can('krs-create')
+                                                            <select class="form-select form-select-sm select-kelas-krs"
+                                                                data-id="{{ $krs->krs_id }}"
+                                                                data-current="{{ $krs->jenis_kelas ?? '' }}">
+                                                                <option value="" @selected(! $krs->jenis_kelas)>
+                                                                    Ikuti {{ jenis_kelas_label($mhs->kelas) }}
+                                                                </option>
+                                                                <option value="reguler" @selected($krs->jenis_kelas === 'reguler')>Reguler A</option>
+                                                                <option value="karyawan" @selected($krs->jenis_kelas === 'karyawan')>Reguler B</option>
+                                                            </select>
+                                                        @else
+                                                            <span class="badge bg-label-info">
+                                                                {{ jenis_kelas_label($krs->jenis_kelas ?: $mhs->kelas) }}
+                                                            </span>
+                                                        @endcan
+                                                    </td>
                                                     <td class="text-center">
                                                         @if($krs->khs)
                                                             <span class="badge bg-success">{{ $krs->khs }}</span>
@@ -127,7 +145,7 @@
                                             <tr>
                                                 <td colspan="3" class="text-end fw-bold">Total:</td>
                                                 <td class="text-center fw-bold">{{ $totalSks }} SKS</td>
-                                                <td colspan="3"></td>
+                                                <td colspan="4"></td>
                                             </tr>
                                         </tfoot>
                                     </table>

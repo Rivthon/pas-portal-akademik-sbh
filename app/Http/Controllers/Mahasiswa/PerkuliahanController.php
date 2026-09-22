@@ -14,6 +14,7 @@ use App\Models\JadwalUts;
 use App\Models\ProgramStudi;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\KrsClassResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -45,10 +46,6 @@ class PerkuliahanController extends Controller
     public function index(Request $request)
     {
         $mahasiswa = $this->getMahasiswa();
-        $semester = $mahasiswa->semester;
-        $prodi = $mahasiswa->jurusan_id;
-        $kelas = $mahasiswa->kelas;
-
         $activeTA = $this->getActiveTA();
 
         // Pastikan ada tahun ajaran aktif
@@ -57,26 +54,15 @@ class PerkuliahanController extends Controller
         }
 
         // Query dengan eager loading - Auth::guard() hanya dipanggil sekali di atas
+        $jadwalIds = KrsClassResolver::jadwalIdsForMahasiswa($mahasiswa, (int) $activeTA->ta_id);
+
         $jadwals = Jadwal::with([
             'kurikulum.mataKuliah',
             'kurikulum.dosenToMatakuliah.dosen',
             'programStudi',
             'ruangan',
         ])
-            ->where('ta_id', $activeTA->ta_id)
-            ->where(function ($query) use ($kelas) {
-                if ($kelas === 'reguler') {
-                    $query->where('jenis_kelas', 'reguler');
-                } elseif ($kelas === 'karyawan') {
-                    $query->where('jenis_kelas', 'karyawan');
-                }
-            })
-            ->whereHas('kurikulum.mataKuliah', function ($query) use ($semester) {
-                $query->where('smt', $semester);
-            })
-            ->whereHas('programStudi', function ($query) use ($prodi) {
-                $query->where('jurusan_id', $prodi);
-            })
+            ->whereIn('id', $jadwalIds)
             ->get()
             ->map(function ($jadwal) {
                 return [

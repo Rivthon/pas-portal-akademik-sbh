@@ -19,5 +19,5 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
-
+*.sql
 .codegpt

@@ -12,6 +12,7 @@ use App\Models\LmsTugas;
 use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
 use App\Services\LmsCalendarService;
+use App\Support\KrsClassResolver;
 use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,17 +30,10 @@ class LmsMahasiswaController extends Controller
             return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
 
-        $kurikulumIds = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->where('ta_id', $activeTA->ta_id)
-            ->pluck('kurikulum_id');
+        $jadwalIds = KrsClassResolver::jadwalIdsForMahasiswa($mahasiswa, (int) $activeTA->ta_id);
 
         $jadwalList = Jadwal::query()
-            ->where('ta_id', $activeTA->ta_id)
-            ->whereIn('kurikulum_id', $kurikulumIds)
-            ->when(strtolower((string) $mahasiswa->kelas) === 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['karyawan']))
-            ->when(strtolower((string) $mahasiswa->kelas) !== 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['reguler']))
+            ->whereIn('id', $jadwalIds)
             ->with([
                 'kurikulum.mataKuliah',
                 'kurikulum.programStudi',
@@ -119,16 +113,9 @@ class LmsMahasiswaController extends Controller
             return back()->with('error', 'Tidak ada Tahun Akademik aktif.');
         }
 
-        $kurikulumIds = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->where('ta_id', $activeTA->ta_id)
-            ->pluck('kurikulum_id');
+        $jadwalIds = KrsClassResolver::jadwalIdsForMahasiswa($mahasiswa, (int) $activeTA->ta_id);
 
-        $jadwalList = Jadwal::where('ta_id', $activeTA->ta_id)
-            ->whereIn('kurikulum_id', $kurikulumIds)
-            ->when(strtolower((string) $mahasiswa->kelas) === 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['karyawan']))
-            ->when(strtolower((string) $mahasiswa->kelas) !== 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['reguler']))
+        $jadwalList = Jadwal::whereIn('id', $jadwalIds)
             ->with([
                 'kurikulum.mataKuliah',
                 'kurikulum.programStudi',
@@ -616,16 +603,12 @@ class LmsMahasiswaController extends Controller
 
     private function mahasiswaTerdaftarPadaJadwal(Jadwal $jadwal, $mahasiswa): bool
     {
-        $terdaftar = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+        $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
-            ->exists();
-        $kelasMahasiswa = strtolower((string) $mahasiswa->kelas);
-        $kelasJadwal = strtolower((string) $jadwal->jenis_kelas);
+            ->first();
 
-        return $terdaftar && ($kelasMahasiswa === 'karyawan'
-            ? $kelasJadwal === 'karyawan'
-            : $kelasJadwal === 'reguler');
+        return $krs && KrsClassResolver::matches($krs, $jadwal, $mahasiswa);
     }
 
     public function showMateri($id)

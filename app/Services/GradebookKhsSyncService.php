@@ -9,6 +9,7 @@ use App\Models\Krs;
 use App\Models\LmsQuiz;
 use App\Models\LmsTugas;
 use App\Models\NilaiSubmission;
+use App\Support\KrsClassResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -47,21 +48,11 @@ class GradebookKhsSyncService
             ];
         }
 
-        $kelasJadwal = strtolower((string) $jadwal->jenis_kelas);
         $pesertaKrs = Krs::with('mahasiswa')
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
-            ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
-                if ($kelasJadwal === 'karyawan') {
-                    $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
-                } else {
-                    $query->where(function ($kelas) {
-                        $kelas->whereNull('kelas')
-                            ->orWhereRaw('LOWER(kelas) != ?', ['karyawan']);
-                    });
-                }
-            })
-            ->get();
+            ->get()
+            ->filter(fn (Krs $krs) => KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa));
 
         $pengumpulan = $tugasList->flatMap->pengumpulan
             ->keyBy(fn ($item) => $item->mahasiswa_id.'-'.$item->tugas_id);

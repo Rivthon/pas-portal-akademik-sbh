@@ -10,6 +10,7 @@ use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
+use App\Support\KrsClassResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -53,8 +54,6 @@ class EdomController extends Controller
         $mahasiswaId = $mahasiswa->mahasiswa_id;
         $isHistorical = (int) $activeTA->ta_id !== (int) $tahunAkademikAktif->ta_id;
 
-        $searchKelas = $this->normalizeJenisKelas($mahasiswa->kelas);
-
         // Seluruh data EDOM wajib berasal dari KRS pada TA yang sedang dipilih.
         $krsData = Krs::with([
             'kurikulum.mataKuliah',
@@ -81,7 +80,8 @@ class EdomController extends Controller
                 $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas) => true,
             ]);
 
-        $krsList = $krsData->map(function ($krs) use ($existingRatings, $searchKelas) {
+        $krsList = $krsData->map(function ($krs) use ($existingRatings, $mahasiswa) {
+            $searchKelas = KrsClassResolver::forKrs($krs, $mahasiswa);
             $dosenAssignments = collect($krs->kurikulum?->dosenToMatakuliah)
                 ->filter(function ($dtm) use ($searchKelas) {
                     $jenisKelas = strtolower((string) ($dtm->jenis_kelas ?? ''));
@@ -169,7 +169,7 @@ class EdomController extends Controller
             // Ambil kurikulum_id dari KRS
             $kurikulum_id = $krs->kurikulum_id;
 
-            $jenis_kelas = $this->normalizeJenisKelas($krs->mahasiswa?->kelas ?? auth('mahasiswa')->user()?->kelas);
+            $jenis_kelas = KrsClassResolver::forKrs($krs, auth('mahasiswa')->user());
 
             // Pastikan dosen memang ditugaskan pada metode dan kelas mahasiswa ini.
             $dosenData = DB::table('dosen_mata_kuliah')
@@ -256,7 +256,7 @@ class EdomController extends Controller
 
         // Ambil `kurikulum_id` dari `KRS`
         $kurikulum_id = $krs->kurikulum_id;
-        $jenisKelas = $this->normalizeJenisKelas(auth('mahasiswa')->user()?->kelas);
+        $jenisKelas = KrsClassResolver::forKrs($krs, auth('mahasiswa')->user());
 
         $assignment = DB::table('dosen_mata_kuliah')
             ->where('kurikulum_id', $kurikulum_id)
@@ -417,28 +417,27 @@ class EdomController extends Controller
         }
 
         $kurikulumIds = $krsRecords->pluck('kurikulum_id');
-        $kelasMahasiswa = strtolower(trim((string) $mahasiswa->kelas));
-        $searchKelas = match ($kelasMahasiswa) {
-            'karyawan', 'reguler b' => 'karyawan',
-            default => 'reguler',
-        };
 
-        $requiredPairs = DB::table('dosen_mata_kuliah')
-            ->whereIn('kurikulum_id', $kurikulumIds)
-            ->where(function ($query) use ($searchKelas) {
-                $query->whereRaw('LOWER(COALESCE(jenis_kelas, "")) = ?', [$searchKelas]);
-                if ($searchKelas === 'reguler') {
-                    $query->orWhere(function ($praktik) {
-                        $praktik->whereRaw('LOWER(COALESCE(jenis_dosen, "")) = ?', ['praktik'])
-                            ->where(function ($kelas) {
-                                $kelas->whereNull('jenis_kelas')->orWhere('jenis_kelas', '');
-                            });
-                    });
-                }
-            })
-            ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
-            ->distinct()
-            ->get()
+        $requiredPairs = $krsRecords->flatMap(function ($krs) use ($mahasiswa) {
+            $searchKelas = KrsClassResolver::forKrs($krs, $mahasiswa);
+
+            return DB::table('dosen_mata_kuliah')
+                ->where('kurikulum_id', $krs->kurikulum_id)
+                ->where(function ($query) use ($searchKelas) {
+                    $query->whereRaw('LOWER(COALESCE(jenis_kelas, "")) = ?', [$searchKelas]);
+                    if ($searchKelas === 'reguler') {
+                        $query->orWhere(function ($praktik) {
+                            $praktik->whereRaw('LOWER(COALESCE(jenis_dosen, "")) = ?', ['praktik'])
+                                ->where(function ($kelas) {
+                                    $kelas->whereNull('jenis_kelas')->orWhere('jenis_kelas', '');
+                                });
+                        });
+                    }
+                })
+                ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
+                ->distinct()
+                ->get();
+        })
             ->map(fn ($row) => $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas));
 
         $filledPairs = DB::table('penilaian')

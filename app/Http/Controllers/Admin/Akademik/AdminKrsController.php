@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Akademik;
 
 use App\Http\Controllers\Controller;
+use App\Models\Jadwal;
 use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
@@ -11,6 +12,7 @@ use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class AdminKrsController extends Controller
 {
@@ -209,6 +211,7 @@ class AdminKrsController extends Controller
             'mahasiswa_id' => 'required|integer|exists:mahasiswa,mahasiswa_id',
             'kurikulum_ids' => 'required|array|min:1',
             'kurikulum_ids.*' => 'integer|exists:kurikulum,kurikulum_id',
+            'jenis_kelas' => ['nullable', Rule::in(['reguler', 'karyawan'])],
         ]);
 
         $tahunAjaran = TahunAkademik::where('status_ta', 1)->first();
@@ -218,27 +221,50 @@ class AdminKrsController extends Controller
 
         try {
             $created = 0;
+            $updated = 0;
             $skipped = 0;
+            $jenisKelas = $request->input('jenis_kelas');
 
             $kurikulumList = Kurikulum::whereIn('kurikulum_id', $request->kurikulum_ids)
                 ->where('ta_id', $tahunAjaran->ta_id)
                 ->get()
                 ->unique('matakuliah_id');
 
+            if ($jenisKelas) {
+                $tersedia = Jadwal::query()
+                    ->where('ta_id', $tahunAjaran->ta_id)
+                    ->whereIn('kurikulum_id', $kurikulumList->pluck('kurikulum_id'))
+                    ->whereRaw('LOWER(jenis_kelas) = ?', [$jenisKelas])
+                    ->pluck('kurikulum_id');
+                $tidakTersedia = $kurikulumList->whereNotIn('kurikulum_id', $tersedia);
+
+                if ($tidakTersedia->isNotEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Jadwal '.jenis_kelas_label($jenisKelas).' belum tersedia untuk: '
+                            .$tidakTersedia->map(fn ($item) => $item->mataKuliah?->nama ?? $item->matakuliah_id)->join(', ').'.',
+                    ], 422);
+                }
+            }
+
             foreach ($kurikulumList as $kurikulum) {
-                $exists = Krs::where('matakuliah_id', $kurikulum->matakuliah_id)
+                $existing = Krs::where('matakuliah_id', $kurikulum->matakuliah_id)
                     ->where('mahasiswa_id', $request->mahasiswa_id)
                     ->where('ta_id', $tahunAjaran->ta_id)
-                    ->exists();
+                    ->first();
 
-                if (! $exists) {
+                if (! $existing) {
                     Krs::create([
                         'kurikulum_id' => $kurikulum->kurikulum_id,
                         'matakuliah_id' => $kurikulum->matakuliah_id,
                         'mahasiswa_id' => $request->mahasiswa_id,
                         'ta_id' => $tahunAjaran->ta_id,
+                        'jenis_kelas' => $jenisKelas,
                     ]);
                     $created++;
+                } elseif ($jenisKelas && $existing->jenis_kelas !== $jenisKelas) {
+                    $existing->update(['jenis_kelas' => $jenisKelas]);
+                    $updated++;
                 } else {
                     $skipped++;
                 }
@@ -248,6 +274,9 @@ class AdminKrsController extends Controller
             activity_log('admin_input_krs', 'Admin menambahkan '.$created.' KRS untuk mahasiswa: '.($mahasiswa->nama ?? 'Unknown'));
 
             $message = $created.' mata kuliah berhasil ditambahkan ke KRS.';
+            if ($updated > 0) {
+                $message .= ' '.$updated.' kelas KRS yang sudah ada berhasil diperbarui.';
+            }
             if ($skipped > 0) {
                 $message .= ' '.$skipped.' mata kuliah sudah ada sebelumnya (dilewati).';
             }
@@ -258,6 +287,46 @@ class AdminKrsController extends Controller
 
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: '.$e->getMessage()]);
         }
+    }
+
+    /**
+     * Ubah kelas pelaksanaan satu mata kuliah tanpa menggandakan KRS/SKS.
+     */
+    public function updateKelas(Request $request, Krs $krs)
+    {
+        $validated = $request->validate([
+            'jenis_kelas' => ['nullable', Rule::in(['reguler', 'karyawan'])],
+        ]);
+
+        $jenisKelas = $validated['jenis_kelas'] ?? null;
+        $mahasiswa = $krs->mahasiswa;
+        $kelasEfektif = $jenisKelas ?: (strtolower((string) $mahasiswa?->kelas) === 'karyawan' ? 'karyawan' : 'reguler');
+
+        $jadwalTersedia = Jadwal::query()
+            ->where('ta_id', $krs->ta_id)
+            ->where('kurikulum_id', $krs->kurikulum_id)
+            ->whereRaw('LOWER(jenis_kelas) = ?', [$kelasEfektif])
+            ->exists();
+
+        if (! $jadwalTersedia) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal '.jenis_kelas_label($kelasEfektif).' belum tersedia untuk mata kuliah ini.',
+            ], 422);
+        }
+
+        $krs->update(['jenis_kelas' => $jenisKelas]);
+
+        activity_log(
+            'admin_ubah_kelas_krs',
+            'Admin mengubah kelas KRS '.$krs->krs_id.' milik '.($mahasiswa?->nama ?? 'mahasiswa')
+            .' menjadi '.jenis_kelas_label($kelasEfektif)
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kelas perkuliahan berhasil diperbarui menjadi '.jenis_kelas_label($kelasEfektif).'.',
+        ]);
     }
 
     /**

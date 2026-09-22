@@ -8,6 +8,7 @@ use App\Models\Jadwal;
 use App\Models\Krs;
 use App\Models\Pertemuan;
 use App\Models\Setting;
+use App\Support\KrsClassResolver;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -220,14 +221,11 @@ class AbsensiController extends Controller
             return false;
         }
 
-        $kelasMahasiswa = strtolower((string) $mahasiswa->kelas) === 'karyawan'
-            ? 'karyawan'
-            : 'reguler';
+        $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->first();
 
-        return strtolower((string) $jadwal->jenis_kelas) === $kelasMahasiswa
-            && Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->where('kurikulum_id', $jadwal->kurikulum_id)
-                ->where('ta_id', $jadwal->ta_id)
-                ->exists();
+        return $krs && KrsClassResolver::matches($krs, $jadwal, $mahasiswa);
     }
 }

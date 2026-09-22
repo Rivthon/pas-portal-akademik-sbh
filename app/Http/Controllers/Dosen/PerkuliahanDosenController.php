@@ -792,7 +792,7 @@ class PerkuliahanDosenController extends Controller
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
             ->whereNotNull('disetujui_pada')
-            ->whereHas('mahasiswa', function ($query) use ($jenisKelas, $periodeAkademik, $wajibSesuaiPeriodeAktif) {
+            ->whereHas('mahasiswa', function ($query) use ($periodeAkademik, $wajibSesuaiPeriodeAktif) {
                 $query->whereRaw('LOWER(status_mhs) = ?', ['aktif']);
 
                 if ($wajibSesuaiPeriodeAktif && $periodeAkademik === 'ganjil') {
@@ -801,11 +801,19 @@ class PerkuliahanDosenController extends Controller
                     $query->whereIn('semester', [2, 4, 6, 8]);
                 }
 
-                if ($jenisKelas === 'karyawan') {
-                    $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
-                } else {
-                    $query->whereIn(DB::raw('LOWER(kelas)'), ['pagi', 'reguler']);
-                }
+            })
+            ->where(function ($query) use ($jenisKelas) {
+                $query->whereRaw('LOWER(krs.jenis_kelas) = ?', [$jenisKelas])
+                    ->orWhere(function ($fallback) use ($jenisKelas) {
+                        $fallback->whereNull('krs.jenis_kelas')
+                            ->whereHas('mahasiswa', function ($mahasiswaQuery) use ($jenisKelas) {
+                                if ($jenisKelas === 'karyawan') {
+                                    $mahasiswaQuery->whereRaw('LOWER(kelas) = ?', ['karyawan']);
+                                } else {
+                                    $mahasiswaQuery->whereIn(DB::raw('LOWER(kelas)'), ['pagi', 'reguler']);
+                                }
+                            });
+                    });
             })
             ->pluck('mahasiswa_id')
             ->unique()

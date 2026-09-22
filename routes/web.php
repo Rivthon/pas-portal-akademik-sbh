@@ -530,6 +530,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/krs-admin/get-mahasiswa', [AdminKrsController::class, 'getMahasiswaForKrs'])->name('krs-admin.getMahasiswa');
             Route::get('/krs-admin/get-kurikulum', [AdminKrsController::class, 'getKurikulumForKrs'])->name('krs-admin.getKurikulum');
             Route::post('/krs-admin', [AdminKrsController::class, 'store'])->middleware('permission:krs-create')->name('krs-admin.store');
+            Route::patch('/krs-admin/{krs}/kelas', [AdminKrsController::class, 'updateKelas'])->middleware('permission:krs-create')->name('krs-admin.updateKelas');
             Route::post('/krs-admin/bulk', [AdminKrsController::class, 'bulkStore'])->middleware('permission:krs-create')->name('krs-admin.bulkStore');
             Route::delete('/krs-admin/{id}', [AdminKrsController::class, 'destroy'])->middleware('permission:krs-delete')->name('krs-admin.destroy');
         });

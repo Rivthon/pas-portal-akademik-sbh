@@ -9,6 +9,7 @@ use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
+use App\Support\KrsClassResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -87,16 +88,19 @@ class RekapAbsensiController extends Controller
             ->whereIn('jadwal_id', Jadwal::whereIn('kurikulum_id', $kurikulumIds)->select('id'))
             ->pluck('jadwal_id')
             ->unique();
-        $kelas = strtolower(trim((string) $mahasiswa->kelas));
-        $jenisKelas = $kelas === 'karyawan' ? 'karyawan' : 'reguler';
         $jadwalPerKurikulum = Jadwal::where('ta_id', $selectedTaId)
             ->whereIn('kurikulum_id', $kurikulumIds)
-            ->where(function ($query) use ($jadwalDenganAbsensi, $jenisKelas) {
-                $query->whereIn('id', $jadwalDenganAbsensi)
-                    ->orWhereRaw('LOWER(jenis_kelas) = ?', [$jenisKelas]);
-            })
             ->orderByDesc('ta_id')
             ->get()
+            ->filter(function (Jadwal $jadwal) use ($jadwalDenganAbsensi, $krs, $mahasiswa) {
+                if ($jadwalDenganAbsensi->contains($jadwal->id)) {
+                    return true;
+                }
+
+                $item = $krs->get($jadwal->kurikulum_id);
+
+                return $item && KrsClassResolver::matches($item, $jadwal, $mahasiswa);
+            })
             ->groupBy('kurikulum_id');
         $absensiPerJadwal = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereIn('jadwal_id', $jadwalPerKurikulum->flatten()->pluck('id'))
@@ -219,15 +223,11 @@ class RekapAbsensiController extends Controller
         $jadwalDenganAbsensi = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereIn('jadwal_id', $semuaJadwalIds)
             ->pluck('jadwal_id');
-        $jenisKelas = strtolower((string) $mahasiswa->kelas) === 'karyawan'
-            ? 'karyawan'
-            : 'reguler';
         $jadwalIds = Jadwal::where('kurikulum_id', $id)
             ->where('ta_id', $selectedTaId)
-            ->where(function ($query) use ($jadwalDenganAbsensi, $jenisKelas) {
-                $query->whereIn('id', $jadwalDenganAbsensi)
-                    ->orWhereRaw('LOWER(jenis_kelas) = ?', [$jenisKelas]);
-            })
+            ->get(['id', 'kurikulum_id', 'ta_id', 'jenis_kelas'])
+            ->filter(fn (Jadwal $item) => $jadwalDenganAbsensi->contains($item->id)
+                || ($krs && KrsClassResolver::matches($krs, $item, $mahasiswa)))
             ->pluck('id');
 
         // 2) Jika kosong, anggap $id sebagai jadwal_id
@@ -259,12 +259,9 @@ class RekapAbsensiController extends Controller
         $selectedSemester = (int) ($request->input('semester')
             ?: ($jadwal->kurikulum?->mataKuliah?->smt ?? $mahasiswa->semester));
 
-        $kelasMahasiswa = strtolower((string) $mahasiswa->kelas);
+        $kelasKrs = KrsClassResolver::forKrs($krs, $mahasiswa);
         $lmsJadwal = Jadwal::whereIn('id', $jadwalIds)
-            ->when($kelasMahasiswa === 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['karyawan']))
-            ->when($kelasMahasiswa !== 'karyawan', fn ($query) => $query
-                ->whereRaw('LOWER(jenis_kelas) = ?', ['reguler']))
+            ->whereRaw('LOWER(jenis_kelas) = ?', [$kelasKrs])
             ->latest('ta_id')
             ->first();
 

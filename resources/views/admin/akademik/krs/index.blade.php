@@ -510,6 +510,17 @@
                 </div>
 
                 <div class="form-section mb-0">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="select-jenis-kelas">
+                            <i class="bx bx-group me-1"></i> Kelas Perkuliahan
+                        </label>
+                        <select id="select-jenis-kelas" class="form-select">
+                            <option value="">Ikuti kelas utama mahasiswa</option>
+                            <option value="reguler">Reguler A</option>
+                            <option value="karyawan">Reguler B</option>
+                        </select>
+                        <small class="text-muted d-block mt-2">Pilih Reguler B untuk mata kuliah ulang tanpa mengubah kelas utama mahasiswa.</small>
+                    </div>
                     <label class="form-label fw-semibold">
                         <i class="bx bx-book me-1"></i> Pilih Mata Kuliah <span class="text-danger">*</span>
                     </label>
@@ -609,6 +620,7 @@
         getMahasiswaRoute: "{{ route('admin.krs-admin.getMahasiswa') }}",
         getKurikulumRoute: "{{ route('admin.krs-admin.getKurikulum') }}",
         storeRoute: "{{ route('admin.krs-admin.store') }}",
+        updateClassRoute: "{{ route('admin.krs-admin.updateKelas', 'ID_PLACEHOLDER') }}",
         bulkStoreRoute: "{{ route('admin.krs-admin.bulkStore') }}",
         destroyRoute: "{{ route('admin.krs-admin.destroy', 'ID_PLACEHOLDER') }}",
         csrfToken: "{{ csrf_token() }}"
@@ -803,6 +815,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btn-simpan-krs').addEventListener('click', function() {
         const mahasiswaId = $('#select-mahasiswa').val();
         const kurikulumIds = $('#select-kurikulum').val();
+        const jenisKelas = document.getElementById('select-jenis-kelas').value;
         const btn = this;
 
         if (!mahasiswaId) {
@@ -828,6 +841,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     mahasiswa_id: mahasiswaId,
                     kurikulum_ids: kurikulumIds.map(Number),
+                    jenis_kelas: jenisKelas || null,
                 }),
             })
             .then(res => res.json())
@@ -840,6 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Reset form
                     $('#select-mahasiswa').val(null).trigger('change');
                     $('#select-kurikulum').val(null).trigger('change');
+                    document.getElementById('select-jenis-kelas').value = '';
                     document.getElementById('modal-selected-info').style.display = 'none';
                     // Refresh table if filter was active
                     fetchKrsData();
@@ -854,6 +869,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.innerHTML = '<i class="bx bx-save me-1"></i> Simpan KRS';
                 Swal.fire({ icon: 'error', title: 'Error Jaringan', text: 'Terjadi kesalahan jaringan.' });
             });
+    });
+
+    // ===== UBAH KELAS PER MATA KULIAH =====
+    document.addEventListener('change', function(e) {
+        const select = e.target.closest('.select-kelas-krs');
+        if (!select) return;
+
+        const previousValue = select.dataset.current || '';
+        select.disabled = true;
+
+        fetch(config.updateClassRoute.replace('ID_PLACEHOLDER', select.dataset.id), {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': config.csrfToken,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ jenis_kelas: select.value || null }),
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.message || 'Kelas gagal diperbarui.');
+
+            select.dataset.current = select.value;
+            if (typeof toastr !== 'undefined') {
+                toastr.success(data.message, 'Berhasil');
+            } else {
+                Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1800, showConfirmButton: false });
+            }
+        })
+        .catch(error => {
+            select.value = previousValue;
+            Swal.fire({ icon: 'error', title: 'Gagal', text: error.message });
+        })
+        .finally(() => {
+            select.disabled = false;
+        });
     });
 
     // ===== BULK ASSIGN KRS =====
