@@ -490,9 +490,9 @@
                 $(".status-absen[value='hadir']").prop("checked", true);
             });
 
-            // Reset semua absensi ke Alpha (default)
+            // Kembalikan semua pilihan ke status awal: belum diabsen.
             $("#resetAbsensi").click(function () {
-                $(".status-absen[value='tidak hadir']").prop("checked", true);
+                $(".status-absen").prop("checked", false);
             });
 
             // Submit form dengan AJAX

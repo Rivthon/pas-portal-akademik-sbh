@@ -35,7 +35,7 @@
                         @foreach($absensi as $item)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td><strong>{{ $item->mahasiswa?->nama ?? 'Mahasiswa tidak ditemukan' }}</strong><small class="d-block text-muted">{{ $item->mahasiswa?->nim }}</small></td>
+                                <td><strong>{{ $item->mahasiswa?->nama ?? 'Mahasiswa tidak ditemukan' }}</strong><small class="d-block text-muted">{{ $item->mahasiswa?->nim }}</small>@if($item->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
                                     <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $item->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$item->mahasiswa_id, $item->status) === $status) required></td>
                                 @endforeach
@@ -47,7 +47,7 @@
                                 <td>{{ $absensi->count() + $loop->iteration }}</td>
                                 <td><strong>{{ $mahasiswa->nama }}</strong><small class="d-block text-muted">{{ $mahasiswa->nim }} · belum tercatat</small></td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked($status === 'tidak hadir') required></td>
+                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" required></td>
                                 @endforeach
                                 <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" maxlength="500" placeholder="Opsional"></td>
                             </tr>

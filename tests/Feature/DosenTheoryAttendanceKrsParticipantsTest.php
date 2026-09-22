@@ -42,7 +42,7 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
         $this->assertDatabaseHas('absensi', [
             'pertemuan_id' => $response->json('pertemuan_id'),
             'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-            'status' => 'tidak hadir',
+            'status' => 'belum diabsen',
             'tanggal' => now()->toDateString(),
         ]);
     }
@@ -111,7 +111,7 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
         $this->assertDatabaseHas('absensi', [
             'pertemuan_id' => $pertemuan->pertemuan_id,
             'mahasiswa_id' => $belumTercatat->mahasiswa_id,
-            'status' => 'tidak hadir',
+            'status' => 'belum diabsen',
         ]);
     }
 

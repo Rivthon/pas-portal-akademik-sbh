@@ -113,6 +113,9 @@
                                 <td class="text-center text-muted">{{ $index + 1 }}</td>
                                 <td>
                                     <span class="fw-semibold text-dark">{{ $item->mahasiswa->nama }}</span>
+                                    @if($item->status === 'belum diabsen')
+                                        <span class="badge bg-label-secondary ms-1">Belum Diabsen</span>
+                                    @endif
                                     <br><small class="text-muted">{{ $item->mahasiswa->nim ?? '' }}</small>
                                 </td>
                                 <td class="text-center">

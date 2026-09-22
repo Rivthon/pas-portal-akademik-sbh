@@ -66,7 +66,7 @@ class AbsensiPraktikController extends Controller
                 'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
                 'mahasiswa_id' => $mahasiswaId,
                 'tanggal' => $validated['tanggal_pertemuan'],
-                'status' => 'tidak hadir',
+                'status' => 'belum diabsen',
                 'keterangan' => null,
                 'created_at' => $now,
                 'updated_at' => $now,

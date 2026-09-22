@@ -21,6 +21,10 @@ class AttendanceRecapPresentationTest extends TestCase
             $this->assertSame('A', $adminMapper->invoke(new AdminAbsensiController, $status));
             $this->assertSame('A', $adminReportMapper->invoke(new AdminLaporanController, $status));
         }
+
+        $this->assertSame('-', $dosenMapper->invoke(new LaporanAbsensiController, 'belum diabsen'));
+        $this->assertSame('-', $adminMapper->invoke(new AdminAbsensiController, 'belum diabsen'));
+        $this->assertSame('-', $adminReportMapper->invoke(new AdminLaporanController, 'belum diabsen'));
     }
 
     public function test_recap_header_contains_meeting_date_and_alfa_cell_is_red(): void

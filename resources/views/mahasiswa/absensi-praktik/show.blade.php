@@ -33,7 +33,7 @@
                                 @elseif($status === 'izin')<span class="badge bg-label-warning">Izin</span>
                                 @elseif($status === 'sakit')<span class="badge bg-label-info">Sakit</span>
                                 @elseif($status === 'tidak hadir')<span class="badge bg-label-danger">Alpha</span>
-                                @else<span class="badge bg-label-secondary">Belum dicatat</span>@endif
+                                @else<span class="badge bg-label-secondary">Belum Diabsen</span>@endif
                             </td>
                             <td>{{ $absen?->keterangan ?: '-' }}</td>
                         </tr>

@@ -548,7 +548,7 @@ class PerkuliahanDosenController extends Controller
                     'pertemuan_id' => $pertemuan->pertemuan_id,
                     'jadwal_id' => $request->jadwal_id,
                     'mahasiswa_id' => $mahasiswa_id,
-                    'status' => 'tidak hadir',
+                    'status' => 'belum diabsen',
                     'keterangan' => null,
                     'tanggal' => $request->tanggal_pertemuan,
                     'created_at' => now(),
@@ -828,7 +828,7 @@ class PerkuliahanDosenController extends Controller
                 [
                     'jadwal_id' => $pertemuan->jadwal_id,
                     'tanggal' => $pertemuan->tanggal_pertemuan,
-                    'status' => 'tidak hadir',
+                    'status' => 'belum diabsen',
                     'keterangan' => null,
                 ]
             );
@@ -909,7 +909,7 @@ class PerkuliahanDosenController extends Controller
                     'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
                     'jadwal_praktik_id' => $request->jadwal_praktik_id,
                     'mahasiswa_id' => $mahasiswa_id,
-                    'status' => 'tidak hadir',
+                    'status' => 'belum diabsen',
                     'keterangan' => null,
                     'tanggal' => now('Asia/Jakarta'),
                 ];

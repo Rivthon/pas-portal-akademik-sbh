@@ -282,9 +282,9 @@ class LmsMahasiswaController extends Controller
             }
         }
 
-        $totalPertemuan = $pertemuan->count();
-        $persentase = $totalPertemuan > 0
-            ? round(($hadir / $totalPertemuan) * 100, 1)
+        $totalSudahDiabsen = $hadir + $izin + $sakit + $alpha;
+        $persentase = $totalSudahDiabsen > 0
+            ? round(($hadir / $totalSudahDiabsen) * 100, 1)
             : 0;
 
         return view('mahasiswa.rekap-absensi-detail', compact(

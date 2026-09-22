@@ -124,6 +124,7 @@
                 <span class="badge bg-label-info px-3 py-2"><i class="bx bx-info-circle me-1"></i>Izin: {{ $absensi->where('status', 'izin')->count() }}</span>
                 <span class="badge bg-label-warning px-3 py-2"><i class="bx bx-plus-medical me-1"></i>Sakit: {{ $absensi->where('status', 'sakit')->count() }}</span>
                 <span class="badge bg-label-danger px-3 py-2"><i class="bx bx-x-circle me-1"></i>Alpha: {{ $absensi->where('status', 'tidak hadir')->count() }}</span>
+                <span class="badge bg-label-secondary px-3 py-2"><i class="bx bx-time-five me-1"></i>Belum Diabsen: {{ $absensi->where('status', 'belum diabsen')->count() }}</span>
             </div>
         </div>
 
@@ -154,6 +155,9 @@
                                     <td>
                                         <span class="fw-semibold text-dark">{{ $item->mahasiswa->nama ?? '-' }}</span>
                                         <br><small class="text-muted">{{ $item->mahasiswa->nim ?? '' }}</small>
+                                        @if($item->status === 'belum diabsen')
+                                            <span class="badge bg-label-secondary ms-1">Belum Diabsen</span>
+                                        @endif
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-label-secondary">SMT {{ $item->mahasiswa->semester ?? '-' }}</span>
