@@ -7,7 +7,7 @@ $user = Auth::guard('mahasiswa')->user();
         <a href="#" class="app-brand-link d-flex align-items-center gap-2">
             <img src="{{ $settings->logo ? asset('storage/' . $settings->logo) : asset('default/logo.ico') }}"
                 class="navbar-brand-img" style="height: 40px; width: auto; object-fit: contain;" alt="main_logo">
-            <span class="app-brand-text demo menu-text fw-bolder ms-2 text-primary" style="font-size: 1.25rem;">{{ explode(' ', $settings->name)[0] }}</span>
+            <span class="app-brand-text demo menu-text fw-bolder ms-2 text-primary" style="font-size: 1.25rem;"></span>
         </a>
 
         <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
