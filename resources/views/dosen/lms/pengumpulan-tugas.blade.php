@@ -154,7 +154,7 @@
                                     <td class="text-muted small">
                                         @if($pengumpulan && $tugas->tipe === 'pilihan_ganda')
                                             <span class="badge bg-label-info">{{ count($pengumpulan->jawaban_pg ?? []) }} pilihan</span>
-                                        @elseif($pengumpulan && $pengumpulan->file)
+                                        @elseif($pengumpulan)
                                             <i class="bx bx-time-five me-1"></i>{{ $pengumpulan->waktu_upload->format('d M Y H:i') }}
                                         @else
                                             <span>-</span>
@@ -162,11 +162,18 @@
                                     </td>
                                     <td class="text-center">
                                         @if($pengumpulan)
-                                            <a href="{{ route('dosen.lms.pengumpulan.preview', $pengumpulan->pengumpulan_id) }}"
-                                               target="_blank"
-                                               class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                                                <i class="bx bx-show me-1"></i> Lihat
-                                            </a>
+                                            @if(in_array($tugas->tipe, ['teks', 'pilihan_ganda'], true))
+                                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3"
+                                                    data-bs-toggle="modal" data-bs-target="#modalNilai{{ $mhsId }}">
+                                                    <i class="bx bx-show me-1"></i> Lihat
+                                                </button>
+                                            @else
+                                                <a href="{{ route('dosen.lms.pengumpulan.preview', $pengumpulan->pengumpulan_id) }}"
+                                                   target="_blank"
+                                                   class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                    <i class="bx bx-show me-1"></i> Lihat
+                                                </a>
+                                            @endif
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -263,13 +270,18 @@
                                         </div>
                                     @endforeach
                                 </div>
+                            @elseif($tugas->tipe === 'teks')
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark">Jawaban Teks Mahasiswa</label>
+                                    <div class="bg-white border rounded-3 p-3 text-body" style="white-space: pre-wrap;">{{ $pengumpulan->jawaban_teks }}</div>
+                                </div>
                             @elseif($pengumpulan->file)
-                            <div class="mb-3">
-                                <a href="{{ route('dosen.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}"
-                                   class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
-                                    <i class="bx bx-download me-1"></i> Download File Jawaban
-                                </a>
-                            </div>
+                                <div class="mb-3">
+                                    <a href="{{ route('dosen.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}"
+                                       class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                                        <i class="bx bx-download me-1"></i> Download File Jawaban
+                                    </a>
+                                </div>
                             @endif
 
                             <!-- Preview PDF (Komentar Tetap Dipertahankan) -->

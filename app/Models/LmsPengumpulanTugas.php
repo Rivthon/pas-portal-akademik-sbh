@@ -16,6 +16,7 @@ class LmsPengumpulanTugas extends Model
         'file',
         'catatan',
         'jawaban_pg',
+        'jawaban_teks',
         'waktu_upload',
         'nilai',
         'dinilai_otomatis',

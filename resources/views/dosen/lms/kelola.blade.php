@@ -301,8 +301,12 @@
                                         <div class="card-body p-3">
                                             <h6 class="fw-bold text-dark mb-2">
                                                 <i class="fas fa-file-signature text-primary me-2"></i>{{ $tugas->judul }}
-                                                <span class="badge {{ $tugas->tipe === 'pilihan_ganda' ? 'bg-label-info' : 'bg-label-secondary' }} ms-1">
-                                                    {{ $tugas->tipe === 'pilihan_ganda' ? 'Pilihan Ganda A-E' : 'Upload Berkas' }}
+                                                <span class="badge {{ $tugas->tipe === 'pilihan_ganda' ? 'bg-label-info' : ($tugas->tipe === 'teks' ? 'bg-label-primary' : 'bg-label-secondary') }} ms-1">
+                                                    @switch($tugas->tipe)
+                                                        @case('pilihan_ganda') Pilihan Ganda A-E @break
+                                                        @case('teks') Jawaban Teks @break
+                                                        @default Upload Berkas
+                                                    @endswitch
                                                 </span>
                                             </h6>
 
@@ -335,7 +339,7 @@
 
                                                 @if($tugas->izinkan_upload_ulang)
                                                     <span class="badge bg-label-info rounded-pill">
-                                                        {{ $tugas->tipe === 'pilihan_ganda' ? 'Perubahan jawaban diizinkan sebelum deadline' : 'Upload ulang diizinkan sebelum deadline' }}
+                                                        {{ $tugas->tipe === 'file' ? 'Upload ulang diizinkan sebelum deadline' : 'Perubahan jawaban diizinkan sebelum deadline' }}
                                                     </span>
                                                 @else
                                                     <span class="badge bg-label-dark rounded-pill">
@@ -351,7 +355,7 @@
                                                     </a>
                                                 @endif
                                                 @if($tugas->lampiran)
-                                                    <a href="{{ Storage::url($tugas->lampiran) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3">
+                                                    <a href="{{ route('dosen.lms.tugas.lampiran', $tugas) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3">
                                                         <i class="fas fa-paperclip me-1"></i> Lampiran
                                                     </a>
                                                 @endif
@@ -412,6 +416,7 @@
                                                             <select name="tipe" class="form-select" required>
                                                                 <option value="file" @selected($tugas->tipe === 'file')>Upload Berkas</option>
                                                                 <option value="pilihan_ganda" @selected($tugas->tipe === 'pilihan_ganda')>Pilihan Ganda</option>
+                                                                <option value="teks" @selected($tugas->tipe === 'teks')>Jawaban Teks di LMS</option>
                                                             </select>
                                                             @if($tugas->pengumpulan->isNotEmpty())
                                                                 <small class="text-muted">Jenis tidak dapat diganti karena sudah ada pengumpulan.</small>
@@ -440,7 +445,7 @@
                                                             @if($tugas->lampiran)
                                                                 <small class="text-muted d-block">
                                                                     Lampiran saat ini:
-                                                                    <a href="{{ Storage::url($tugas->lampiran) }}" target="_blank" class="fw-bold">
+                                                                    <a href="{{ route('dosen.lms.tugas.lampiran', $tugas) }}" target="_blank" class="fw-bold">
                                                                         {{ basename($tugas->lampiran) }}
                                                                     </a>
                                                                 </small>
@@ -562,8 +567,9 @@
                                     <select name="tipe" class="form-select" required>
                                         <option value="file">Upload Berkas</option>
                                         <option value="pilihan_ganda">Pilihan Ganda</option>
+                                        <option value="teks">Jawaban Teks di LMS</option>
                                     </select>
-                                    <small class="text-muted">Untuk pilihan ganda, soal disusun setelah tugas disimpan.</small>
+                                    <small class="text-muted">Pilihan ganda memakai soal A-E. Jawaban teks ditulis langsung oleh mahasiswa di LMS.</small>
                                 </div>
 
                                 <div class="row">

@@ -271,6 +271,10 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
                     LmsMahasiswaController::class,
                     'showTugas',
                 ])->name('tugas.show');
+                Route::get('/tugas/{tugas}/lampiran', [
+                    LmsMahasiswaController::class,
+                    'showLampiranTugas',
+                ])->name('tugas.lampiran');
                 Route::get('/materi/{materi}/view', [LmsMahasiswaController::class, 'showMateri'])->name('materi.show');
                 Route::post('/tugas/{tugas}/upload-sementara', [
                     LmsMahasiswaController::class,
@@ -824,6 +828,8 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
                     ->name('materi.update');
                 Route::post('/tugas/store', [LmsDosenController::class, 'storeTugas'])
                     ->name('tugas.store');
+                Route::get('/tugas/{tugas}/lampiran', [LmsDosenController::class, 'showLampiranTugas'])
+                    ->name('tugas.lampiran');
 
                 Route::put('/tugas/{tugas}', [LmsDosenController::class, 'updateTugas'])
                     ->name('tugas.update');

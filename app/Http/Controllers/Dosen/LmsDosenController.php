@@ -458,7 +458,7 @@ class LmsDosenController extends Controller
             'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
-            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda'])],
+            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|max:51200',
@@ -764,7 +764,7 @@ class LmsDosenController extends Controller
         $pengumpulanList = LmsPengumpulanTugas::where('tugas_id', $tugas->tugas_id)->get();
 
         foreach ($pengumpulanList as $pengumpulan) {
-            if (StoredUpload::exists($pengumpulan->file)) {
+            if ($pengumpulan->file && StoredUpload::exists($pengumpulan->file)) {
                 StoredUpload::delete($pengumpulan->file);
             }
             // Hapus record pengumpulan mahasiswa
@@ -775,6 +775,20 @@ class LmsDosenController extends Controller
         $tugas->delete();
 
         return back()->with('success', 'Tugas dan seluruh file terkait berhasil dihapus.');
+    }
+
+    public function showLampiranTugas(LmsTugas $tugas)
+    {
+        $this->pastikanTugasMilikDosen($tugas);
+
+        if (! $tugas->lampiran || ! Storage::disk('public')->exists($tugas->lampiran)) {
+            return back()->with('error', 'File lampiran tugas tidak ditemukan di server.');
+        }
+
+        return Storage::disk('public')->response(
+            $tugas->lampiran,
+            basename($tugas->lampiran)
+        );
     }
 
     public function updateTugas(Request $request, LmsTugas $tugas)
@@ -791,7 +805,7 @@ class LmsDosenController extends Controller
         $request->validate([
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
-            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda'])],
+            'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|max:51200',

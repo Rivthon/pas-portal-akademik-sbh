@@ -367,6 +367,28 @@ class LmsMahasiswaController extends Controller
         );
     }
 
+    public function showLampiranTugas(LmsTugas $tugas)
+    {
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+
+        abort_unless($mahasiswa, 401);
+        abort_unless($tugas->aktif, 404);
+        abort_unless(
+            $this->mahasiswaTerdaftarPadaTugas($tugas, $mahasiswa),
+            403,
+            'Anda tidak terdaftar pada mata kuliah ini.'
+        );
+
+        if (! $tugas->lampiran || ! Storage::disk('public')->exists($tugas->lampiran)) {
+            return back()->with('error', 'File lampiran tugas tidak ditemukan di server.');
+        }
+
+        return Storage::disk('public')->response(
+            $tugas->lampiran,
+            basename($tugas->lampiran)
+        );
+    }
+
     public function kumpulkanTugas(
         Request $request,
         LmsTugas $tugas
@@ -423,6 +445,10 @@ class LmsMahasiswaController extends Controller
 
         if ($tugas->tipe === 'pilihan_ganda') {
             return $this->kumpulkanTugasPilihanGanda($request, $tugas, $mahasiswa, $pengumpulan);
+        }
+
+        if ($tugas->tipe === 'teks') {
+            return $this->kumpulkanTugasTeks($request, $tugas, $mahasiswa, $pengumpulan);
         }
 
         $maxUploadKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
@@ -522,6 +548,7 @@ class LmsMahasiswaController extends Controller
                     'file' => $path,
                     'catatan' => $request->catatan,
                     'jawaban_pg' => null,
+                    'jawaban_teks' => null,
                     'waktu_upload' => now(),
                     'dinilai_otomatis' => false,
                 ]
@@ -565,7 +592,7 @@ class LmsMahasiswaController extends Controller
             403,
             'Anda tidak terdaftar pada mata kuliah ini.'
         );
-        abort_unless($tugas->aktif && $tugas->tipe !== 'pilihan_ganda', 404);
+        abort_unless($tugas->aktif && $tugas->tipe === 'file', 404);
 
         $pengumpulan = LmsPengumpulanTugas::where('tugas_id', $tugas->tugas_id)
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
@@ -713,6 +740,7 @@ class LmsMahasiswaController extends Controller
             'file' => null,
             'catatan' => $request->catatan,
             'jawaban_pg' => $jawaban,
+            'jawaban_teks' => null,
             'waktu_upload' => now(),
             'nilai' => $nilai,
             'dinilai_otomatis' => true,
@@ -725,6 +753,46 @@ class LmsMahasiswaController extends Controller
             ->with('success', $pengumpulan
                 ? 'Jawaban pilihan ganda berhasil diperbarui.'
                 : 'Jawaban pilihan ganda berhasil dikumpulkan dan dinilai otomatis.');
+    }
+
+    private function kumpulkanTugasTeks(
+        Request $request,
+        LmsTugas $tugas,
+        $mahasiswa,
+        ?LmsPengumpulanTugas $pengumpulan
+    ) {
+        $validated = $request->validate([
+            'jawaban_teks' => ['required', 'string', 'max:50000'],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+        ], [
+            'jawaban_teks.required' => 'Jawaban teks wajib diisi.',
+            'jawaban_teks.max' => 'Jawaban teks maksimal 50.000 karakter.',
+            'catatan.max' => 'Catatan maksimal 2.000 karakter.',
+        ]);
+
+        LmsPengumpulanTugas::updateOrCreate([
+            'tugas_id' => $tugas->tugas_id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+        ], [
+            'file' => null,
+            'catatan' => $validated['catatan'] ?? null,
+            'jawaban_pg' => null,
+            'jawaban_teks' => $validated['jawaban_teks'],
+            'waktu_upload' => now(),
+            'nilai' => null,
+            'dinilai_otomatis' => false,
+            'feedback' => null,
+            'dinilai_pada' => null,
+            'dinilai_oleh' => null,
+        ]);
+
+        return redirect()->route('mahasiswa.lms.tugas.show', $tugas)
+            ->with(
+                'success',
+                $pengumpulan
+                    ? 'Jawaban teks berhasil diperbarui.'
+                    : 'Jawaban teks berhasil dikumpulkan.'
+            );
     }
 
     private function mahasiswaTerdaftarPadaTugas(

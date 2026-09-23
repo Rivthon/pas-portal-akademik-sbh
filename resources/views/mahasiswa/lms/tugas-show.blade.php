@@ -47,7 +47,12 @@
                 <div class="row align-items-center">
                     <div class="col-md-9">
                         <span class="badge bg-white text-primary rounded-pill px-3 py-1 mb-2 fw-semibold">
-                            <i class="bx bx-task me-1"></i>{{ $tugas->tipe === 'pilihan_ganda' ? 'Tugas Pilihan Ganda A-E' : 'Tugas Perkuliahan' }}
+                            <i class="bx bx-task me-1"></i>
+                            @switch($tugas->tipe)
+                                @case('pilihan_ganda') Tugas Pilihan Ganda A-E @break
+                                @case('teks') Tugas Jawaban Teks @break
+                                @default Tugas Upload Berkas
+                            @endswitch
                         </span>
                         <h3 class="text-white fw-bold mt-1 mb-2">{{ $tugas->judul }}</h3>
                         <div class="d-flex flex-wrap gap-2 mt-3">
@@ -69,15 +74,37 @@
         <div class="row">
             {{-- Rincian Deskripsi & Lampiran Tugas --}}
             <div class="col-lg-7 mb-4">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="fw-bold text-dark mb-0"><i class="bx bx-detail text-primary me-2"></i>Deskripsi & Lampiran</h5>
                     </div>
                     <div class="card-body pt-4">
+                        {{-- Deskripsi dan lampiran berlaku untuk seluruh jenis tugas. --}}
+                        <div class="mb-4">
+                            <label class="fw-bold text-muted small text-uppercase d-block mb-2">Instruksi Tugas</label>
+                            <div class="p-3 bg-light rounded-3 text-dark style-description" style="line-height: 1.7;">
+                                {!! nl2br(e($tugas->deskripsi ?: 'Tidak ada deskripsi tambahan untuk tugas ini.')) !!}
+                            </div>
+                        </div>
+
+                        @if($tugas->lampiran)
+                            <div class="pt-3 border-top {{ $tugas->tipe === 'pilihan_ganda' ? 'mb-4' : '' }}">
+                                <label class="fw-bold text-muted small text-uppercase d-block mb-2">Lampiran Berkas dari Dosen</label>
+                                <a href="{{ route('mahasiswa.lms.tugas.lampiran', $tugas) }}" target="_blank" rel="noopener"
+                                   class="btn btn-outline-primary rounded-pill px-3 shadow-sm">
+                                    <i class="bx bx-paperclip me-1"></i>Lihat / Download Lampiran Tugas
+                                </a>
+                                <small class="text-muted d-block mt-2 text-break">{{ basename($tugas->lampiran) }}</small>
+                            </div>
+                        @else
+                            <div class="pt-3 border-top text-muted small {{ $tugas->tipe === 'pilihan_ganda' ? 'mb-4' : '' }}">
+                                <i class="bx bx-paperclip me-1"></i>Tidak ada lampiran untuk tugas ini.
+                            </div>
+                        @endif
+
                         @if($tugas->tipe === 'pilihan_ganda')
-                            @if($tugas->deskripsi)
-                                <div class="alert alert-light border mb-4">{!! nl2br(e($tugas->deskripsi)) !!}</div>
-                            @endif
+                            <hr class="my-4">
+                            <h6 class="fw-bold text-dark mb-3"><i class="bx bx-list-ol me-1 text-primary"></i>Soal Pilihan Ganda</h6>
                             @php($bolehIsiPg = $bolehMengumpulkan && $bolehUploadUlang && !$sudahDinilai)
                             @if($bolehIsiPg && $tugas->soal->isNotEmpty())
                                 <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas) }}" method="POST">@csrf
@@ -106,22 +133,6 @@
                                 <button class="btn btn-primary w-100"><i class="bx bx-send me-1"></i>{{ $pengumpulan ? 'Simpan Perubahan Jawaban' : 'Kumpulkan Jawaban' }}</button>
                                 </form>
                             @endif
-                        @else
-                        <div class="mb-4">
-                            <label class="fw-bold text-muted small text-uppercase d-block mb-2">Instruksi Tugas</label>
-                            <div class="p-3 bg-light rounded-3 text-dark style-description" style="line-height: 1.7;">
-                                {!! nl2br(e($tugas->deskripsi ?: 'Tidak ada deskripsi tambahan untuk tugas ini.')) !!}
-                            </div>
-                        </div>
-
-                        @if($tugas->lampiran)
-                            <div class="pt-3 border-top">
-                                <label class="fw-bold text-muted small text-uppercase d-block mb-2">Lampiran Berkas dari Dosen</label>
-                                <a href="{{ Storage::url($tugas->lampiran) }}" target="_blank" class="btn btn-outline-primary rounded-pill px-3 shadow-sm">
-                                    <i class="bx bx-paperclip me-1"></i> lihat / Download Lampiran Tugas
-                                </a>
-                            </div>
-                        @endif
                         @endif
                     </div>
                 </div>
@@ -129,7 +140,7 @@
 
             {{-- Panel Status & Form Pengumpulan --}}
             <div class="col-lg-5 mb-4">
-                <div class="card border-0 shadow-sm h-100">
+                <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white border-bottom py-3">
                         <h5 class="fw-bold text-dark mb-0"><i class="bx bx-upload text-primary me-2"></i>Status Pengumpulan</h5>
                     </div>
@@ -179,6 +190,13 @@
                                 <a href="{{ route('mahasiswa.lms.pengumpulan.download', $pengumpulan->pengumpulan_id) }}" class="btn btn-success rounded-pill btn-sm w-100 mb-3 shadow-sm">
                                     <i class="bx bx-download me-1"></i> Download Berkas Jawaban Saya
                                 </a>
+                            @elseif($tugas->tipe === 'teks' && $pengumpulan->jawaban_teks)
+                                <div class="border rounded-3 bg-light p-3 mb-3">
+                                    <div class="fw-bold text-dark mb-2">
+                                        <i class="bx bx-text me-1 text-primary"></i>Jawaban Anda
+                                    </div>
+                                    <div class="text-body style-description">{!! nl2br(e($pengumpulan->jawaban_teks)) !!}</div>
+                                </div>
                             @endif
                         @else
                             <div class="alert alert-warning border-0 shadow-sm rounded-3 mb-3">
@@ -218,7 +236,28 @@
                                 <i class="bx bx-lock-alt me-1 fs-5 align-middle"></i>
                                 Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.
                             </div>
-                        @elseif($tugas->tipe !== 'pilihan_ganda' && $bolehMengumpulkan && $bolehUploadUlang)
+                        @elseif($tugas->tipe === 'teks' && $bolehMengumpulkan && $bolehUploadUlang)
+                            <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas->tugas_id) }}" method="POST" class="pt-2 border-top">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark">
+                                        {{ $pengumpulan ? 'Edit Jawaban Teks' : 'Tulis Jawaban' }}
+                                    </label>
+                                    <textarea name="jawaban_teks" class="form-control" rows="12" maxlength="50000"
+                                        placeholder="Tuliskan jawaban tugas Anda di sini..." required>{{ old('jawaban_teks', $pengumpulan?->jawaban_teks) }}</textarea>
+                                    <small class="text-muted">Maksimal 50.000 karakter. Jawaban dapat diperbarui sebelum deadline jika diizinkan dosen.</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-dark">Catatan Tambahan (Opsional)</label>
+                                    <textarea name="catatan" class="form-control" rows="2" maxlength="2000"
+                                        placeholder="Catatan singkat untuk dosen...">{{ old('catatan', $pengumpulan?->catatan) }}</textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary rounded-pill w-100 shadow-sm">
+                                    <i class="bx bx-send me-1"></i>
+                                    {{ $pengumpulan ? 'Simpan Perubahan Jawaban' : 'Kumpulkan Jawaban' }}
+                                </button>
+                            </form>
+                        @elseif($tugas->tipe === 'file' && $bolehMengumpulkan && $bolehUploadUlang)
                             @php($temporaryUploadEnabled = (bool) config('lms.temporary_task_upload.enabled', true))
                             <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas->tugas_id) }}" method="POST" enctype="multipart/form-data" class="pt-2 border-top" id="task-submission-form">
                                 @csrf
@@ -271,7 +310,7 @@
     </div>
 </div>
 
-@if(($temporaryUploadEnabled ?? false) && $tugas->tipe !== 'pilihan_ganda')
+@if(($temporaryUploadEnabled ?? false) && $tugas->tipe === 'file')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('task-submission-form');
