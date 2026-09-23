@@ -49,7 +49,21 @@
         <h5 class="fw-bold text-dark mb-0"><i class="bx bxs-user-check text-primary me-2"></i>Daftar Hadir Mahasiswa</h5>
     </div>
 
+    @unless($canManagePertemuan)
+        <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-2">
+            <i class="bx bx-info-circle fs-4"></i>
+            <div>
+                <strong>Mode lihat saja</strong>
+                <div>
+                    Pertemuan ini dibuat oleh {{ $pertemuan->dosen?->nama ?? 'dosen pengampu lain' }}.
+                    Anda dapat melihat absensi, tetapi hanya dosen pembuat yang dapat mengubahnya.
+                </div>
+            </div>
+        </div>
+    @endunless
+
     {{-- Form Tambah Mahasiswa yang Tidak Ada di Absensi --}}
+    @if($canManagePertemuan)
     <div class="card shadow-sm border-0 mb-4 bg-light">
         <div class="card-body">
             <div class="d-flex align-items-center mb-3">
@@ -76,11 +90,13 @@
             </form>
         </div>
     </div>
+    @endif
 
     {{-- Form Absensi Table --}}
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white pt-4 pb-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center">
             <h6 class="mb-3 mb-md-0 fw-bold text-dark"><i class="bx bx-list-check text-success me-2"></i>Form Pengisian Kehadiran</h6>
+            @if($canManagePertemuan)
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" id="resetAbsensi">
                     <i class="bx bx-refresh"></i> Ulang
@@ -89,6 +105,7 @@
                     <i class="bx bx-check-double me-1"></i> Hadir Semua
                 </button>
             </div>
+            @endif
         </div>
 
         <div class="card-body p-0">
@@ -126,23 +143,28 @@
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="hadir" {{ $item->status == 'hadir' ? 'checked' : '' }} required>
+                                        name="status[{{ $item->mahasiswa_id }}]" value="hadir" {{ $item->status == 'hadir' ? 'checked' : '' }}
+                                        @required($canManagePertemuan) @disabled(!$canManagePertemuan)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="izin" {{ $item->status == 'izin' ? 'checked' : '' }}>
+                                        name="status[{{ $item->mahasiswa_id }}]" value="izin" {{ $item->status == 'izin' ? 'checked' : '' }}
+                                        @disabled(!$canManagePertemuan)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="sakit" {{ $item->status == 'sakit' ? 'checked' : '' }}>
+                                        name="status[{{ $item->mahasiswa_id }}]" value="sakit" {{ $item->status == 'sakit' ? 'checked' : '' }}
+                                        @disabled(!$canManagePertemuan)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="tidak hadir" {{ $item->status == 'tidak hadir' ? 'checked' : '' }}>
+                                        name="status[{{ $item->mahasiswa_id }}]" value="tidak hadir" {{ $item->status == 'tidak hadir' ? 'checked' : '' }}
+                                        @disabled(!$canManagePertemuan)>
                                 </td>
                                 <td>
                                     <input type="text" class="form-control form-control-sm border-0 bg-light" name="keterangan[{{ $item->mahasiswa_id }}]"
-                                        value="{{ $item->keterangan ?? '' }}" placeholder="Catatan opsional...">
+                                        value="{{ $item->keterangan ?? '' }}" placeholder="Catatan opsional..."
+                                        @disabled(!$canManagePertemuan)>
                                 </td>
                             </tr>
                             @endforeach
@@ -150,11 +172,13 @@
                     </table>
                 </div>
 
+                @if($canManagePertemuan)
                 <div class="p-4 bg-white border-top border-0 text-center">
                     <button type="submit" class="btn btn-primary rounded-pill shadow-sm px-5 py-2 fw-bold" style="letter-spacing: 0.5px;">
                         <i class="bx bx-save fs-5 me-1" style="position: relative; top: -1px;"></i> Simpan Data Presensi
                     </button>
                 </div>
+                @endif
             </form>
         </div>
     </div>

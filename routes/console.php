@@ -22,3 +22,17 @@ Schedule::command('system:backup')
 Schedule::command('model:prune')
     ->dailyAt('02:30')
     ->withoutOverlapping();
+
+Schedule::call(function () {
+    $disk = Storage::disk('private');
+    $directory = 'lms/tmp-pengumpulan';
+    $expiredBefore = now()
+        ->subMinutes((int) config('lms.temporary_task_upload.expires_minutes', 120) + 60)
+        ->getTimestamp();
+
+    foreach ($disk->allFiles($directory) as $path) {
+        if ($disk->lastModified($path) < $expiredBefore) {
+            $disk->delete($path);
+        }
+    }
+})->name('lms-temporary-task-upload-prune')->hourly()->withoutOverlapping();

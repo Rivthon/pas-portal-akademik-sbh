@@ -305,6 +305,8 @@ class LmsDosenController extends Controller
             'youtube_url' => 'nullable|required_without:file|url|max:255',
         ], [
             'file.required_without' => 'Upload file atau isi link materi.',
+            'file.uploaded' => 'File gagal diterima server. Periksa ukuran file dan pastikan tidak melebihi batas upload VPS.',
+            'file.file' => 'Berkas materi harus berupa file yang valid.',
             'file.mimes' => 'Format file materi tidak didukung.',
             'file.max' => 'Ukuran file materi maksimal 50 MB.',
             'youtube_url.required_without' => 'Upload file atau isi link materi.',
@@ -368,6 +370,10 @@ class LmsDosenController extends Controller
             'deskripsi' => 'nullable',
             'file' => 'nullable|max:51200',
             'youtube_url' => 'nullable',
+        ], [
+            'file.uploaded' => 'File gagal diterima server. Periksa ukuran file dan pastikan tidak melebihi batas upload VPS.',
+            'file.file' => 'Berkas materi harus berupa file yang valid.',
+            'file.max' => 'Ukuran file materi maksimal 50 MB.',
         ]);
 
         $materi->judul = $request->judul;

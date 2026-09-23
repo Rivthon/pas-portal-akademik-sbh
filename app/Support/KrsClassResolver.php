@@ -46,7 +46,7 @@ final class KrsClassResolver
         return Jadwal::query()
             ->where('ta_id', $taId)
             ->whereIn('kurikulum_id', $krsByCourse->keys())
-            ->get(['id', 'kurikulum_id', 'jenis_kelas'])
+            ->get(['id', 'ta_id', 'kurikulum_id', 'jenis_kelas'])
             ->filter(function (Jadwal $jadwal) use ($krsByCourse, $mahasiswa) {
                 $krs = $krsByCourse->get($jadwal->kurikulum_id);
 

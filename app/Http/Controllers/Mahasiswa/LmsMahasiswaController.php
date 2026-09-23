@@ -17,6 +17,7 @@ use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LmsMahasiswaController extends Controller
@@ -424,18 +425,22 @@ class LmsMahasiswaController extends Controller
             return $this->kumpulkanTugasPilihanGanda($request, $tugas, $mahasiswa, $pengumpulan);
         }
 
+        $maxUploadKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
         $request->validate([
+            'temporary_upload_token' => ['nullable', 'required_without:file', 'uuid'],
             'file' => [
-                'required',
+                'nullable',
+                'required_without:temporary_upload_token',
                 'file',
-                'max:51200',
+                'max:'.$maxUploadKilobytes,
                 'mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,zip,rar,jpg,jpeg,png',
             ],
             'catatan' => 'nullable|string|max:2000',
         ], [
-            'file.required' => 'File jawaban wajib dipilih.',
+            'file.required_without' => 'File jawaban wajib dipilih.',
+            'temporary_upload_token.required_without' => 'File jawaban wajib dipilih.',
             'file.file' => 'Jawaban yang diunggah harus berupa file.',
-            'file.max' => 'Ukuran file maksimal 50 MB.',
+            'file.max' => 'Ukuran file maksimal 10 MB.',
             'file.mimes' => 'Format file jawaban tidak didukung.',
             'catatan.max' => 'Catatan maksimal 2.000 karakter.',
         ]);
@@ -450,47 +455,94 @@ class LmsMahasiswaController extends Controller
             );
         }
 
-        if (
-            $pengumpulan &&
-            $pengumpulan->file &&
-            StoredUpload::exists($pengumpulan->file)
-        ) {
-            StoredUpload::delete($pengumpulan->file);
+        $temporaryToken = $request->string('temporary_upload_token')->toString();
+        $temporaryUpload = null;
+
+        if ($temporaryToken !== '') {
+            $temporaryUpload = $request->session()->get('lms_temporary_task_uploads.'.$temporaryToken);
+
+            abort_unless(
+                is_array($temporaryUpload)
+                && (int) ($temporaryUpload['mahasiswa_id'] ?? 0) === (int) $mahasiswa->mahasiswa_id
+                && (int) ($temporaryUpload['tugas_id'] ?? 0) === (int) $tugas->tugas_id
+                && now()->timestamp <= (int) ($temporaryUpload['expires_at'] ?? 0)
+                && str_starts_with(
+                    (string) ($temporaryUpload['path'] ?? ''),
+                    'lms/tmp-pengumpulan/'.$mahasiswa->mahasiswa_id.'/'.$tugas->tugas_id.'/'
+                )
+                && Storage::disk('private')->exists($temporaryUpload['path']),
+                422,
+                'Upload sementara sudah kedaluwarsa. Silakan pilih ulang file jawaban.'
+            );
+
+            $namaAsli = (string) $temporaryUpload['original_name'];
+        } else {
+            $file = $request->file('file');
+            $namaAsli = $file->getClientOriginalName();
         }
 
-        $file = $request->file('file');
-
-        $namaAsli = preg_replace(
-            '/[^A-Za-z0-9._-]/',
-            '_',
-            $file->getClientOriginalName()
-        );
+        $namaAsli = preg_replace('/[^A-Za-z0-9._-]/', '_', $namaAsli);
+        $namaAsli = ltrim((string) $namaAsli, '.');
+        $namaAsli = $namaAsli !== '' ? $namaAsli : 'jawaban';
 
         $namaFile = now()->format('YmdHis')
             .'_'
             .$mahasiswa->mahasiswa_id
             .'_'
+            .Str::lower(Str::random(8))
+            .'_'
             .$namaAsli;
 
-        $path = $file->storeAs(
-            'lms/pengumpulan/'.$tugas->tugas_id,
-            $namaFile,
-            'private'
-        );
+        $path = 'lms/pengumpulan/'.$tugas->tugas_id.'/'.$namaFile;
 
-        LmsPengumpulanTugas::updateOrCreate(
-            [
-                'tugas_id' => $tugas->tugas_id,
-                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
-            ],
-            [
-                'file' => $path,
-                'catatan' => $request->catatan,
-                'jawaban_pg' => null,
-                'waktu_upload' => now(),
-                'dinilai_otomatis' => false,
-            ]
-        );
+        if ($temporaryUpload) {
+            Storage::disk('private')->makeDirectory('lms/pengumpulan/'.$tugas->tugas_id);
+            abort_unless(
+                Storage::disk('private')->move($temporaryUpload['path'], $path),
+                500,
+                'File sementara gagal dipindahkan. Silakan coba kembali.'
+            );
+        } else {
+            $storedPath = $request->file('file')->storeAs(
+                'lms/pengumpulan/'.$tugas->tugas_id,
+                $namaFile,
+                'private'
+            );
+            abort_unless($storedPath !== false, 500, 'File jawaban gagal disimpan.');
+            $path = $storedPath;
+        }
+
+        try {
+            LmsPengumpulanTugas::updateOrCreate(
+                [
+                    'tugas_id' => $tugas->tugas_id,
+                    'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                ],
+                [
+                    'file' => $path,
+                    'catatan' => $request->catatan,
+                    'jawaban_pg' => null,
+                    'waktu_upload' => now(),
+                    'dinilai_otomatis' => false,
+                ]
+            );
+        } catch (\Throwable $exception) {
+            Storage::disk('private')->delete($path);
+            throw $exception;
+        }
+
+        if ($temporaryToken !== '') {
+            $request->session()->forget('lms_temporary_task_uploads.'.$temporaryToken);
+        }
+
+        if (
+            $pengumpulan &&
+            $pengumpulan->file &&
+            $pengumpulan->file !== $path &&
+            StoredUpload::exists($pengumpulan->file)
+        ) {
+            StoredUpload::delete($pengumpulan->file);
+        }
 
         return redirect()
             ->route('mahasiswa.lms.tugas.show', $tugas->tugas_id)
@@ -500,6 +552,93 @@ class LmsMahasiswaController extends Controller
                 ? 'Jawaban tugas berhasil diperbarui.'
                 : 'Tugas berhasil dikumpulkan.'
             );
+    }
+
+    public function uploadTugasSementara(Request $request, LmsTugas $tugas)
+    {
+        abort_unless(config('lms.temporary_task_upload.enabled', true), 404);
+
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        abort_unless($mahasiswa, 401);
+        abort_unless(
+            $this->mahasiswaTerdaftarPadaTugas($tugas, $mahasiswa),
+            403,
+            'Anda tidak terdaftar pada mata kuliah ini.'
+        );
+        abort_unless($tugas->aktif && $tugas->tipe !== 'pilihan_ganda', 404);
+
+        $pengumpulan = LmsPengumpulanTugas::where('tugas_id', $tugas->tugas_id)
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->first();
+        $deadlineTerlewat = now()->greaterThan($tugas->deadline);
+
+        abort_if(
+            $pengumpulan && $deadlineTerlewat,
+            422,
+            'Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.'
+        );
+        abort_if(
+            $this->pengumpulanSudahDinilai($pengumpulan),
+            422,
+            'Jawaban tidak dapat diupload ulang karena tugas ini sudah dinilai oleh dosen.'
+        );
+        abort_if(
+            $deadlineTerlewat && ! $tugas->izinkan_terlambat,
+            422,
+            'Deadline pengumpulan telah berakhir.'
+        );
+        abort_if(
+            $pengumpulan && ! $tugas->izinkan_upload_ulang,
+            422,
+            'Jawaban sudah dikumpulkan dan tidak dapat diganti.'
+        );
+
+        $maxUploadKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
+        $request->validate([
+            'file' => [
+                'required',
+                'file',
+                'max:'.$maxUploadKilobytes,
+                'mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,zip,rar,jpg,jpeg,png',
+            ],
+        ], [
+            'file.required' => 'File jawaban wajib dipilih.',
+            'file.file' => 'Jawaban yang diunggah harus berupa file.',
+            'file.max' => 'Ukuran file maksimal 10 MB.',
+            'file.mimes' => 'Format file jawaban tidak didukung.',
+        ]);
+
+        $file = $request->file('file');
+        $originalName = preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+        $originalName = ltrim((string) $originalName, '.');
+        $originalName = $originalName !== '' ? $originalName : 'jawaban';
+        $token = (string) Str::uuid();
+        $expiresAt = now()->addMinutes(
+            (int) config('lms.temporary_task_upload.expires_minutes', 120)
+        );
+        $path = $file->storeAs(
+            'lms/tmp-pengumpulan/'.$mahasiswa->mahasiswa_id.'/'.$tugas->tugas_id,
+            $token.'_'.$originalName,
+            'private'
+        );
+
+        abort_unless($path !== false, 500, 'File sementara gagal disimpan.');
+
+        $request->session()->put('lms_temporary_task_uploads.'.$token, [
+            'mahasiswa_id' => (int) $mahasiswa->mahasiswa_id,
+            'tugas_id' => (int) $tugas->tugas_id,
+            'path' => $path,
+            'original_name' => $originalName,
+            'expires_at' => $expiresAt->timestamp,
+        ]);
+
+        return response()->json([
+            'token' => $token,
+            'name' => $originalName,
+            'size' => (int) $file->getSize(),
+            'expires_at' => $expiresAt->toIso8601String(),
+            'message' => 'File siap dikumpulkan.',
+        ]);
     }
 
     public function downloadPengumpulan(

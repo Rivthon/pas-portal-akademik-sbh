@@ -297,6 +297,10 @@
                                         data-jumlah-absensi="${item.absensi_count || 0}">
                                         <i class="bx bx-trash me-1"></i>Hapus
                                     </button>` : '';
+                                const infoPembuat = !item.can_delete ? `
+                                    <span class="badge bg-label-secondary align-self-center">
+                                        Dibuat oleh ${item.dosen?.nama || 'dosen pengampu lain'}
+                                    </span>` : '';
 
                                 pertemuanHTML += `
                                     <li class="list-group-item">
@@ -305,6 +309,7 @@
                                         <span class="badge bg-label-${(item.metode_pbm || 'offline').toLowerCase() === 'online' ? 'primary' : 'secondary'} ms-1">${(item.metode_pbm || 'offline').charAt(0).toUpperCase() + (item.metode_pbm || 'offline').slice(1)}</span>
                                         <span class="float-end d-flex flex-wrap gap-2 ms-2">
                                             <a href="/dosen/absensi/buat/${item.pertemuan_id}" class="btn btn-sm btn-primary">Lihat Absensi</a>
+                                            ${infoPembuat}
                                             ${tombolEdit}
                                             ${tombolHapus}
                                         </span>

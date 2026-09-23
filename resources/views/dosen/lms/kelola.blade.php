@@ -41,6 +41,23 @@
             </div>
         @endif
 
+        @if($errors->any())
+            <div class="alert alert-danger alert-dismissible shadow-sm border-0 mb-3" role="alert">
+                <div class="d-flex align-items-start">
+                    <i class="bx bx-error-circle me-2 fs-5"></i>
+                    <div>
+                        <strong>Materi belum berhasil disimpan.</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         {{-- Hero Banner Detail Mata Kuliah --}}
         <div class="card border-0 shadow-sm mb-4 overflow-hidden lms-hero" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
             <div class="card-body p-4 text-white">
@@ -222,7 +239,8 @@
 
                                                         <div class="mb-3">
                                                             <label class="form-label">Ganti File</label>
-                                                            <input type="file" name="file" class="form-control mb-2">
+                                                            <input type="file" name="file" class="form-control mb-2"
+                                                                accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv">
 
                                                             @if($materi->file)
                                                                 <div class="alert alert-light border d-flex align-items-center p-2 rounded mb-0 mt-2"
@@ -495,8 +513,9 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT, Word, Excel, Gambar, Video, Zip Max 10Mb</small></label>
-                                    <input type="file" name="file" class="form-control">
+                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT/PPTX, Word, Excel, Gambar, Video, ZIP/RAR — maksimal 10 MB di VPS</small></label>
+                                    <input type="file" name="file" class="form-control"
+                                        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv">
                                 </div>
 
                                 <div class="mb-3">

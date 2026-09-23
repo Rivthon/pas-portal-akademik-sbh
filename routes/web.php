@@ -272,6 +272,10 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
                     'showTugas',
                 ])->name('tugas.show');
                 Route::get('/materi/{materi}/view', [LmsMahasiswaController::class, 'showMateri'])->name('materi.show');
+                Route::post('/tugas/{tugas}/upload-sementara', [
+                    LmsMahasiswaController::class,
+                    'uploadTugasSementara',
+                ])->middleware('throttle:20,1')->name('tugas.upload-sementara');
                 Route::post('/tugas/{tugas}/kumpulkan', [
                     LmsMahasiswaController::class,
                     'kumpulkanTugas',

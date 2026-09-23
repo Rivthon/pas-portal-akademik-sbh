@@ -591,6 +591,7 @@ class PerkuliahanDosenController extends Controller
         abort_unless($jadwalDiampu, 403);
 
         $pertemuan = Pertemuan::where('jadwal_id', $jadwal_id)
+            ->with('dosen')
             ->withCount('absensi')
             ->orderBy('tanggal_pertemuan', 'desc')
             ->orderByDesc('jam_mulai')
@@ -689,14 +690,30 @@ class PerkuliahanDosenController extends Controller
 
     public function lihat($pertemuan_id)
     {
-        // Ambil data pertemuan beserta relasi lengkap
-        $pertemuan = Pertemuan::with('jadwal.kurikulum.mataKuliah')
-            ->where('dosen_id', auth('dosen')->id())
+        $dosen = auth('dosen')->user();
+        abort_unless($dosen, 401);
+
+        // Semua dosen yang ditugaskan pada kelas boleh melihat absensi.
+        // Hak mengubah tetap hanya dimiliki dosen pembuat pertemuan.
+        $pertemuan = Pertemuan::with(['dosen', 'jadwal.kurikulum.mataKuliah'])
             ->findOrFail($pertemuan_id);
+        $jadwalDiampu = Jadwal::whereKey($pertemuan->jadwal_id)
+            ->assignedToDosen($dosen->dosen_id, 'teori')
+            ->exists();
+
+        abort_unless(
+            $jadwalDiampu,
+            403,
+            'Anda tidak ditugaskan pada kelas pertemuan ini.'
+        );
+
+        $canManagePertemuan = (int) $pertemuan->dosen_id === (int) $dosen->dosen_id;
 
         // Pertemuan lama ikut diperbaiki: tambahkan peserta KRS yang belum tercatat,
         // tanpa mengubah status/keterangan absensi yang sudah pernah disimpan.
-        $this->syncPesertaAbsensi($pertemuan);
+        if ($canManagePertemuan) {
+            $this->syncPesertaAbsensi($pertemuan);
+        }
 
         $pesertaKrs = $this->pesertaKrsJadwal($pertemuan->jadwal);
 
@@ -710,11 +727,16 @@ class PerkuliahanDosenController extends Controller
 
         $mahasiswaAbsensi = $absensi->pluck('mahasiswa_id');
         // Penambahan manual tetap dibatasi pada peserta KRS kelas yang sama.
-        $mahasiswaTambahan = Mahasiswa::whereIn('mahasiswa_id', $pesertaKrs)
-            ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
-            ->get();
+        $mahasiswaTambahan = $canManagePertemuan
+            ? Mahasiswa::whereIn('mahasiswa_id', $pesertaKrs)
+                ->whereNotIn('mahasiswa_id', $mahasiswaAbsensi)
+                ->get()
+            : collect();
 
-        return view('dosen.absensi.absen', compact('pertemuan', 'absensi', 'mahasiswaTambahan'));
+        return view(
+            'dosen.absensi.absen',
+            compact('pertemuan', 'absensi', 'mahasiswaTambahan', 'canManagePertemuan')
+        );
     }
 
     public function store(Request $request)

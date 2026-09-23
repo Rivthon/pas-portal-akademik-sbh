@@ -219,17 +219,31 @@
                                 Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.
                             </div>
                         @elseif($tugas->tipe !== 'pilihan_ganda' && $bolehMengumpulkan && $bolehUploadUlang)
-                            <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas->tugas_id) }}" method="POST" enctype="multipart/form-data" class="pt-2 border-top">
+                            @php($temporaryUploadEnabled = (bool) config('lms.temporary_task_upload.enabled', true))
+                            <form action="{{ route('mahasiswa.lms.tugas.kumpulkan', $tugas->tugas_id) }}" method="POST" enctype="multipart/form-data" class="pt-2 border-top" id="task-submission-form">
                                 @csrf
+                                <input type="hidden" name="temporary_upload_token" id="temporary-upload-token">
 
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-dark">
                                         {{ $pengumpulan ? 'Ganti Berkas Jawaban' : 'Upload Berkas Jawaban' }}
                                     </label>
-                                    <input type="file" name="file" class="form-control mb-1" required>
+                                    <input type="file" name="file" id="task-file-input" class="form-control mb-1" required
+                                           accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.jpg,.jpeg,.png">
                                     <small class="text-muted d-block style-small">
-                                        Maksimal 50 MB. Format: PDF, Word, PPT, Excel, ZIP, RAR, JPG, atau PNG.
+                                        Maksimal 10 MB. Format: PDF, Word, PPT, Excel, ZIP, RAR, JPG, atau PNG.
                                     </small>
+                                    @if($temporaryUploadEnabled)
+                                        <div id="task-upload-progress-wrap" class="progress mt-2 d-none" style="height: 8px;">
+                                            <div id="task-upload-progress" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                                        </div>
+                                        <div id="task-upload-status" class="small mt-2 text-muted" aria-live="polite">
+                                            File akan diamankan segera setelah dipilih.
+                                        </div>
+                                        <button type="button" id="task-change-file" class="btn btn-sm btn-outline-secondary mt-2 d-none">
+                                            <i class="bx bx-refresh me-1"></i>Ganti file
+                                        </button>
+                                    @endif
                                 </div>
 
                                 <div class="mb-3">
@@ -237,7 +251,7 @@
                                     <textarea name="catatan" class="form-control" rows="3" placeholder="Tuliskan pesan atau catatan singkat untuk dosen...">{{ old('catatan', $pengumpulan?->catatan) }}</textarea>
                                 </div>
 
-                                <button type="submit" class="btn btn-primary rounded-pill w-100 shadow-sm">
+                                <button type="submit" id="task-submit-button" class="btn btn-primary rounded-pill w-100 shadow-sm" @disabled($temporaryUploadEnabled)>
                                     <i class="bx bx-cloud-upload me-1"></i>
                                     {{ $pengumpulan ? 'Upload Ulang Jawaban' : 'Kumpulkan Tugas' }}
                                 </button>
@@ -256,6 +270,152 @@
 
     </div>
 </div>
+
+@if(($temporaryUploadEnabled ?? false) && $tugas->tipe !== 'pilihan_ganda')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('task-submission-form');
+    const fileInput = document.getElementById('task-file-input');
+    const tokenInput = document.getElementById('temporary-upload-token');
+    const submitButton = document.getElementById('task-submit-button');
+    const progressWrap = document.getElementById('task-upload-progress-wrap');
+    const progressBar = document.getElementById('task-upload-progress');
+    const status = document.getElementById('task-upload-status');
+    const changeButton = document.getElementById('task-change-file');
+    const uploadUrl = @json(route('mahasiswa.lms.tugas.upload-sementara', $tugas->tugas_id));
+    const csrfToken = @json(csrf_token());
+    const maxBytes = {{ (int) config('lms.temporary_task_upload.max_kilobytes', 10240) * 1024 }};
+    let activeRequest = null;
+
+    function resetSelection(message = 'Silakan pilih ulang file jawaban.') {
+        tokenInput.value = '';
+        fileInput.disabled = false;
+        fileInput.value = '';
+        fileInput.required = true;
+        submitButton.disabled = true;
+        changeButton.classList.add('d-none');
+        progressWrap.classList.add('d-none');
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('bg-success', 'bg-danger');
+        status.className = 'small mt-2 text-danger';
+        status.textContent = message;
+    }
+
+    function errorMessage(xhr) {
+        if (xhr.status === 413) {
+            return 'File ditolak server karena terlalu besar. Pastikan ukurannya maksimal 10 MB.';
+        }
+
+        try {
+            const payload = JSON.parse(xhr.responseText);
+            const validationMessage = payload.errors
+                ? Object.values(payload.errors).flat()[0]
+                : null;
+            return validationMessage || payload.message || 'Upload sementara gagal. Silakan coba kembali.';
+        } catch (error) {
+            return xhr.status === 0
+                ? 'Koneksi terputus saat upload. Periksa jaringan lalu pilih ulang file.'
+                : 'Upload sementara gagal. Silakan coba kembali.';
+        }
+    }
+
+    async function fileCanStillBeRead(file) {
+        const sampleSize = Math.min(file.size, 64 * 1024);
+        await file.slice(0, sampleSize).arrayBuffer();
+        if (file.size > sampleSize) {
+            await file.slice(file.size - sampleSize).arrayBuffer();
+        }
+    }
+
+    fileInput.addEventListener('change', async function () {
+        const file = fileInput.files[0];
+        if (!file) {
+            resetSelection('File belum dipilih.');
+            return;
+        }
+
+        if (file.size > maxBytes) {
+            resetSelection('Ukuran file melebihi batas 10 MB.');
+            return;
+        }
+
+        try {
+            await fileCanStillBeRead(file);
+        } catch (error) {
+            resetSelection('File berubah atau tidak dapat dibaca. Pilih ulang file dan jangan pindahkan/ubah file selama proses upload.');
+            return;
+        }
+
+        if (activeRequest) {
+            activeRequest.abort();
+        }
+
+        tokenInput.value = '';
+        submitButton.disabled = true;
+        progressWrap.classList.remove('d-none');
+        progressBar.classList.remove('bg-success', 'bg-danger');
+        progressBar.style.width = '0%';
+        status.className = 'small mt-2 text-primary';
+        status.textContent = 'Mengamankan file ke server...';
+
+        const body = new FormData();
+        body.append('_token', csrfToken);
+        body.append('file', file);
+        const xhr = new XMLHttpRequest();
+        activeRequest = xhr;
+        xhr.open('POST', uploadUrl, true);
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.upload.addEventListener('progress', function (event) {
+            if (event.lengthComputable) {
+                const percentage = Math.round((event.loaded / event.total) * 100);
+                progressBar.style.width = percentage + '%';
+                status.textContent = 'Mengunggah file... ' + percentage + '%';
+            }
+        });
+        xhr.addEventListener('load', function () {
+            activeRequest = null;
+            if (xhr.status < 200 || xhr.status >= 300) {
+                progressBar.classList.add('bg-danger');
+                resetSelection(errorMessage(xhr));
+                return;
+            }
+
+            const payload = JSON.parse(xhr.responseText);
+            tokenInput.value = payload.token;
+            fileInput.disabled = true;
+            fileInput.required = false;
+            submitButton.disabled = false;
+            changeButton.classList.remove('d-none');
+            progressBar.style.width = '100%';
+            progressBar.classList.add('bg-success');
+            status.className = 'small mt-2 text-success fw-semibold';
+            status.textContent = 'File siap dikumpulkan: ' + payload.name;
+        });
+        xhr.addEventListener('error', function () {
+            activeRequest = null;
+            resetSelection('Koneksi terputus saat upload. Periksa jaringan lalu pilih ulang file.');
+        });
+        xhr.addEventListener('abort', function () {
+            activeRequest = null;
+        });
+        xhr.send(body);
+    });
+
+    changeButton.addEventListener('click', function () {
+        resetSelection('Silakan pilih file pengganti.');
+        fileInput.click();
+    });
+
+    form.addEventListener('submit', function (event) {
+        if (!tokenInput.value) {
+            event.preventDefault();
+            status.className = 'small mt-2 text-danger';
+            status.textContent = 'Tunggu sampai upload file selesai sebelum mengumpulkan tugas.';
+        }
+    });
+});
+</script>
+@endif
 
 <style>
     .style-description {
