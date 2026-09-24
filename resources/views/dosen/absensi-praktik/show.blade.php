@@ -21,6 +21,14 @@
         </div>
     </div>
 
+    <div class="alert alert-light border shadow-sm d-flex align-items-start gap-2">
+        <i class="bx bx-info-circle text-primary fs-4"></i>
+        <div>
+            Seluruh mahasiswa kelas ditampilkan agar status pesertanya jelas.
+            Hanya mahasiswa dengan KRS yang sudah disetujui dosen pembimbing yang dapat diabsen.
+        </div>
+    </div>
+
     <form method="POST" action="{{ route('dosen.absensi-praktik.update', $pertemuan) }}">
         @csrf @method('PUT')
         <div class="card border-0 shadow-sm">
@@ -32,33 +40,37 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light"><tr><th>#</th><th>Mahasiswa</th><th class="text-center">Hadir</th><th class="text-center">Izin</th><th class="text-center">Sakit</th><th class="text-center">Alpha</th><th>Keterangan</th></tr></thead>
                     <tbody>
-                        @foreach($absensi as $item)
-                            <tr>
+                        @forelse($daftarPeserta as $peserta)
+                            @php
+                                $mahasiswa = $peserta['mahasiswa'];
+                                $item = $peserta['absensi'];
+                                $statusAbsensi = $item?->status ?? 'belum diabsen';
+                            @endphp
+                            <tr class="{{ $peserta['boleh_diabsen'] ? '' : 'table-light text-muted' }}">
                                 <td>{{ $loop->iteration }}</td>
-                                <td><strong>{{ $item->mahasiswa?->nama ?? 'Mahasiswa tidak ditemukan' }}</strong><small class="d-block text-muted">{{ $item->mahasiswa?->nim }}</small>@if($item->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
+                                <td>
+                                    <strong>{{ $mahasiswa->nama }}</strong>
+                                    <small class="d-block text-muted">{{ $mahasiswa->nim }}</small>
+                                    @if($peserta['status_krs'] === 'belum')
+                                        <span class="badge bg-label-danger mt-1"><i class="bx bx-x-circle me-1"></i>Belum Mengambil KRS</span>
+                                    @elseif($peserta['status_krs'] === 'menunggu')
+                                        <span class="badge bg-label-warning mt-1"><i class="bx bx-time-five me-1"></i>Menunggu ACC Dospem</span>
+                                    @elseif($statusAbsensi === 'belum diabsen')
+                                        <span class="badge bg-label-secondary mt-1">Belum Diabsen</span>
+                                    @endif
+                                </td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $item->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$item->mahasiswa_id, $item->status) === $status) required></td>
+                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$mahasiswa->mahasiswa_id, $statusAbsensi) === $status) @required($peserta['boleh_diabsen']) @disabled(!$peserta['boleh_diabsen'])></td>
                                 @endforeach
-                                <td><input class="form-control form-control-sm" name="keterangan[{{ $item->mahasiswa_id }}]" value="{{ old('keterangan.'.$item->mahasiswa_id, $item->keterangan) }}" maxlength="500" placeholder="Opsional"></td>
+                                <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" value="{{ old('keterangan.'.$mahasiswa->mahasiswa_id, $item?->keterangan) }}" maxlength="500" placeholder="{{ $peserta['boleh_diabsen'] ? 'Opsional' : 'Tidak dapat diabsen' }}" @disabled(!$peserta['boleh_diabsen'])></td>
                             </tr>
-                        @endforeach
-                        @foreach($mahasiswaTambahan as $mahasiswa)
-                            <tr class="table-warning">
-                                <td>{{ $absensi->count() + $loop->iteration }}</td>
-                                <td><strong>{{ $mahasiswa->nama }}</strong><small class="d-block text-muted">{{ $mahasiswa->nim }} · belum tercatat</small></td>
-                                @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" required></td>
-                                @endforeach
-                                <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" maxlength="500" placeholder="Opsional"></td>
-                            </tr>
-                        @endforeach
-                        @if($absensi->isEmpty() && $mahasiswaTambahan->isEmpty())
-                            <tr><td colspan="7" class="text-center text-muted py-5">Tidak ada mahasiswa aktif dengan KRS untuk kelas praktik ini.</td></tr>
-                        @endif
+                        @empty
+                            <tr><td colspan="7" class="text-center text-muted py-5">Tidak ada mahasiswa aktif yang sesuai dengan prodi, semester, dan kelas ini.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
-            @if($absensi->isNotEmpty() || $mahasiswaTambahan->isNotEmpty())
+            @if($daftarPeserta->contains('boleh_diabsen', true))
                 <div class="card-footer bg-white text-end"><button class="btn btn-primary px-4"><i class="bx bx-save me-1"></i>Simpan Absensi Praktik</button></div>
             @endif
         </div>
@@ -69,7 +81,7 @@
 @push('script')
 <script>
 document.getElementById('hadirSemua')?.addEventListener('click', function () {
-    document.querySelectorAll('.status-praktik[value="hadir"]').forEach(function (radio) { radio.checked = true; });
+    document.querySelectorAll('.status-praktik[value="hadir"]:not(:disabled)').forEach(function (radio) { radio.checked = true; });
 });
 </script>
 @endpush

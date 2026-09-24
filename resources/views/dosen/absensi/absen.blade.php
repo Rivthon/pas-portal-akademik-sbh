@@ -62,35 +62,13 @@
         </div>
     @endunless
 
-    {{-- Form Tambah Mahasiswa yang Tidak Ada di Absensi --}}
-    @if($canManagePertemuan)
-    <div class="card shadow-sm border-0 mb-4 bg-light">
-        <div class="card-body">
-            <div class="d-flex align-items-center mb-3">
-                <i class="bx bx-user-plus text-primary fs-4 me-2"></i>
-                <h6 class="card-title fw-bold text-dark mb-0">Tambah Mahasiswa </h6>
-            </div>
-            <form id="formTambahMahasiswa">
-                @csrf
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-8">
-                        <select class="form-select select2 shadow-sm" id="selectMahasiswa" name="mahasiswa_id">
-                            <option value="">-- Pilih Mahasiswa yang Belum Terdaftar --</option>
-                            @foreach ($mahasiswaTambahan as $mhs)
-                            <option value="{{ $mhs->mahasiswa_id }}">{{ $mhs->nama }} - Semester {{ $mhs->semester ?? '-' }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="button" class="btn btn-primary shadow-sm w-100 rounded-pill" id="btnTambahMahasiswa">
-                            <i class="bx bx-plus-circle me-1"></i> Masukkan ke Daftar Absensi
-                        </button>
-                    </div>
-                </div>
-            </form>
+    <div class="alert alert-light border shadow-sm d-flex align-items-start gap-2 mb-4">
+        <i class="bx bx-info-circle text-primary fs-4"></i>
+        <div>
+            Seluruh mahasiswa kelas ditampilkan agar status pesertanya jelas.
+            Hanya mahasiswa dengan KRS yang sudah disetujui dosen pembimbing yang dapat diabsen.
         </div>
     </div>
-    @endif
 
     {{-- Form Absensi Table --}}
     <div class="card shadow-sm border-0">
@@ -128,51 +106,65 @@
                             </tr>
                         </thead>
                         <tbody class="table-border-bottom-0">
-                            @foreach ($absensi as $index => $item)
-                            <tr>
+                            @forelse ($daftarPeserta as $index => $peserta)
+                            @php
+                                $mahasiswa = $peserta['mahasiswa'];
+                                $item = $peserta['absensi'];
+                                $bolehDiabsen = $peserta['boleh_diabsen'] && $canManagePertemuan;
+                                $statusAbsensi = $item?->status ?? 'belum diabsen';
+                            @endphp
+                            <tr class="{{ $peserta['boleh_diabsen'] ? '' : 'table-light text-muted' }}">
                                 <td class="text-center text-muted">{{ $index + 1 }}</td>
                                 <td>
-                                    <span class="fw-semibold text-dark">{{ $item->mahasiswa->nama }}</span>
-                                    <br><small class="text-muted">{{ $item->mahasiswa->nim ?? '' }}</small>
-                                    @if($item->status === 'belum diabsen')
+                                    <span class="fw-semibold {{ $peserta['boleh_diabsen'] ? 'text-dark' : 'text-muted' }}">{{ $mahasiswa->nama }}</span>
+                                    <br><small class="text-muted">{{ $mahasiswa->nim ?? '' }}</small>
+                                    @if($peserta['status_krs'] === 'belum')
+                                        <span class="badge bg-label-danger ms-1"><i class="bx bx-x-circle me-1"></i>Belum Mengambil KRS</span>
+                                    @elseif($peserta['status_krs'] === 'menunggu')
+                                        <span class="badge bg-label-warning ms-1"><i class="bx bx-time-five me-1"></i>Menunggu ACC Dospem</span>
+                                    @elseif($statusAbsensi === 'belum diabsen')
                                         <span class="badge bg-label-secondary ms-1">Belum Diabsen</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-label-secondary">SMT {{ $item->mahasiswa->semester ?? '-' }}</span>
+                                    <span class="badge bg-label-secondary">SMT {{ $mahasiswa->semester ?? '-' }}</span>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="hadir" {{ $item->status == 'hadir' ? 'checked' : '' }}
-                                        @required($canManagePertemuan) @disabled(!$canManagePertemuan)>
+                                        name="status[{{ $mahasiswa->mahasiswa_id }}]" value="hadir" {{ $statusAbsensi === 'hadir' ? 'checked' : '' }}
+                                        @required($bolehDiabsen) @disabled(!$bolehDiabsen)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="izin" {{ $item->status == 'izin' ? 'checked' : '' }}
-                                        @disabled(!$canManagePertemuan)>
+                                        name="status[{{ $mahasiswa->mahasiswa_id }}]" value="izin" {{ $statusAbsensi === 'izin' ? 'checked' : '' }}
+                                        @disabled(!$bolehDiabsen)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="sakit" {{ $item->status == 'sakit' ? 'checked' : '' }}
-                                        @disabled(!$canManagePertemuan)>
+                                        name="status[{{ $mahasiswa->mahasiswa_id }}]" value="sakit" {{ $statusAbsensi === 'sakit' ? 'checked' : '' }}
+                                        @disabled(!$bolehDiabsen)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="tidak hadir" {{ $item->status == 'tidak hadir' ? 'checked' : '' }}
-                                        @disabled(!$canManagePertemuan)>
+                                        name="status[{{ $mahasiswa->mahasiswa_id }}]" value="tidak hadir" {{ $statusAbsensi === 'tidak hadir' ? 'checked' : '' }}
+                                        @disabled(!$bolehDiabsen)>
                                 </td>
                                 <td>
-                                    <input type="text" class="form-control form-control-sm border-0 bg-light" name="keterangan[{{ $item->mahasiswa_id }}]"
-                                        value="{{ $item->keterangan ?? '' }}" placeholder="Catatan opsional..."
-                                        @disabled(!$canManagePertemuan)>
+                                    <input type="text" class="form-control form-control-sm border-0 bg-light" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]"
+                                        value="{{ $item?->keterangan ?? '' }}" placeholder="{{ $peserta['boleh_diabsen'] ? 'Catatan opsional...' : 'Tidak dapat diabsen' }}"
+                                        @disabled(!$bolehDiabsen)>
                                 </td>
                             </tr>
-                            @endforeach
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-5">Tidak ada mahasiswa aktif yang sesuai dengan prodi, semester, dan kelas ini.</td>
+                            </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>
 
-                @if($canManagePertemuan)
+                @if($canManagePertemuan && $daftarPeserta->contains('boleh_diabsen', true))
                 <div class="p-4 bg-white border-top border-0 text-center">
                     <button type="submit" class="btn btn-primary rounded-pill shadow-sm px-5 py-2 fw-bold" style="letter-spacing: 0.5px;">
                         <i class="bx bx-save fs-5 me-1" style="position: relative; top: -1px;"></i> Simpan Data Presensi

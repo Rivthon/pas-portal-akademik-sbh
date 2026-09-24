@@ -150,6 +150,77 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
         ]);
     }
 
+    public function test_roster_shows_unapproved_and_missing_krs_but_keeps_them_locked(): void
+    {
+        [$dosen, $jadwal] = $this->scheduleWithApprovedParticipants(2);
+        $semesterMatkul = (int) ($jadwal->kurikulum->mataKuliah->smt
+            ?: $jadwal->kurikulum->mataKuliah->semester);
+        $kelasMahasiswa = strtolower((string) $jadwal->jenis_kelas) === 'karyawan'
+            ? 'karyawan'
+            : 'pagi';
+        $tanpaKrs = Mahasiswa::query()
+            ->whereNotIn('mahasiswa_id', Krs::query()
+                ->where('kurikulum_id', $jadwal->kurikulum_id)
+                ->where('ta_id', $jadwal->ta_id)
+                ->pluck('mahasiswa_id'))
+            ->take(2)
+            ->get();
+
+        $this->assertCount(2, $tanpaKrs, 'Data uji membutuhkan dua mahasiswa di luar KRS jadwal.');
+
+        foreach ($tanpaKrs as $mahasiswa) {
+            $mahasiswa->update([
+                'jurusan_id' => $jadwal->jurusan_id ?: $jadwal->kurikulum->jurusan_id,
+                'semester' => $semesterMatkul,
+                'kelas' => $kelasMahasiswa,
+                'status_mhs' => 'aktif',
+            ]);
+        }
+
+        $menunggu = $tanpaKrs->first();
+        $belumMengambil = $tanpaKrs->last();
+        Krs::create([
+            'kurikulum_id' => $jadwal->kurikulum_id,
+            'matakuliah_id' => $jadwal->kurikulum->matakuliah_id,
+            'ta_id' => $jadwal->ta_id,
+            'mahasiswa_id' => $menunggu->mahasiswa_id,
+            'jenis_kelas' => $jadwal->jenis_kelas,
+            'disetujui_oleh' => null,
+            'disetujui_pada' => null,
+        ]);
+
+        $pertemuan = Pertemuan::create([
+            'jadwal_id' => $jadwal->id,
+            'tanggal_pertemuan' => now()->toDateString(),
+            'jam_mulai' => '08:00:00',
+            'jam_selesai' => '09:30:00',
+            'metode_pbm' => 'offline',
+            'topik' => 'Uji informasi status KRS '.uniqid(),
+            'sub_topik' => 'Mahasiswa terkunci tetap terlihat',
+            'dosen_id' => $dosen->dosen_id,
+            'status' => 1,
+        ]);
+
+        $this->actingAs($dosen, 'dosen')
+            ->get(route('dosen.absensi.create', $pertemuan))
+            ->assertOk()
+            ->assertSee($menunggu->nama)
+            ->assertSee('Menunggu ACC Dospem')
+            ->assertSee($belumMengambil->nama)
+            ->assertSee('Belum Mengambil KRS');
+
+        $this->post(route('dosen.absensi-store'), [
+            'pertemuan_id' => $pertemuan->pertemuan_id,
+            'status' => [$menunggu->mahasiswa_id => 'hadir'],
+            'keterangan' => [],
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('absensi', [
+            'pertemuan_id' => $pertemuan->pertemuan_id,
+            'mahasiswa_id' => $menunggu->mahasiswa_id,
+        ]);
+    }
+
     private function scheduleWithApprovedParticipants(int $minimumParticipants): array
     {
         $activeTaId = TahunAkademik::query()->where('status_ta', 1)->value('ta_id');

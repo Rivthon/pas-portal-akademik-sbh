@@ -492,7 +492,7 @@
         $(document).ready(function () {
             // Tandai semua mahasiswa sebagai "Hadir"
             $("#markAllPresent").click(function () {
-                $(".status-absen[value='hadir']").prop("checked", true);
+                $(".status-absen[value='hadir']:not(:disabled)").prop("checked", true);
             });
 
             // Kembalikan semua pilihan ke status awal: belum diabsen.
@@ -592,7 +592,8 @@
         });
     });
         document.addEventListener("DOMContentLoaded", function() {
-        document.getElementById("btnTambahMahasiswa").addEventListener("click", function() {
+        const btnTambahMahasiswa = document.getElementById("btnTambahMahasiswa");
+        if (btnTambahMahasiswa) btnTambahMahasiswa.addEventListener("click", function() {
             let select = document.getElementById("selectMahasiswa");
             let mahasiswaId = select.value;
             let mahasiswaNama = select.options[select.selectedIndex].text;
