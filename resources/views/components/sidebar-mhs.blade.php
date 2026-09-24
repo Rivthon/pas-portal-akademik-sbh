@@ -230,7 +230,7 @@ $user = Auth::guard('mahasiswa')->user();
                 <div class="fw-medium">Pedoman Akademik</div>
             </a>
         </li>
-        <li class="menu-item @if(Route::is('mahasiswa.permintaan.*') || Route::is('mahasiswa.index.berita') || Route::is('mahasiswa.administrasi.*') || Route::is('mahasiswa.profile.*')) active open @endif">
+        <li class="menu-item @if(Route::is('mahasiswa.permintaan.*') || Route::is('mahasiswa.cuti.*') || Route::is('mahasiswa.index.berita') || Route::is('mahasiswa.administrasi.*') || Route::is('mahasiswa.profile.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-cog text-secondary"></i>
                 <div class="fw-medium">Layanan Mahasiswa</div>
@@ -247,6 +247,12 @@ $user = Auth::guard('mahasiswa')->user();
                     <a href="{{ route('mahasiswa.administrasi.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-wallet"></i>
                         <div>Administrasi</div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('mahasiswa.cuti.*')) active @endif">
+                    <a href="{{ route('mahasiswa.cuti.index') }}" class="menu-link">
+                        <i class="menu-icon bx bx-calendar-minus"></i>
+                        <div>Pengajuan Cuti</div>
                     </a>
                 </li>
                 <li class="menu-item @if(Route::is('mahasiswa.profile.index')) active @endif">

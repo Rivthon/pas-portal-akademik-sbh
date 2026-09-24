@@ -40,6 +40,9 @@
                 <li class="menu-item @if(Route::is('dosen.kaprodi.nilai.*')) active @endif">
                     <a href="{{ route('dosen.kaprodi.nilai.index') }}" class="menu-link"><div>Pengajuan Nilai</div></a>
                 </li>
+                <li class="menu-item @if(Route::is('dosen.kaprodi.cuti.*')) active @endif">
+                    <a href="{{ route('dosen.kaprodi.cuti.index') }}" class="menu-link"><div>Verifikasi Cuti</div></a>
+                </li>
             </ul>
         </li>
         @endif
@@ -58,6 +61,13 @@
             <a href="{{ route('dosen.nilai-dosen.lihat') }}" class="menu-link">
                 <i class="menu-icon bx bx-group text-info"></i>
                 <div class="fw-medium">Status KRS Bimbingan</div>
+            </a>
+        </li>
+
+        <li class="menu-item @if(Route::is('dosen.cuti.*')) active @endif">
+            <a href="{{ route('dosen.cuti.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-calendar-minus text-warning"></i>
+                <div class="fw-medium">Cuti Mahasiswa Bimbingan</div>
             </a>
         </li>
 

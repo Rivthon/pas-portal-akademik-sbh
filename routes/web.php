@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\DosenImpersonationController;
 use App\Http\Controllers\Admin\DosenKurikulumController;
 use App\Http\Controllers\Admin\HomeController;
 use App\Http\Controllers\Admin\Kemahasiswaan\AktivasiController;
+use App\Http\Controllers\Admin\Kemahasiswaan\CutiController as AdminCutiController;
 use App\Http\Controllers\Admin\Kemahasiswaan\MahasiswaController;
 use App\Http\Controllers\Admin\Kemahasiswaan\PengajuanTranskripController;
 use App\Http\Controllers\Admin\Kemahasiswaan\PermintaanController;
@@ -54,7 +55,9 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
 use App\Http\Controllers\CalendarAkademikFileController;
 use App\Http\Controllers\Dosen\AbsensiPraktikController as DosenAbsensiPraktikController;
+use App\Http\Controllers\Dosen\CutiController as DosenCutiController;
 use App\Http\Controllers\Dosen\DashboardDosenController;
+use App\Http\Controllers\Dosen\KaprodiCutiController;
 use App\Http\Controllers\Dosen\KaprodiVerificationController;
 use App\Http\Controllers\Dosen\KurikulumKrsController;
 use App\Http\Controllers\Dosen\LaporanAbsensiController;
@@ -70,6 +73,7 @@ use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
 use App\Http\Controllers\Mahasiswa\AkademikController;
+use App\Http\Controllers\Mahasiswa\CutiController as MahasiswaCutiController;
 use App\Http\Controllers\Mahasiswa\DashboardController;
 use App\Http\Controllers\Mahasiswa\EdomController;
 use App\Http\Controllers\Mahasiswa\JadwalKuliahController;
@@ -132,6 +136,13 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('profile', [ProfileUserController::class, 'index'])->name('profile.index');
         Route::post('profile', [ProfileUserController::class, 'update'])->name('profile.update');
         Route::post('/semester/update', [ProfileUserController::class, 'smtUpdate'])->name('semester.update');
+
+        Route::prefix('cuti')->name('cuti.')->group(function () {
+            Route::get('/', [MahasiswaCutiController::class, 'index'])->name('index');
+            Route::post('/', [MahasiswaCutiController::class, 'store'])->name('store');
+            Route::patch('/{cuti}/batalkan', [MahasiswaCutiController::class, 'cancel'])->name('cancel');
+            Route::get('/{cuti}/lampiran', [MahasiswaCutiController::class, 'attachment'])->name('attachment');
+        });
 
         // Jadwal mahasiswa
         // Route::get('jadwal', [JadwalKuliahController::class, 'index'])->name('jadwal.index');
@@ -351,6 +362,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+        Route::prefix('cuti')->name('cuti.')->middleware('permission:cuti-list')->group(function () {
+            Route::get('/', [AdminCutiController::class, 'index'])->name('index');
+            Route::get('/{cuti}/lampiran', [AdminCutiController::class, 'attachment'])->name('attachment');
+            Route::patch('/{cuti}/keputusan', [AdminCutiController::class, 'decide'])
+                ->middleware('permission:cuti-validasi')->name('decide');
+        });
 
         // Resource controllers
         Route::get('/activity-logs', [ActivityLogController::class, 'index'])
@@ -760,10 +778,18 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::post('/mahasiswa-bimbingan/krs/bulk-acc', [ModulAkademikController::class, 'bulkApproveKrs'])
                 ->name('mahasiswa.krs.bulk-approve');
             Route::get('/mahasiswa-bimbingan/{mahasiswa}/transkrip', [ModulAkademikController::class, 'transkripMahasiswa'])->name('mahasiswa.transkrip');
+            Route::prefix('cuti')->name('cuti.')->group(function () {
+                Route::get('/', [DosenCutiController::class, 'index'])->name('index');
+                Route::patch('/{cuti}/keputusan', [DosenCutiController::class, 'decide'])->name('decide');
+                Route::get('/{cuti}/lampiran', [DosenCutiController::class, 'attachment'])->name('attachment');
+            });
             // ===== Modul Akademik =====
             Route::get('/edom/hasil', [DashboardDosenController::class, 'hasilEdom'])->name('edom.hasil');
 
             Route::prefix('kaprodi')->name('kaprodi.')->group(function () {
+                Route::get('/cuti', [KaprodiCutiController::class, 'index'])->name('cuti.index');
+                Route::patch('/cuti/{cuti}/keputusan', [KaprodiCutiController::class, 'decide'])->name('cuti.decide');
+                Route::get('/cuti/{cuti}/lampiran', [KaprodiCutiController::class, 'attachment'])->name('cuti.attachment');
                 Route::get('/monitoring', [KaprodiVerificationController::class, 'monitoring'])->name('monitoring.index');
                 Route::get('/absensi', [KaprodiVerificationController::class, 'absensi'])->name('absensi.index');
                 Route::post('/absensi/verifikasi-massal', [KaprodiVerificationController::class, 'bulkVerifyAbsensi'])->name('absensi.bulk-verify');
