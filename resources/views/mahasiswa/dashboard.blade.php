@@ -2,14 +2,37 @@
 @section('title', 'Dashboard')
 @section('content')
 @php
+    $sedangCuti = strtolower(trim((string) auth('mahasiswa')->user()->status_mhs)) === 'cuti';
     $semesterMahasiswa = (int) auth('mahasiswa')->user()->semester;
     $periodeAkademik = strtolower(trim((string) optional($ta)->semester));
-    $semesterTidakSesuai = $semesterMahasiswa > 0 && (
+    $semesterTidakSesuai = ! $sedangCuti && $semesterMahasiswa > 0 && (
         ($periodeAkademik === 'ganjil' && $semesterMahasiswa % 2 === 0) ||
         ($periodeAkademik === 'genap' && $semesterMahasiswa % 2 === 1)
     );
     $semesterYangDisarankan = $periodeAkademik === 'ganjil' ? '1, 3, 5, atau 7' : '2, 4, 6, atau 8';
 @endphp
+@if($sedangCuti)
+    <div class="alert alert-warning border-warning shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-warning bg-opacity-25 flex-shrink-0" style="width:48px;height:48px">
+                <i class="bx bx-calendar-minus fs-3 text-warning"></i>
+            </span>
+            <div>
+                <h5 class="alert-heading mb-1">Status Akademik: Cuti</h5>
+                <div>Anda tetap dapat melihat riwayat akademik, administrasi, pedoman, profil, dan layanan bantuan. KRS, LMS, absensi, jadwal, ujian, serta aktivitas akademik semester berjalan dinonaktifkan sampai status Anda kembali aktif.</div>
+                <a href="{{ route('mahasiswa.cuti.index') }}" class="btn btn-sm btn-warning mt-3">
+                    <i class="bx bx-history me-1"></i>Lihat Riwayat Pengajuan Cuti
+                </a>
+            </div>
+        </div>
+    </div>
+@endif
+@if(session('cuti_notice'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bx bx-lock-alt me-1"></i>{{ session('cuti_notice') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 <div class="row">
     <div class="col-xxl-12 mt-auto mb-auto order-0">
         <div class="card shadow-sm mb-4">

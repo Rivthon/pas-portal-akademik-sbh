@@ -57,6 +57,49 @@ class LmsMateriUploadTest extends TestCase
         Storage::disk('public')->assertExists($materi->file);
     }
 
+    public function test_assigned_dosen_can_upload_excel_material(): void
+    {
+        Storage::fake('public');
+
+        $jadwal = Jadwal::query()
+            ->whereHas('pertemuan')
+            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) {
+                $query->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+                    ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal.jenis_kelas)');
+            })
+            ->firstOrFail();
+        $assignment = $jadwal->kurikulum->dosenToMatakuliah()
+            ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+            ->whereRaw('LOWER(jenis_kelas) = ?', [strtolower($jadwal->jenis_kelas)])
+            ->firstOrFail();
+        $dosen = Dosen::findOrFail($assignment->dosen_id);
+        $pertemuan = $jadwal->pertemuan()->firstOrFail();
+
+        $response = $this->actingAs($dosen, 'dosen')
+            ->post(route('dosen.lms.materi.store'), [
+                'pertemuan_id' => $pertemuan->pertemuan_id,
+                'jadwal_id' => $jadwal->id,
+                'judul' => 'Materi Excel Pengujian',
+                'deskripsi' => 'Materi Excel untuk pengujian upload.',
+                'file' => UploadedFile::fake()->create(
+                    'Data Praktikum.xlsx',
+                    100,
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                ),
+            ]);
+
+        $response->assertRedirect(route('dosen.lms.kelola', $jadwal->id))
+            ->assertSessionHas('success');
+
+        $materi = LmsMateri::query()
+            ->where('judul', 'Materi Excel Pengujian')
+            ->firstOrFail();
+
+        $this->assertSame('excel', $materi->tipe);
+        $this->assertStringEndsWith('.xlsx', $materi->file);
+        Storage::disk('public')->assertExists($materi->file);
+    }
+
     public function test_material_requires_a_file_or_valid_link(): void
     {
         $jadwal = Jadwal::query()

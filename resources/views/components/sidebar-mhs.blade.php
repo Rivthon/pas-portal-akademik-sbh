@@ -1,6 +1,7 @@
 @php
 use Illuminate\Support\Facades\Auth;
 $user = Auth::guard('mahasiswa')->user();
+$isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme shadow-sm">
     <div class="app-brand demo justify-content-center py-3">
@@ -29,10 +30,20 @@ $user = Auth::guard('mahasiswa')->user();
             </a>
         </li>
 
+        @if($isCuti)
+            <li class="px-3 mb-2">
+                <div class="alert alert-warning py-2 px-3 mb-0 small">
+                    <i class="bx bx-calendar-minus me-1"></i><strong>Status Cuti</strong><br>
+                    <span class="opacity-75">Fitur semester aktif dikunci.</span>
+                </div>
+            </li>
+        @endif
+
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Perkuliahan</span>
         </li>
 
+        @unless($isCuti)
         <li class="menu-item @if(Route::is('mahasiswa.rps*')) active @endif">
             <a href="{{ route('mahasiswa.rps.index') }}" class="menu-link">
                 <i class="menu-icon bx bx-file text-primary"></i>
@@ -53,6 +64,7 @@ $user = Auth::guard('mahasiswa')->user();
                 <div class="fw-medium">Nilai LMS</div>
             </a>
         </li>
+        @endunless
 
         <li class="menu-item @if(Route::is('mahasiswa.rekap.absensi*')) active open @endif">
             <a href="{{ route('mahasiswa.rekap.absensi') }}" class="menu-link">
@@ -67,6 +79,7 @@ $user = Auth::guard('mahasiswa')->user();
             </a>
         </li>
 
+        @unless($isCuti)
         <li class="menu-item @if(Route::is('mahasiswa.jadwal*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-calendar-event text-warning"></i>
@@ -108,6 +121,7 @@ $user = Auth::guard('mahasiswa')->user();
                 @endif
             </ul>
         </li>
+        @endunless
 
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Modul Akademik</span>
@@ -118,12 +132,14 @@ $user = Auth::guard('mahasiswa')->user();
                 <div class="fw-medium">Kartu Rencana Studi</div>
             </a>
             <ul class="menu-sub">
+                @unless($isCuti)
                 <li class="menu-item @if(Route::is('mahasiswa.krs.index')) active @endif">
                     <a href="{{ route('mahasiswa.krs.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-edit"></i>
                         <div>Pengajuan KRS</div>
                     </a>
                 </li>
+                @endunless
 
                 <li class="menu-item @if(Route::is('mahasiswa.status.krs.index')) active @endif">
                     <a href="{{ route('mahasiswa.status.krs.index') }}" class="menu-link">
@@ -135,6 +151,7 @@ $user = Auth::guard('mahasiswa')->user();
         </li>
 
         @php($edomEnabled = (bool) ($settings?->edom_enabled ?? true))
+        @unless($isCuti)
         <li class="menu-item {{ Route::is('mahasiswa.edom.*') ? 'active' : '' }}">
             <a href="{{ $edomEnabled ? route('mahasiswa.edom.index') : '#' }}"
                 class="menu-link {{ $edomEnabled ? '' : 'disabled opacity-50' }}"
@@ -161,6 +178,7 @@ $user = Auth::guard('mahasiswa')->user();
                 @endif
             </a>
         </li>
+        @endunless
 
         <li class="menu-item {{ Route::is('mahasiswa.khs.riwayat') ? 'active' : '' }}">
             <a href="{{ route('mahasiswa.khs.riwayat') }}" class="menu-link">
@@ -175,6 +193,7 @@ $user = Auth::guard('mahasiswa')->user();
                 <div class="fw-medium">Manajemen Nilai</div>
             </a>
             <ul class="menu-sub">
+                @unless($isCuti)
                 <li class="menu-item @if(Route::is('mahasiswa.nilai-uts.index')) active @endif">
                     <a href="{{ route('mahasiswa.nilai-uts.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-chart"></i>
@@ -188,6 +207,7 @@ $user = Auth::guard('mahasiswa')->user();
                         <div>Nilai UAS</div>
                     </a>
                 </li>
+                @endunless
 
                 <li class="menu-item @if(Route::is('mahasiswa.nilai-ujian.riwayat')) active @endif">
                     <a href="{{ route('mahasiswa.nilai-ujian.riwayat') }}" class="menu-link">
@@ -196,7 +216,7 @@ $user = Auth::guard('mahasiswa')->user();
                     </a>
                 </li>
 
-                @if ($user && $user->jurusan_id == 15401 && $user->semester == 6)
+                @if (! $isCuti && $user && $user->jurusan_id == 15401 && $user->semester == 6)
                 <li class="menu-item @if(Route::is('mahasiswa.uap.index')) active @endif">
                     <a href="{{ route('mahasiswa.uap.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-scatter-chart"></i>

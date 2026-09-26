@@ -5,6 +5,7 @@ use App\Http\Middleware\CheckMahasiswaStatus;
 use App\Http\Middleware\EnsureEdomIsEnabled;
 use App\Http\Middleware\LogActivity;
 use App\Http\Middleware\ProgressiveLoginThrottle;
+use App\Http\Middleware\RestrictMahasiswaCuti;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'edom.enabled' => EnsureEdomIsEnabled::class,
             'log.activity' => LogActivity::class,
             'login.progressive' => ProgressiveLoginThrottle::class,
+            'mahasiswa.cuti-access' => RestrictMahasiswaCuti::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -122,7 +122,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
     Route::post('login', [MahasiswaLoginController::class, 'login'])
         ->middleware(['login.progressive:mahasiswa', 'throttle:login-ip'])->name('mhs.login');
     Route::post('logout', [MahasiswaLoginController::class, 'logout'])->name('logout');
-    Route::middleware('auth:mahasiswa')->group(function () {
+    Route::middleware(['auth:mahasiswa', 'mahasiswa.cuti-access'])->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/kalender-akademik/{calendar}/file', [CalendarAkademikFileController::class, 'show'])
             ->name('calendar-akademik.file');
