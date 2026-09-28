@@ -328,7 +328,7 @@ class LmsMahasiswaController extends Controller
             'Anda tidak terdaftar pada mata kuliah ini.'
         );
 
-        $pengumpulan = LmsPengumpulanTugas::where(
+        $pengumpulanMahasiswa = LmsPengumpulanTugas::where(
             'tugas_id',
             $tugas->tugas_id
         )
@@ -346,9 +346,9 @@ class LmsMahasiswaController extends Controller
             ! $deadlineTerlewat ||
             $tugas->izinkan_terlambat;
 
-        $sudahDinilai = $this->pengumpulanSudahDinilai($pengumpulan);
+        $sudahDinilai = $this->pengumpulanSudahDinilai($pengumpulanMahasiswa);
 
-        $bolehUploadUlang = ! $pengumpulan || (
+        $bolehUploadUlang = ! $pengumpulanMahasiswa || (
             ! $deadlineTerlewat
             && ! $sudahDinilai
             && $tugas->izinkan_upload_ulang
@@ -358,7 +358,7 @@ class LmsMahasiswaController extends Controller
             'mahasiswa.lms.tugas-show',
             compact(
                 'tugas',
-                'pengumpulan',
+                'pengumpulanMahasiswa',
                 'deadlineTerlewat',
                 'bolehMengumpulkan',
                 'bolehUploadUlang',
