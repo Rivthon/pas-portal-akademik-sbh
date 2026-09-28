@@ -82,7 +82,9 @@ return new class extends Migration
 
         // Struktur legacy memakai default zero timestamp yang ditolak MySQL saat
         // ALTER TABLE dalam strict mode. Normalisasi dahulu sebelum menambah FK.
-        DB::statement("UPDATE mahasiswa SET tanggal_lahir = NULL WHERE tanggal_lahir = '0000-00-00'");
+        // Bandingkan sebagai teks. Pada MySQL 8 dengan NO_ZERO_DATE aktif,
+        // literal tanggal '0000-00-00' sendiri ditolak sebelum UPDATE berjalan.
+        DB::statement("UPDATE mahasiswa SET tanggal_lahir = NULL WHERE CAST(tanggal_lahir AS CHAR) = '0000-00-00'");
         DB::statement('ALTER TABLE mahasiswa MODIFY updated_at TIMESTAMP NULL DEFAULT NULL');
 
         if (! $this->foreignKeyExists('mahasiswa', 'mahasiswa_dosen_pembimbing_fk')) {
