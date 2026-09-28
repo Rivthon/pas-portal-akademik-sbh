@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
 use App\Models\Permintaan;
+use App\Support\StoredUpload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class PermintaanController extends Controller
@@ -35,7 +35,7 @@ class PermintaanController extends Controller
             'judul' => ['required', 'string', 'max:255'],
             'deskripsi' => ['required', 'string'],
             'prioritas' => ['required', 'in:rendah,sedang,tinggi,urgen'],
-            'file_lampiran' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx,zip', 'max:2048'],
+            'file_lampiran' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx,zip', 'extensions:pdf,jpg,jpeg,png,doc,docx,zip', 'max:2048'],
         ]);
 
         $validated['dosen_id'] = Auth::guard('dosen')->id();
@@ -43,7 +43,7 @@ class PermintaanController extends Controller
         $validated['status'] = 'menunggu';
 
         if ($request->hasFile('file_lampiran')) {
-            $validated['file_lampiran'] = $request->file('file_lampiran')->store('lampiran_permintaan', 'public');
+            $validated['file_lampiran'] = $request->file('file_lampiran')->store('lampiran_permintaan', 'private');
         }
 
         Permintaan::create($validated);
@@ -64,7 +64,7 @@ class PermintaanController extends Controller
         }
 
         if ($permintaan->file_lampiran) {
-            Storage::disk('public')->delete($permintaan->file_lampiran);
+            StoredUpload::delete($permintaan->file_lampiran);
         }
 
         $permintaan->delete();

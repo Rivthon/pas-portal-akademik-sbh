@@ -33,4 +33,22 @@ class StoredUpload
             }
         }
     }
+
+    public static function absolutePath(?string $path): ?string
+    {
+        if (! self::exists($path)) {
+            return null;
+        }
+
+        return self::disk($path)->path($path);
+    }
+
+    public static function base64(?string $path): ?string
+    {
+        if (! self::exists($path)) {
+            return null;
+        }
+
+        return base64_encode((string) self::disk($path)->get($path));
+    }
 }

@@ -4,12 +4,10 @@ namespace App\Http\Controllers\Admin\MasterData;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use DB;
 use Hash;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Arr;
 use Illuminate\View\View;
 use RealRashid\SweetAlert\Facades\Alert;
 use Spatie\Permission\Models\Role;
@@ -52,18 +50,22 @@ class UserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $this->validate($request, [
-            'name' => 'required',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|same:confirm-password',
-            'roles' => 'required',
+            'password' => 'required|string|min:8|same:confirm-password',
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'string|exists:roles,name',
         ]);
 
-        $input = $request->all();
-        $input['password'] = Hash::make($input['password']);
+        $input = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+        ];
 
         $user = User::create($input);
-        $user->assignRole($request->input('roles'));
+        $user->assignRole($validated['roles']);
         activity_log('tambah_user', 'Admin menambah user baru: '.$user->name);
         Alert::success('Berhasil', 'Data pengguna berhasil dibuat');
 
@@ -93,25 +95,25 @@ class UserController extends Controller
 
     public function update(Request $request, $id): RedirectResponse
     {
-        $this->validate($request, [
-            'name' => 'required',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
-            'password' => 'same:confirm-password',
-            'roles' => 'required',
+            'password' => 'nullable|string|min:8|same:confirm-password',
+            'roles' => 'required|array|min:1',
+            'roles.*' => 'string|exists:roles,name',
         ]);
 
-        $input = $request->all();
-        if (! empty($input['password'])) {
-            $input['password'] = Hash::make($input['password']);
-        } else {
-            $input = Arr::except($input, ['password']);
+        $input = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
+        if (! empty($validated['password'])) {
+            $input['password'] = Hash::make($validated['password']);
         }
 
-        $user = User::find($id);
+        $user = User::findOrFail($id);
         $user->update($input);
-        DB::table('model_has_roles')->where('model_id', $id)->delete();
-
-        $user->assignRole($request->input('roles'));
+        $user->syncRoles($validated['roles']);
         activity_log('update_user', 'Admin memperbarui user: '.$user->name.' (ID: '.$id.')');
         Alert::success('Berhasil', 'Data pengguna berhasil diperbarui');
 

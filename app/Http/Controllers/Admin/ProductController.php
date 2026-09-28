@@ -54,12 +54,12 @@ class ProductController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        request()->validate([
+        $validated = $request->validate([
             'name' => 'required',
             'detail' => 'required',
         ]);
 
-        Product::create($request->all());
+        Product::create($validated);
 
         activity_log('tambah_produk', 'Admin menambah produk baru');
 
@@ -97,12 +97,12 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product): RedirectResponse
     {
-        request()->validate([
+        $validated = $request->validate([
             'name' => 'required',
             'detail' => 'required',
         ]);
 
-        $product->update($request->all());
+        $product->update($validated);
 
         activity_log('update_produk', 'Admin memperbarui produk: '.$product->name);
 

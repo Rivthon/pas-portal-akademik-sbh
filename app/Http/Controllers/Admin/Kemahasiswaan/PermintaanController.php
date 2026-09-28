@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Kemahasiswaan;
 
 use App\Http\Controllers\Controller;
 use App\Models\Permintaan;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -12,7 +13,7 @@ class PermintaanController extends Controller
     public function __construct()
     {
         $this->middleware('permission:permintaan-list', ['only' => ['index']]);
-        $this->middleware('permission:permintaan-show', ['only' => ['show']]);
+        $this->middleware('permission:permintaan-show', ['only' => ['show', 'attachment']]);
         $this->middleware('permission:permintaan-edit', ['only' => ['edit']]);
         $this->middleware('permission:permintaan-status', ['only' => ['updateStatus']]);
     }
@@ -49,6 +50,17 @@ class PermintaanController extends Controller
         $permintaan = Permintaan::with(['mahasiswa', 'dosen'])->findOrFail($id);
 
         return view('admin.kemahasiswaan.permintaan.show', compact('permintaan'));
+    }
+
+    public function attachment(Permintaan $permintaan)
+    {
+        abort_unless(StoredUpload::exists($permintaan->file_lampiran), 404);
+
+        return StoredUpload::disk($permintaan->file_lampiran)->response(
+            $permintaan->file_lampiran,
+            basename($permintaan->file_lampiran),
+            ['Cache-Control' => 'private, no-store']
+        );
     }
 
     public function updateStatus(Request $request, $id)

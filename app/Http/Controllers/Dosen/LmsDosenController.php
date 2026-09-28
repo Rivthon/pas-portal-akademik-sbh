@@ -15,11 +15,12 @@ use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
 use App\Services\GradebookKhsSyncService;
 use App\Services\LmsCalendarService;
+use App\Support\KrsClassResolver;
 use App\Support\StoredUpload;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -100,21 +101,13 @@ class LmsDosenController extends Controller
                 $quiz->nilai_maksimal_gradebook = (float) $quiz->soal->sum('bobot');
             });
 
-        $kelasJadwal = strtolower((string) $jadwal->jenis_kelas);
         $peserta = Krs::with('mahasiswa')
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
-            ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
-                if ($kelasJadwal === 'karyawan') {
-                    $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
-                } else {
-                    $query->where(function ($kelas) {
-                        $kelas->whereNull('kelas')
-                            ->orWhereRaw('LOWER(kelas) != ?', ['karyawan']);
-                    });
-                }
-            })
+            ->whereNotNull('disetujui_pada')
             ->get()
+            ->filter(fn (Krs $krs) => $krs->mahasiswa
+                && KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa))
             ->pluck('mahasiswa')
             ->filter()
             ->unique('mahasiswa_id')
@@ -280,7 +273,7 @@ class LmsDosenController extends Controller
         $baseName = Str::slug(pathinfo($filename, PATHINFO_FILENAME));
         $baseName = Str::limit($baseName ?: 'materi', 100, '');
         $namaFile = now()->format('YmdHis').'_'.Str::random(8).'_'.$baseName.'.'.$extension;
-        $path = $uploadedFile->storeAs('lms/materi', $namaFile, 'public');
+        $path = $uploadedFile->storeAs('lms/materi', $namaFile, 'private');
 
         if (! $path) {
             throw new RuntimeException('File materi gagal disimpan ke storage.');
@@ -292,23 +285,40 @@ class LmsDosenController extends Controller
         ];
     }
 
+    private function storeTaskAttachment(UploadedFile $file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $baseName = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $baseName = Str::limit($baseName ?: 'lampiran-tugas', 100, '');
+        $name = now()->format('YmdHis').'_'.Str::random(8).'_'.$baseName.'.'.$extension;
+        $path = $file->storeAs('lms/tugas', $name, 'private');
+
+        if (! $path) {
+            throw new RuntimeException('Lampiran tugas gagal disimpan ke storage.');
+        }
+
+        return $path;
+    }
+
     public function storeMateri(Request $request)
     {
         $dosen = Auth::guard('dosen')->user();
+        $extensions = implode(',', config('lms.uploads.extensions'));
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
 
         $request->validate([
             'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
             'jadwal_id' => 'required|exists:jadwal,id',
             'judul' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'file' => 'nullable|required_without:youtube_url|file|mimes:pdf,ppt,pptx,doc,docx,xls,xlsx,zip,rar,jpg,jpeg,png,mp4,avi,mov,mkv|max:51200',
+            'file' => 'nullable|required_without:youtube_url|file|mimes:'.$extensions.'|extensions:'.$extensions.'|max:'.$maxKilobytes,
             'youtube_url' => 'nullable|required_without:file|url|max:255',
         ], [
             'file.required_without' => 'Upload file atau isi link materi.',
             'file.uploaded' => 'File gagal diterima server. Periksa ukuran file dan pastikan tidak melebihi batas upload VPS.',
             'file.file' => 'Berkas materi harus berupa file yang valid.',
             'file.mimes' => 'Format file materi tidak didukung.',
-            'file.max' => 'Ukuran file materi maksimal 50 MB.',
+            'file.max' => 'Ukuran file materi maksimal 10 MB.',
             'youtube_url.required_without' => 'Upload file atau isi link materi.',
             'youtube_url.url' => 'Link materi harus berupa URL yang valid.',
         ]);
@@ -343,7 +353,7 @@ class LmsDosenController extends Controller
             ]);
         } catch (Throwable $exception) {
             if ($path) {
-                Storage::disk('public')->delete($path);
+                StoredUpload::delete($path);
             }
 
             report($exception);
@@ -364,40 +374,48 @@ class LmsDosenController extends Controller
     {
         $materi = LmsMateri::findOrFail($id);
         $this->pastikanMateriMilikDosen($materi);
+        $extensions = implode(',', config('lms.uploads.extensions'));
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
 
         $request->validate([
-            'judul' => 'required|max:255',
-            'deskripsi' => 'nullable',
-            'file' => 'nullable|max:51200',
-            'youtube_url' => 'nullable',
+            'judul' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
+            'file' => 'nullable|file|mimes:'.$extensions.'|extensions:'.$extensions.'|max:'.$maxKilobytes,
+            'youtube_url' => 'nullable|url|max:255',
         ], [
             'file.uploaded' => 'File gagal diterima server. Periksa ukuran file dan pastikan tidak melebihi batas upload VPS.',
             'file.file' => 'Berkas materi harus berupa file yang valid.',
-            'file.max' => 'Ukuran file materi maksimal 50 MB.',
+            'file.mimes' => 'Format file materi tidak didukung.',
+            'file.extensions' => 'Ekstensi file materi tidak didukung.',
+            'file.max' => 'Ukuran file materi maksimal 10 MB.',
         ]);
 
-        $materi->judul = $request->judul;
-        $materi->deskripsi = $request->deskripsi;
-        $materi->youtube_url = $request->youtube_url;
+        $oldPath = $materi->file;
+        $newPath = null;
 
-        // Jika dosen mengunggah berkas baru
-        if ($request->hasFile('file')) {
-            // Hapus berkas lama di storage jika ada
-            if ($materi->file && Storage::disk('public')->exists($materi->file)) {
-                Storage::disk('public')->delete($materi->file);
+        try {
+            $materi->judul = $request->judul;
+            $materi->deskripsi = $request->deskripsi;
+            $materi->youtube_url = $request->youtube_url;
+
+            if ($request->hasFile('file')) {
+                $fileProcessed = $this->processMateriFile($request);
+                $newPath = $fileProcessed['path'];
+                $materi->file = $newPath;
+                $materi->tipe = $fileProcessed['tipe'];
+            } elseif ($request->filled('youtube_url')) {
+                $materi->tipe = 'youtube';
             }
 
-            // Gunakan helper private untuk memproses berkas baru
-            $fileProcessed = $this->processMateriFile($request);
-            $materi->file = $fileProcessed['path'];
-            $materi->tipe = $fileProcessed['tipe'];
-        }
-        // Jika tidak upload file baru, tapi ada perubahan/pengisian link YouTube
-        elseif ($request->filled('youtube_url')) {
-            $materi->tipe = 'youtube';
+            $materi->save();
+        } catch (Throwable $exception) {
+            StoredUpload::delete($newPath);
+            throw $exception;
         }
 
-        $materi->save();
+        if ($newPath && $oldPath !== $newPath) {
+            StoredUpload::delete($oldPath);
+        }
 
         return redirect()->route('dosen.lms.kelola', $materi->jadwal_id)
             ->with('success', 'Materi berhasil diperbarui.');
@@ -406,21 +424,17 @@ class LmsDosenController extends Controller
     public function downloadMateri(LmsMateri $materi)
     {
         $this->pastikanMateriMilikDosen($materi);
-        if (! $materi->file || ! Storage::disk('public')->exists($materi->file)) {
+        if (! StoredUpload::exists($materi->file)) {
             return back()->with('error', 'File tidak ditemukan.');
         }
 
-        $fullPath = storage_path('app/public/'.$materi->file);
-
-        return response()->file($fullPath);
+        return StoredUpload::disk($materi->file)->download($materi->file, basename($materi->file));
     }
 
     public function destroyMateri(LmsMateri $materi)
     {
         $this->pastikanMateriMilikDosen($materi);
-        if ($materi->file && Storage::disk('public')->exists($materi->file)) {
-            Storage::disk('public')->delete($materi->file);
-        }
+        StoredUpload::delete($materi->file);
 
         $materi->delete();
 
@@ -436,19 +450,25 @@ class LmsDosenController extends Controller
             case 'video':
             case 'pdf':
             case 'gambar':
-                return redirect(Storage::url($materi->file));
+                abort_unless(StoredUpload::exists($materi->file), 404);
+
+                return StoredUpload::disk($materi->file)->response($materi->file);
             case 'ppt':
             case 'doc':
             case 'excel':
             case 'arsip':
             default:
-                return Storage::disk('public')->download($materi->file, basename($materi->file));
+                abort_unless(StoredUpload::exists($materi->file), 404);
+
+                return StoredUpload::disk($materi->file)->download($materi->file, basename($materi->file));
         }
     }
 
     public function storeTugas(Request $request)
     {
         $dosen = Auth::guard('dosen')->user();
+        $documentExtensions = implode(',', config('lms.uploads.document_extensions'));
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
         $request->merge([
             'tipe' => $request->input('tipe') ?: 'file',
         ]);
@@ -461,7 +481,7 @@ class LmsDosenController extends Controller
             'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
-            'lampiran' => 'nullable|file|max:51200',
+            'lampiran' => 'nullable|file|mimes:'.$documentExtensions.'|extensions:'.$documentExtensions.'|max:'.$maxKilobytes,
         ]);
 
         $jadwal = $this->jadwalMilikDosen($request->jadwal_id);
@@ -475,30 +495,28 @@ class LmsDosenController extends Controller
         $lampiran = null;
 
         if ($request->hasFile('lampiran')) {
-            $nama = time().'_'.$request->file('lampiran')->getClientOriginalName();
-            $lampiran = $request
-                ->file('lampiran')
-                ->storeAs(
-                    'lms/tugas',
-                    $nama,
-                    'public'
-                );
+            $lampiran = $this->storeTaskAttachment($request->file('lampiran'));
         }
 
-        $tugas = LmsTugas::create([
-            'jadwal_id' => $request->jadwal_id,
-            'pertemuan_id' => $request->pertemuan_id,
-            'dosen_id' => $dosen->dosen_id,
-            'judul' => $request->judul,
-            'deskripsi' => $request->deskripsi,
-            'tipe' => $request->tipe,
-            'deadline' => $request->deadline,
-            'nilai_maksimal' => $request->nilai_maksimal,
-            'lampiran' => $lampiran,
-            'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
-            'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
-            'aktif' => true,
-        ]);
+        try {
+            $tugas = LmsTugas::create([
+                'jadwal_id' => $request->jadwal_id,
+                'pertemuan_id' => $request->pertemuan_id,
+                'dosen_id' => $dosen->dosen_id,
+                'judul' => $request->judul,
+                'deskripsi' => $request->deskripsi,
+                'tipe' => $request->tipe,
+                'deadline' => $request->deadline,
+                'nilai_maksimal' => $request->nilai_maksimal,
+                'lampiran' => $lampiran,
+                'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
+                'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
+                'aktif' => true,
+            ]);
+        } catch (Throwable $exception) {
+            StoredUpload::delete($lampiran);
+            throw $exception;
+        }
 
         if ($tugas->tipe === 'pilihan_ganda') {
             return redirect()->route('dosen.lms.tugas.soal.manage', $tugas)
@@ -554,21 +572,13 @@ class LmsDosenController extends Controller
          * Ambil seluruh mahasiswa yang mengambil mata kuliah
          * berdasarkan kurikulum dan kelas pada jadwal.
          */
-        $kelasJadwal = strtolower((string) $tugas->jadwal->jenis_kelas);
         $peserta = Krs::with('mahasiswa')
             ->where('kurikulum_id', $tugas->jadwal->kurikulum_id)
             ->where('ta_id', $tugas->jadwal->ta_id)
-            ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
-                if ($kelasJadwal === 'karyawan') {
-                    $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
-                } else {
-                    $query->where(function ($kelas) {
-                        $kelas->whereNull('kelas')
-                            ->orWhereRaw('LOWER(kelas) != ?', ['karyawan']);
-                    });
-                }
-            })
+            ->whereNotNull('disetujui_pada')
             ->get()
+            ->filter(fn (Krs $krs) => $krs->mahasiswa
+                && KrsClassResolver::matches($krs, $tugas->jadwal, $krs->mahasiswa))
             ->pluck('mahasiswa')
             ->filter()
             ->unique('mahasiswa_id')
@@ -756,9 +766,7 @@ class LmsDosenController extends Controller
         abort_unless((int) $tugas->dosen_id === (int) $dosen->dosen_id, 403);
 
         // 2. Hapus file lampiran tugas jika ada
-        if ($tugas->lampiran && Storage::disk('public')->exists($tugas->lampiran)) {
-            Storage::disk('public')->delete($tugas->lampiran);
-        }
+        StoredUpload::delete($tugas->lampiran);
 
         // 3. Ambil dan hapus seluruh file jawaban yang diunggah mahasiswa untuk tugas ini
         $pengumpulanList = LmsPengumpulanTugas::where('tugas_id', $tugas->tugas_id)->get();
@@ -781,11 +789,11 @@ class LmsDosenController extends Controller
     {
         $this->pastikanTugasMilikDosen($tugas);
 
-        if (! $tugas->lampiran || ! Storage::disk('public')->exists($tugas->lampiran)) {
+        if (! StoredUpload::exists($tugas->lampiran)) {
             return back()->with('error', 'File lampiran tugas tidak ditemukan di server.');
         }
 
-        return Storage::disk('public')->response(
+        return StoredUpload::disk($tugas->lampiran)->response(
             $tugas->lampiran,
             basename($tugas->lampiran)
         );
@@ -794,6 +802,8 @@ class LmsDosenController extends Controller
     public function updateTugas(Request $request, LmsTugas $tugas)
     {
         $dosen = Auth::guard('dosen')->user();
+        $documentExtensions = implode(',', config('lms.uploads.document_extensions'));
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
 
         // 1. Otorisasi: Dosen hanya boleh mengubah tugas miliknya sendiri
         abort_unless((int) $tugas->dosen_id === (int) $dosen->dosen_id, 403);
@@ -808,7 +818,7 @@ class LmsDosenController extends Controller
             'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
-            'lampiran' => 'nullable|file|max:51200',
+            'lampiran' => 'nullable|file|mimes:'.$documentExtensions.'|extensions:'.$documentExtensions.'|max:'.$maxKilobytes,
         ]);
 
         if ($request->tipe !== $tugas->tipe && $tugas->pengumpulan()->exists()) {
@@ -817,29 +827,33 @@ class LmsDosenController extends Controller
             ]);
         }
 
-        // 3. Penanganan File Lampiran Baru (jika ada)
-        if ($request->hasFile('lampiran')) {
-            // Hapus lampiran lama di storage jika ada
-            if ($tugas->lampiran && Storage::disk('public')->exists($tugas->lampiran)) {
-                Storage::disk('public')->delete($tugas->lampiran);
-            }
+        $oldLampiran = $tugas->lampiran;
+        $newLampiran = null;
 
-            // Simpan lampiran baru
-            $nama = time().'_'.$request->file('lampiran')->getClientOriginalName();
-            $tugas->lampiran = $request->file('lampiran')->storeAs('lms/tugas', $nama, 'public');
+        if ($request->hasFile('lampiran')) {
+            $newLampiran = $this->storeTaskAttachment($request->file('lampiran'));
+            $tugas->lampiran = $newLampiran;
         }
 
-        // 4. Update data tugas
-        $tugas->update([
-            'judul' => $request->judul,
-            'deskripsi' => $request->deskripsi,
-            'tipe' => $request->tipe,
-            'deadline' => $request->deadline,
-            'nilai_maksimal' => $request->nilai_maksimal,
-            'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
-            'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
-            'lampiran' => $tugas->lampiran,
-        ]);
+        try {
+            $tugas->update([
+                'judul' => $request->judul,
+                'deskripsi' => $request->deskripsi,
+                'tipe' => $request->tipe,
+                'deadline' => $request->deadline,
+                'nilai_maksimal' => $request->nilai_maksimal,
+                'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
+                'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
+                'lampiran' => $tugas->lampiran,
+            ]);
+        } catch (Throwable $exception) {
+            StoredUpload::delete($newLampiran);
+            throw $exception;
+        }
+
+        if ($newLampiran && $oldLampiran !== $newLampiran) {
+            StoredUpload::delete($oldLampiran);
+        }
 
         return back()->with('success', 'Tugas berhasil diperbarui.');
     }

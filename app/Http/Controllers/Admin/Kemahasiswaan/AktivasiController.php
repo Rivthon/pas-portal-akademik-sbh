@@ -86,21 +86,25 @@ class AktivasiController extends Controller
 
     public function updateStatus(Request $request)
     {
-        try {
-            \Log::info('Request Data:', $request->all());
+        $validated = $request->validate([
+            'mahasiswa_id' => 'required|integer|exists:mahasiswa,mahasiswa_id',
+            'type' => 'required|string|in:krs,uts,uas,nilai_uts,nilai_uas,nilai_khs,akhir',
+            'status' => 'required|boolean',
+        ]);
 
-            $mahasiswa = Mahasiswa::findOrFail($request->mahasiswa_id);
-            $field = 'status_'.$request->type;
+        try {
+            $mahasiswa = Mahasiswa::findOrFail($validated['mahasiswa_id']);
+            $field = 'status_'.$validated['type'];
 
             if (in_array($field, ['status_krs', 'status_uts', 'status_uas', 'status_nilai_uts', 'status_nilai_uas', 'status_nilai_khs', 'status_akhir'])) {
-                $mahasiswa->$field = $request->status;
+                $mahasiswa->$field = $validated['status'];
                 $mahasiswa->save();
 
-                activity_log('update_aktivasi', 'Admin mengubah '.$request->type.' mahasiswa: '.$mahasiswa->nama.' menjadi '.$request->status);
+                activity_log('update_aktivasi', 'Admin mengubah '.$validated['type'].' mahasiswa: '.$mahasiswa->nama.' menjadi '.(int) $validated['status']);
 
                 return response()->json([
                     'success' => true,
-                    'message' => ucfirst($request->type).' berhasil diperbarui.',
+                    'message' => ucfirst($validated['type']).' berhasil diperbarui.',
                 ]);
             }
 

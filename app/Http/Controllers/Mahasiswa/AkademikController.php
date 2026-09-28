@@ -9,6 +9,8 @@ use App\Models\KrsGuidanceMessage;
 use App\Models\Kurikulum;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Services\EdomCompletionService;
+use App\Support\StoredUpload;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -475,17 +477,11 @@ class AkademikController extends Controller
         $taId = $ta->ta_id;
         $headerKrs = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->header_kapro) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->header_kapro);
-            if (file_exists($logoPath)) {
-                $headerKrs = base64_encode(file_get_contents($logoPath));
-            }
+            $headerKrs = StoredUpload::base64($mahasiswa->programStudi->header_kapro);
         }
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
+            $ttd = StoredUpload::base64($mahasiswa->programStudi->ttd);
         }
         $logo = null;
         if ($settings && $settings->logo) {
@@ -533,17 +529,11 @@ class AkademikController extends Controller
 
         $headerKrs = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->header_dospem) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->header_dospem);
-            if (file_exists($logoPath)) {
-                $headerKrs = base64_encode(file_get_contents($logoPath));
-            }
+            $headerKrs = StoredUpload::base64($mahasiswa->programStudi->header_dospem);
         }
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
+            $ttd = StoredUpload::base64($mahasiswa->programStudi->ttd);
         }
         $logo = null;
         if ($settings && $settings->logo) {
@@ -590,17 +580,11 @@ class AkademikController extends Controller
 
         $headerKrs = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->header_baak) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->header_baak);
-            if (file_exists($logoPath)) {
-                $headerKrs = base64_encode(file_get_contents($logoPath));
-            }
+            $headerKrs = StoredUpload::base64($mahasiswa->programStudi->header_baak);
         }
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->ttd);
-            if (file_exists($logoPath)) {
-                $ttd = base64_encode(file_get_contents($logoPath));
-            }
+            $ttd = StoredUpload::base64($mahasiswa->programStudi->ttd);
         }
         $logo = null;
         if ($settings && $settings->logo) {
@@ -649,10 +633,7 @@ class AkademikController extends Controller
 
         $headerKrs = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->header_mhs) {
-            $logoPath = storage_path('app/public/'.$mahasiswa->programStudi->header_mhs);
-            if (file_exists($logoPath)) {
-                $headerKrs = base64_encode(file_get_contents($logoPath));
-            }
+            $headerKrs = StoredUpload::base64($mahasiswa->programStudi->header_mhs);
         }
         $logo = null;
         if ($settings && $settings->logo) {
@@ -685,7 +666,7 @@ class AkademikController extends Controller
         }
     }
 
-    public function tampilanKartuHasil(Request $request)
+    public function tampilanKartuHasil(Request $request, EdomCompletionService $edomCompletion)
     {
         $mahasiswa = $this->getMahasiswa();
 
@@ -699,6 +680,11 @@ class AkademikController extends Controller
             (int) $mahasiswa->status_akhir === 1,
             403,
             'KHS semester aktif belum diaktifkan oleh bagian administrasi.'
+        );
+        abort_unless(
+            $edomCompletion->isComplete($mahasiswa, (int) $activeTa->ta_id),
+            403,
+            'Silakan selesaikan seluruh EDOM tahun akademik aktif sebelum melihat KHS.'
         );
 
         try {
@@ -739,7 +725,7 @@ class AkademikController extends Controller
         }
     }
 
-    public function riwayatKartuHasil(Request $request)
+    public function riwayatKartuHasil(Request $request, EdomCompletionService $edomCompletion)
     {
         $mahasiswa = $this->getMahasiswa();
         abort_unless($mahasiswa, 403, 'Mahasiswa tidak ditemukan.');
@@ -777,38 +763,8 @@ class AkademikController extends Controller
             $ta = $tahunAjaranOptions->firstWhere('ta_id', $selectedTaId);
             $khs = $historicalKhs->where('ta_id', $selectedTaId)->values();
 
-            // Validasi EDOM berdasarkan TA yang dipilih, mengikuti daftar dosen
-            // yang benar-benar tampil pada halaman EDOM (kelas teori/praktik).
-            $kelasMahasiswa = strtolower(trim((string) $mahasiswa->kelas));
-            $searchKelas = $kelasMahasiswa === 'karyawan' ? 'karyawan' : 'reguler';
-            $krsEdom = Krs::with('kurikulum.dosenToMatakuliah')
-                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->where('ta_id', $selectedTaId)
-                ->get();
-            $edomKeys = $krsEdom->flatMap(function ($krs) use ($searchKelas) {
-                return $krs->kurikulum?->dosenToMatakuliah
-                    ->filter(function ($dtm) use ($searchKelas) {
-                        $jenisKelas = strtolower((string) ($dtm->jenis_kelas ?? ''));
-                        $jenisDosen = strtolower((string) ($dtm->jenis_dosen ?? ''));
-                        if ($jenisDosen === 'teori') {
-                            return $jenisKelas === $searchKelas;
-                        }
-                        if ($jenisDosen === 'praktik') {
-                            return $jenisKelas === $searchKelas || $jenisKelas === '';
-                        }
-                        return $jenisKelas === $searchKelas;
-                    })
-                    ->map(fn ($dtm) => $dtm->dosen_id.'-'.$krs->kurikulum_id) ?? collect();
-            })->unique()->values();
-            $kurikulumIds = $krsEdom->pluck('kurikulum_id')->unique();
-            $totalEdomWajib = $edomKeys->count();
-            $totalEdomTerisi = DB::table('penilaian')
-                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-                ->whereIn('kurikulum_id', $kurikulumIds)
-                ->selectRaw("COUNT(DISTINCT CONCAT(dosen_id, '-', kurikulum_id)) AS total")
-                ->value('total');
-
-            $edomLocked = $totalEdomWajib > 0 && (int) $totalEdomTerisi < $totalEdomWajib;
+            $edomStatus = $edomCompletion->status($mahasiswa, $selectedTaId);
+            $edomLocked = ! $edomStatus['complete'];
             $edomMessage = $edomLocked
                 ? 'Riwayat KHS TA '.$ta?->nama.' belum dapat dibuka karena EDOM pada Tahun Akademik tersebut belum selesai.'
                 : null;
@@ -903,7 +859,7 @@ class AkademikController extends Controller
         };
     }
 
-    public function cetakKhs(Request $request)
+    public function cetakKhs(Request $request, EdomCompletionService $edomCompletion)
     {
         $settings = $this->getSettings();
         $mahasiswa = $this->getMahasiswa();
@@ -922,9 +878,9 @@ class AkademikController extends Controller
             'Akses KHS semester aktif masih dikunci oleh sistem administrasi.'
         );
         abort_if(
-            ! $isHistorical && (int) $mahasiswa->status_edom !== 1,
+            ! $edomCompletion->isComplete($mahasiswa, (int) $selectedTaId),
             403,
-            'Silakan selesaikan EDOM sebelum mencetak KHS semester berjalan.'
+            'Silakan selesaikan EDOM pada tahun akademik yang dipilih sebelum mencetak KHS.'
         );
         $ta = TahunAkademik::findOrFail($selectedTaId);
 

@@ -75,7 +75,7 @@
                     @if($permintaan->file_lampiran)
                     <tr>
                         <td>Lampiran</td>
-                        <td><a href="{{ asset('storage/' . $permintaan->file_lampiran) }}" target="_blank"
+                        <td><a href="{{ route('admin.helpdesk.attachment', $permintaan) }}" target="_blank" rel="noopener"
                                 class="btn btn-sm btn-outline-primary">Lihat File</a></td>
                     </tr>
                     @endif

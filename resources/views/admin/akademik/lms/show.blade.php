@@ -15,7 +15,7 @@
 <div class="row g-4 mb-4">
     <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white"><h5 class="fw-bold mb-0"><i class="bx bx-file text-info me-2"></i>Materi</h5></div><div class="card-body">
         @forelse($materiList as $materi)<div class="border rounded p-3 mb-2"><div class="fw-semibold">{{ $materi->judul }}</div><small class="text-muted d-block mb-2">Pertemuan {{ $nomorPertemuan->get($materi->pertemuan_id,'-') }} &bull; {{ strtoupper($materi->tipe ?: 'FILE') }}</small>
-            @if($materi->youtube_url)<a target="_blank" href="{{ str_starts_with($materi->youtube_url,'http')?$materi->youtube_url:'https://'.$materi->youtube_url }}" class="btn btn-sm btn-label-danger"><i class="bx bxl-youtube"></i> Buka</a>@elseif($materi->file)<a target="_blank" href="{{ asset('storage/'.$materi->file) }}" class="btn btn-sm btn-label-primary"><i class="bx bx-show"></i> Lihat</a>@endif
+            @if($materi->youtube_url)<a target="_blank" rel="noopener noreferrer" href="{{ str_starts_with($materi->youtube_url,'http')?$materi->youtube_url:'https://'.$materi->youtube_url }}" class="btn btn-sm btn-label-danger"><i class="bx bxl-youtube"></i> Buka</a>@elseif($materi->file)<a target="_blank" rel="noopener noreferrer" href="{{ route('admin.lms.materi.show', $materi) }}" class="btn btn-sm btn-label-primary"><i class="bx bx-show"></i> Lihat</a>@endif
         </div>@empty<p class="text-center text-muted py-4">Belum ada materi.</p>@endforelse
     </div></div></div>
     <div class="col-xl-4"><div class="card border-0 shadow-sm h-100"><div class="card-header bg-white"><h5 class="fw-bold mb-0"><i class="bx bx-task text-warning me-2"></i>Tugas</h5></div><div class="card-body">

@@ -24,6 +24,7 @@ composer install --no-dev --optimize-autoloader --no-interaction
 
 php artisan optimize:clear
 php artisan migrate --force
+php artisan edom:sync-active-status
 
 if [ ! -e public/storage ]; then
     php artisan storage:link

@@ -16,6 +16,7 @@ class LmsMateriUploadTest extends TestCase
 
     public function test_assigned_dosen_can_upload_pdf_material(): void
     {
+        Storage::fake('private');
         Storage::fake('public');
 
         $jadwal = Jadwal::query()
@@ -54,11 +55,13 @@ class LmsMateriUploadTest extends TestCase
 
         $this->assertSame('pdf', $materi->tipe);
         $this->assertStringNotContainsString(':', $materi->file);
-        Storage::disk('public')->assertExists($materi->file);
+        Storage::disk('private')->assertExists($materi->file);
+        Storage::disk('public')->assertMissing($materi->file);
     }
 
     public function test_assigned_dosen_can_upload_excel_material(): void
     {
+        Storage::fake('private');
         Storage::fake('public');
 
         $jadwal = Jadwal::query()
@@ -97,7 +100,8 @@ class LmsMateriUploadTest extends TestCase
 
         $this->assertSame('excel', $materi->tipe);
         $this->assertStringEndsWith('.xlsx', $materi->file);
-        Storage::disk('public')->assertExists($materi->file);
+        Storage::disk('private')->assertExists($materi->file);
+        Storage::disk('public')->assertMissing($materi->file);
     }
 
     public function test_material_requires_a_file_or_valid_link(): void
@@ -124,5 +128,31 @@ class LmsMateriUploadTest extends TestCase
             ])
             ->assertRedirect(route('dosen.lms.kelola', $jadwal->id))
             ->assertSessionHasErrors(['file', 'youtube_url']);
+    }
+
+    public function test_executable_disguised_as_material_is_rejected(): void
+    {
+        $jadwal = Jadwal::query()
+            ->whereHas('pertemuan')
+            ->whereHas('kurikulum.dosenToMatakuliah', function ($query) {
+                $query->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+                    ->whereRaw('LOWER(dosen_mata_kuliah.jenis_kelas) = LOWER(jadwal.jenis_kelas)');
+            })
+            ->firstOrFail();
+        $assignment = $jadwal->kurikulum->dosenToMatakuliah()
+            ->whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
+            ->whereRaw('LOWER(jenis_kelas) = ?', [strtolower($jadwal->jenis_kelas)])
+            ->firstOrFail();
+        $dosen = Dosen::findOrFail($assignment->dosen_id);
+
+        $this->actingAs($dosen, 'dosen')
+            ->from(route('dosen.lms.kelola', $jadwal))
+            ->post(route('dosen.lms.materi.store'), [
+                'pertemuan_id' => $jadwal->pertemuan()->value('pertemuan_id'),
+                'jadwal_id' => $jadwal->id,
+                'judul' => 'Berkas berbahaya',
+                'file' => UploadedFile::fake()->createWithContent('materi.php', '<?php echo "unsafe";'),
+            ])
+            ->assertSessionHasErrors('file');
     }
 }

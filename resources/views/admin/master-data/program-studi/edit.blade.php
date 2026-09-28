@@ -103,7 +103,7 @@
                                 class="form-control @error('ttd') is-invalid @enderror">
                             @if ($programStudi->ttd)
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $programStudi->ttd) }}" alt="TTD" width="100">
+                                <img src="{{ route('admin.program-studi.asset', [$programStudi, 'ttd']) }}" alt="TTD" width="100">
                             </div>
                             @endif
                             @error('ttd')
@@ -118,7 +118,7 @@
                                 class="form-control @error('header_baak') is-invalid @enderror">
                             @if ($programStudi->header_baak)
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $programStudi->header_baak) }}" alt="Header BAAK"
+                                <img src="{{ route('admin.program-studi.asset', [$programStudi, 'header_baak']) }}" alt="Header BAAK"
                                     width="100">
                             </div>
                             @endif
@@ -134,7 +134,7 @@
                                 class="form-control @error('header_kapro') is-invalid @enderror">
                             @if ($programStudi->header_kapro)
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $programStudi->header_kapro) }}" alt="Header KAPRODI"
+                                <img src="{{ route('admin.program-studi.asset', [$programStudi, 'header_kapro']) }}" alt="Header KAPRODI"
                                     width="100">
                             </div>
                             @endif
@@ -150,7 +150,7 @@
                                 class="form-control @error('header_dospem') is-invalid @enderror">
                             @if ($programStudi->header_dospem)
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $programStudi->header_dospem) }}" alt="Header DOSPEM"
+                                <img src="{{ route('admin.program-studi.asset', [$programStudi, 'header_dospem']) }}" alt="Header DOSPEM"
                                     width="100">
                             </div>
                             @endif
@@ -164,7 +164,7 @@
                                 class="form-control @error('header_mhs') is-invalid @enderror">
                             @if ($programStudi->header_mhs)
                             <div class="mt-2">
-                                <img src="{{ asset('storage/' . $programStudi->header_mhs) }}" alt="Header Mahasiswa"
+                                <img src="{{ route('admin.program-studi.asset', [$programStudi, 'header_mhs']) }}" alt="Header Mahasiswa"
                                     width="100">
                             </div>
                             @endif

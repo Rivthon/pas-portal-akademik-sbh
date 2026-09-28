@@ -15,11 +15,12 @@ use App\Models\ProgramStudi;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 // --- Third-Party Libraries ---
+use Illuminate\Support\Facades\Crypt;
 use PDF;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -336,10 +337,7 @@ class PerkuliahanController extends Controller
 
         $ttd = null;
         if ($mahasiswa && $mahasiswa->programStudi && $mahasiswa->programStudi->ttd) {
-            $ttdPath = public_path('storage/'.$mahasiswa->programStudi->ttd);
-            if (file_exists($ttdPath)) {
-                $ttd = base64_encode(file_get_contents($ttdPath));
-            }
+            $ttd = StoredUpload::base64($mahasiswa->programStudi->ttd);
         }
 
         return [$logoBase64, $ttd];

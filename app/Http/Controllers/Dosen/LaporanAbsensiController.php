@@ -9,6 +9,7 @@ use App\Models\JadwalPraktik;
 use App\Models\KaprodiAbsensiVerification;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -211,8 +212,8 @@ class LaporanAbsensiController extends Controller
             return null;
         }
 
-        $path = storage_path('app/public/'.$relativePath);
-        if (! is_file($path)) {
+        $path = StoredUpload::absolutePath($relativePath);
+        if (! $path) {
             return null;
         }
 

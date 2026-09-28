@@ -17,6 +17,7 @@ class ProgramStudiKaprodiSelectionTest extends TestCase
     {
         $admin = $this->authorizedAdmin();
         $programStudi = ProgramStudi::query()->whereNotNull('kaprod')->firstOrFail();
+        $programStudi->update(['kaprodi_dosen_id' => null]);
         $legacyName = $programStudi->kaprod;
 
         $this->actingAs($admin)

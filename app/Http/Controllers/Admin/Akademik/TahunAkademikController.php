@@ -78,14 +78,14 @@ class TahunAkademikController extends Controller
     public function update(Request $request, TahunAkademik $tahunAjaran): RedirectResponse
     {
         // Validasi input
-        $request->validate([
-            'nama' => 'required',
-            'semester' => 'required',
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
+            'semester' => 'required|string|max:255',
 
         ]);
 
         // Update data
-        $tahunAjaran->update($request->all());
+        $tahunAjaran->update($validated);
 
         activity_log('update_tahun_ajaran', 'Admin memperbarui tahun ajaran: '.$tahunAjaran->nama);
 

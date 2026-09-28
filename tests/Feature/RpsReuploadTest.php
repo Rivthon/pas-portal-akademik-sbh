@@ -17,6 +17,7 @@ class RpsReuploadTest extends TestCase
 
     public function test_dosen_reupload_replaces_the_file_and_updates_the_form_information(): void
     {
+        Storage::fake('private');
         Storage::fake('public');
 
         $activeTA = TahunAkademik::where('status_ta', 1)->firstOrFail();
@@ -43,7 +44,7 @@ class RpsReuploadTest extends TestCase
             ->where('jenis_kelas', $jenisKelas)
             ->firstOrFail();
         $oldPath = $rps->file;
-        Storage::disk('public')->assertExists($oldPath);
+        Storage::disk('private')->assertExists($oldPath);
 
         $this->actingAs($dosen, 'dosen')
             ->post(route('dosen.rps.store'), [
@@ -58,8 +59,8 @@ class RpsReuploadTest extends TestCase
 
         $this->assertNotSame($oldPath, $rps->file);
         $this->assertSame('rps-pengganti.pdf', $rps->nama_file);
-        Storage::disk('public')->assertMissing($oldPath);
-        Storage::disk('public')->assertExists($rps->file);
+        Storage::disk('private')->assertMissing($oldPath);
+        Storage::disk('private')->assertExists($rps->file);
         $this->assertSame(1, Rps::where('kurikulum_id', $assignment->kurikulum_id)
             ->where('jenis_kelas', $jenisKelas)
             ->count());

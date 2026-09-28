@@ -8,6 +8,7 @@ use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use App\Support\ZipArchiveWriter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
@@ -229,8 +230,8 @@ class KrsArchiveController extends Controller
         }
 
         $settings = $this->settings();
-        $headerKrs = $this->base64PublicFile($mahasiswa->programStudi?->header_baak);
-        $logo = $this->base64PublicFile($settings?->logo);
+        $headerKrs = $this->base64StoredFile($mahasiswa->programStudi?->header_baak);
+        $logo = $this->base64StoredFile($settings?->logo);
         $sudahDisetujui = $krs->every(fn (Krs $item) => $item->disetujui_pada !== null);
 
         return Pdf::loadView('admin.akademik.krs-archive.pdf', compact(
@@ -248,7 +249,7 @@ class KrsArchiveController extends Controller
             ->output();
     }
 
-    private function base64PublicFile(?string $relativePath): ?string
+    private function base64StoredFile(?string $relativePath): ?string
     {
         if (! filled($relativePath)) {
             return null;
@@ -258,11 +259,7 @@ class KrsArchiveController extends Controller
             return $this->base64FileCache[$relativePath];
         }
 
-        $path = storage_path('app/public/'.$relativePath);
-
-        return $this->base64FileCache[$relativePath] = is_file($path)
-            ? base64_encode((string) file_get_contents($path))
-            : null;
+        return $this->base64FileCache[$relativePath] = StoredUpload::base64($relativePath);
     }
 
     private function settings(): ?Setting

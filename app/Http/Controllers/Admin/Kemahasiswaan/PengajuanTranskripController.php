@@ -7,6 +7,7 @@ use App\Models\Krs;
 use App\Models\PengajuanTranskrip;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PDF;
@@ -17,7 +18,7 @@ class PengajuanTranskripController extends Controller
     public function __construct()
     {
         $this->middleware('permission:pengajuan-transkrip-list', ['only' => ['indexTransrkip']]);
-        $this->middleware('permission:pengajuan-transkrip-edit', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:pengajuan-transkrip-edit', ['only' => ['edit', 'update', 'evidence']]);
         $this->middleware('permission:pengajuan-transkrip-status', ['only' => ['updateStatus']]);
         $this->middleware('permission:pengajuan-transkrip-delete', ['only' => ['destroy']]);
     }
@@ -75,7 +76,7 @@ class PengajuanTranskripController extends Controller
         $request->validate([
             'jenis' => 'required|in:sementara,akhir',
             'keperluan' => 'nullable|string|max:255',
-            'bukti' => 'nullable|image|mimes:jpg,png,jpeg|max:2048',
+            'bukti' => 'nullable|image|mimes:jpg,png,jpeg|extensions:jpg,jpeg,png|max:2048',
         ]);
 
         $data = [
@@ -86,7 +87,7 @@ class PengajuanTranskripController extends Controller
         ];
 
         if ($request->hasFile('bukti')) {
-            $data['bukti'] = $request->file('bukti')->store('bukti_pengajuan', 'public');
+            $data['bukti'] = $request->file('bukti')->store('bukti_pengajuan', 'private');
         }
 
         PengajuanTranskrip::create($data);
@@ -106,6 +107,17 @@ class PengajuanTranskripController extends Controller
     public function edit(PengajuanTranskrip $pengajuan)
     {
         return view('admin.kemahasiswaan.pengajuan-transkrip.edit', compact('pengajuan'));
+    }
+
+    public function evidence(PengajuanTranskrip $pengajuan)
+    {
+        abort_unless(StoredUpload::exists($pengajuan->bukti), 404);
+
+        return StoredUpload::disk($pengajuan->bukti)->response(
+            $pengajuan->bukti,
+            basename($pengajuan->bukti),
+            ['Cache-Control' => 'private, no-store']
+        );
     }
 
     // Memproses perubahan status pengajuan
@@ -152,6 +164,7 @@ class PengajuanTranskripController extends Controller
     public function destroy(PengajuanTranskrip $pengajuan)
     {
         try {
+            StoredUpload::delete($pengajuan->bukti);
             activity_log('hapus_pengajuan_transkrip', 'Admin menghapus pengajuan transkrip ID: '.$pengajuan->id);
             $pengajuan->delete();
             Alert::success('Pengajuan Dihapus', 'Pengajuan berhasil dihapus.');

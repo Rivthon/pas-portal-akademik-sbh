@@ -11,8 +11,8 @@ use App\Models\LmsTugas;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
 use App\Services\LmsCalendarService;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class LmsController extends Controller
 {
@@ -109,12 +109,12 @@ class LmsController extends Controller
     public function showMateri(LmsMateri $materi)
     {
         abort_unless(
-            $materi->file && Storage::disk('public')->exists($materi->file),
+            StoredUpload::exists($materi->file),
             404,
             'File materi tidak ditemukan.'
         );
 
-        return response()->file(Storage::disk('public')->path($materi->file));
+        return StoredUpload::disk($materi->file)->response($materi->file);
     }
 
     public function showMateriFile(string $filename)

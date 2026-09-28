@@ -24,125 +24,91 @@ class BeritaController extends Controller
 
     public function getBeritaKampus()
     {
-        $berita = Cache::remember('berita_wordpress', 3600, function () {
-            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts', [
-                'per_page' => 30,
-                'orderby' => 'date',
-                'order' => 'desc',
-            ]);
-
-            if ($response->failed()) {
-                Log::error('Gagal mengambil data berita dari API WordPress');
-
-                return [];
-            }
-
-            return collect($response->json())->map(fn ($post) => $this->formatBerita($post));
-        });
-
-        return response()->json($berita);
+        return response()->json($this->articles());
     }
 
     public function getDetailBeritaDosen($id)
     {
-        // Ambil berita utama berdasarkan ID
-        $berita = Cache::remember("berita_wordpress_{$id}", 3600, function () use ($id) {
-            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts/{$id}");
-
-            if ($response->failed()) {
-                abort(404, 'Berita tidak ditemukan');
-            }
-
-            return $this->formatBerita($response->json(), true);
-        });
-
-        // Ambil 10 berita terbaru atau populer
-        $beritaTerkait = Cache::remember('berita_terkait', 3600, function () {
-            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed');
-
-            if ($response->failed()) {
-                return [];
-            }
-
-            return collect($response->json())->map(function ($post) {
-                return [
-                    'id' => $post['id'],
-                    'title' => $post['title']['rendered'],
-                    'link' => $post['link'],
-                    'image' => isset($post['_embedded']['wp:featuredmedia'][0]['source_url']) ?
-                        $post['_embedded']['wp:featuredmedia'][0]['source_url'] :
-                        asset('dashboard_assets/assets/img/img-not-found.jpg'),
-                ];
-            });
-        });
+        [$berita, $beritaTerkait] = $this->articleDetail($id);
 
         return view('dosen.berita.detail', compact('berita', 'beritaTerkait'));
     }
 
     public function getDetailBerita($id)
     {
-        // Ambil berita utama berdasarkan ID
-        $berita = Cache::remember("berita_wordpress_{$id}", 3600, function () use ($id) {
-            $response = Http::get("https://api.sbh.ac.id/wp-json/wp/v2/posts/{$id}");
-
-            if ($response->failed()) {
-                abort(404, 'Berita tidak ditemukan');
-            }
-
-            return $this->formatBerita($response->json(), true);
-        });
-
-        // Ambil 10 berita terbaru atau populer
-        $beritaTerkait = Cache::remember('berita_terkait', 3600, function () {
-            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts?per_page=10&_embed');
-
-            if ($response->failed()) {
-                return [];
-            }
-
-            return collect($response->json())->map(function ($post) {
-                return [
-                    'id' => $post['id'],
-                    'title' => $post['title']['rendered'],
-                    'link' => $post['link'],
-                    'image' => isset($post['_embedded']['wp:featuredmedia'][0]['source_url']) ?
-                        $post['_embedded']['wp:featuredmedia'][0]['source_url'] :
-                        asset('assets/img/no-image.jpg'),
-                ];
-            });
-        });
+        [$berita, $beritaTerkait] = $this->articleDetail($id);
 
         return view('mahasiswa.berita.detail', compact('berita', 'beritaTerkait'));
     }
 
-    private function formatBerita($post, $includeContent = false)
+    private function articles()
     {
+        $cacheKey = 'berita_sbh_articles_v1';
+        $fallbackKey = $cacheKey.'_last_success';
+
+        return Cache::remember($cacheKey, now()->addHour(), function () use ($fallbackKey) {
+            try {
+                $response = Http::acceptJson()
+                    ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+                    ->connectTimeout(3)
+                    ->timeout(8)
+                    ->retry(2, 200, throw: false)
+                    ->get('https://sbh.ac.id/api/articles');
+
+                if ($response->failed() || ! is_array($response->json('data'))) {
+                    Log::warning('API artikel SBH gagal merespons.', ['status' => $response->status()]);
+
+                    return Cache::get($fallbackKey, collect());
+                }
+
+                $articles = collect($response->json('data'))
+                    ->map(fn (array $article) => $this->formatArticle($article, true))
+                    ->values();
+
+                Cache::forever($fallbackKey, $articles);
+
+                return $articles;
+            } catch (\Throwable $exception) {
+                Log::warning('API artikel SBH tidak dapat dihubungi.', [
+                    'exception' => $exception::class,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                return Cache::get($fallbackKey, collect());
+            }
+        });
+    }
+
+    private function articleDetail($id): array
+    {
+        $articles = collect($this->articles());
+        $berita = $articles->firstWhere('id', (int) $id);
+        abort_unless($berita, 404, 'Berita tidak ditemukan atau belum tersedia pada feed terbaru.');
 
         return [
-            'id' => $post['id'],
-            'title' => html_entity_decode($post['title']['rendered']),
-            'date' => Carbon::parse($post['date'])->translatedFormat('d F Y'),
-            'link' => $post['link'],
-
-            'image' => $this->getFeaturedImage($post),
-            'content' => $includeContent ? $this->sanitizeContent(
-                $this->cleanElementorSliderFromContent(html_entity_decode($post['content']['rendered'] ?? ''))
-            ) : null,
+            $berita,
+            $articles->where('id', '!=', (int) $id)->take(5)->values(),
         ];
     }
 
-    private function cleanElementorSliderFromContent($content)
+    private function formatArticle(array $article, bool $includeContent = false): array
     {
-        libxml_use_internal_errors(true); // Supaya tidak error kalau HTML kurang rapi
-        $dom = new DOMDocument;
-        $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'));
+        $slug = trim((string) ($article['slug'] ?? ''));
+        $thumbnail = ltrim((string) ($article['thumbnail'] ?? ''), '/');
 
-        $xpath = new DOMXPath($dom);
-        foreach ($xpath->query("//div[contains(@class, 'elementor-widget-slider')]") as $node) {
-            $node->parentNode->removeChild($node);
-        }
-
-        return $dom->saveHTML();
+        return [
+            'id' => (int) ($article['id'] ?? 0),
+            'title' => html_entity_decode((string) ($article['title'] ?? 'Tanpa Judul')),
+            'date' => Carbon::parse($article['published_at'] ?? $article['created_at'] ?? now())
+                ->translatedFormat('d F Y'),
+            'link' => $slug !== '' ? 'https://sbh.ac.id/artikel/'.$slug : 'https://sbh.ac.id/artikel',
+            'image' => $thumbnail !== ''
+                ? 'https://sbh.ac.id/storage/'.$thumbnail
+                : asset('assets/img/no-image.jpg'),
+            'content' => $includeContent
+                ? $this->sanitizeContent((string) ($article['content'] ?? ''))
+                : null,
+        ];
     }
 
     private function sanitizeContent(string $content): string
@@ -179,41 +145,8 @@ class BeritaController extends Controller
         return $dom->saveHTML();
     }
 
-    private function getFeaturedImage($post)
-    {
-        if (! isset($post['_links']['wp:featuredmedia'][0]['href'])) {
-            return asset('assets/img/no-image.jpg');
-        }
-
-        try {
-            $mediaResponse = Http::get($post['_links']['wp:featuredmedia'][0]['href']);
-
-            return $mediaResponse->successful() ? ($mediaResponse->json()['source_url'] ?? asset('assets/img/no-image.jpg')) : asset('assets/img/no-image.jpg');
-        } catch (\Exception $e) {
-            Log::error('Gagal mengambil gambar berita: '.$e->getMessage());
-
-            return asset('assets/img/no-image.jpg');
-        }
-    }
-
     public function getBerita()
     {
-        $berita = Cache::remember('berita_wordpress', 3600, function () {
-            $response = Http::get('https://api.sbh.ac.id/wp-json/wp/v2/posts', [
-                'per_page' => 30,
-                'orderby' => 'date',
-                'order' => 'desc',
-            ]);
-
-            if ($response->failed()) {
-                Log::error('Gagal mengambil data berita dari API WordPress');
-
-                return [];
-            }
-
-            return collect($response->json())->map(fn ($post) => $this->formatBerita($post));
-        });
-
-        return response()->json($berita);
+        return response()->json($this->articles());
     }
 }

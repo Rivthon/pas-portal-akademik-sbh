@@ -62,12 +62,12 @@ class RuanganController extends Controller
     public function update(Request $request, Ruangan $ruangan): RedirectResponse
     {
         // Validasi input
-        $request->validate([
-            'nama' => 'required',
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
         ]);
 
         // Update data
-        $ruangan->update($request->all());
+        $ruangan->update($validated);
 
         activity_log('update_ruangan', 'Admin memperbarui ruangan: '.$ruangan->nama);
 

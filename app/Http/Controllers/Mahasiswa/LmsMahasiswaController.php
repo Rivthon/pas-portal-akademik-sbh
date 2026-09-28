@@ -301,11 +301,11 @@ class LmsMahasiswaController extends Controller
         // Cek lokasi file di storage
         $filePath = $materi->file ?? $materi->file_path ?? $materi->path;
 
-        if (! $filePath || ! Storage::disk('public')->exists($filePath)) {
+        if (! StoredUpload::exists($filePath)) {
             return back()->with('error', 'File materi tidak ditemukan di server.');
         }
 
-        return Storage::disk('public')->download(
+        return StoredUpload::disk($filePath)->download(
             $filePath,
             $materi->judul_materi ?? $materi->nama_materi ?? basename($filePath)
         );
@@ -379,11 +379,11 @@ class LmsMahasiswaController extends Controller
             'Anda tidak terdaftar pada mata kuliah ini.'
         );
 
-        if (! $tugas->lampiran || ! Storage::disk('public')->exists($tugas->lampiran)) {
+        if (! StoredUpload::exists($tugas->lampiran)) {
             return back()->with('error', 'File lampiran tugas tidak ditemukan di server.');
         }
 
-        return Storage::disk('public')->response(
+        return StoredUpload::disk($tugas->lampiran)->response(
             $tugas->lampiran,
             basename($tugas->lampiran)
         );
@@ -813,6 +813,7 @@ class LmsMahasiswaController extends Controller
         $krs = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
+            ->whereNotNull('disetujui_pada')
             ->first();
 
         return $krs && KrsClassResolver::matches($krs, $jadwal, $mahasiswa);
@@ -832,10 +833,8 @@ class LmsMahasiswaController extends Controller
             return redirect()->away($url);
         }
 
-        if ($materi->file && Storage::disk('public')->exists($materi->file)) {
-            $fullPath = Storage::disk('public')->path($materi->file);
-
-            return response()->file($fullPath);
+        if (StoredUpload::exists($materi->file)) {
+            return StoredUpload::disk($materi->file)->response($materi->file);
         }
 
         return back()->with('error', 'File materi tidak ditemukan.');

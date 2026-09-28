@@ -14,7 +14,6 @@ use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 
 class DashboardController extends Controller
 {
@@ -75,32 +74,8 @@ class DashboardController extends Controller
         // Hitung IPK (Indeks Prestasi Kumulatif)
         $ipk = $totalSks ? $totalBobot / $totalSks : 0;
 
-        // **4. Cache Berita dari WordPress (Dihidden sementara untuk penggantian API)**
+        // Berita dimuat dari endpoint aplikasi yang memakai API resmi sbh.ac.id.
         $berita = collect([]);
-        /*
-        $berita = Cache::remember('berita_wp', 1800, function () {
-            $response = Http::get('https://sbh.ac.id/wp-json/wp/v2/posts', [
-                'per_page' => 10,
-                'orderby' => 'date',
-                'order' => 'desc'
-            ]);
-
-            return collect($response->json())->map(function ($post) {
-                $imageUrl = asset('assets/img/no-image.jpg');
-                if (isset($post['_links']['wp:featuredmedia'][0]['href'])) {
-                    $mediaResponse = Http::get($post['_links']['wp:featuredmedia'][0]['href']);
-                    $media = $mediaResponse->json();
-                    $imageUrl = $media['source_url'] ?? $imageUrl;
-                }
-                return [
-                    'title' => $post['title']['rendered'],
-                    'date' => Carbon::parse($post['date'])->translatedFormat('d F Y'),
-                    'link' => $post['link'],
-                    'image' => $imageUrl,
-                ];
-            });
-        });
-        */
 
         $lmsAnnouncements = $this->lmsAnnouncements($mahasiswa, $ta);
 

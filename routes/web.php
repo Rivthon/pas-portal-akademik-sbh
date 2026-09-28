@@ -388,6 +388,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('roles', RoleController::class);
         Route::resource('users', UserController::class);
         Route::resource('products', ProductController::class);
+        Route::get('/program-studi/{program_studi}/asset/{field}', [ProgramStudiController::class, 'asset'])
+            ->where('field', 'ttd|header_baak|header_kapro|header_dospem|header_mhs')
+            ->name('program-studi.asset');
         Route::resource('program-studi', ProgramStudiController::class);
         // Route khusus harus didefinisikan sebelum resource agar tidak dianggap sebagai parameter {mahasiswa}.
         Route::get('/mahasiswa/template-mhs', [MahasiswaController::class, 'downloadTemplateNew'])
@@ -630,6 +633,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/pengajuan-transkrip', [PengajuanTranskripController::class, 'indexTransrkip'])->name('transkrip.index');
         Route::get('/pengajuan/{pengajuan}/edit', [PengajuanTranskripController::class, 'edit'])->name('pengajuan.edit');
+        Route::get('/pengajuan/{pengajuan}/bukti', [PengajuanTranskripController::class, 'evidence'])->name('pengajuan.evidence');
         Route::put('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'update'])->name('pengajuan.update');
         Route::delete('/pengajuan/{pengajuan}', [PengajuanTranskripController::class, 'destroy'])->name('pengajuan.destroy');
         Route::patch('/pengajuan/{id}/update-status', [PengajuanTranskripController::class, 'updateStatus'])->name('pengajuan.updateStatus');
@@ -639,6 +643,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/helpdesk/permintaan', [PermintaanController::class, 'index'])->name('helpdesk.index');
         Route::get('/helpdesk/permintaan/{id}', [PermintaanController::class, 'show'])->name('helpdesk.show');
+        Route::get('/helpdesk/permintaan/{permintaan}/lampiran', [PermintaanController::class, 'attachment'])
+            ->name('helpdesk.attachment');
         Route::put('/helpdesk/permintaan/{id}/status', [PermintaanController::class, 'updateStatus'])->name('helpdesk.updateStatus');
 
         // Surat Keterangan Pendamping Ijazah Mahasiswa Validator

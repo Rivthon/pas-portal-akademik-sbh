@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Permintaan;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class PermintaanController extends Controller
@@ -61,12 +61,12 @@ class PermintaanController extends Controller
             'judul' => 'required|string|max:255',
             'deskripsi' => 'required|string',
             'prioritas' => 'required|in:rendah,sedang,tinggi,urgen',
-            'file_lampiran' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,zip|max:2048',
+            'file_lampiran' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,zip|extensions:pdf,jpg,jpeg,png,doc,docx,zip|max:2048',
         ]);
 
         if ($request->hasFile('file_lampiran')) {
             $validated['file_lampiran'] = $request->file('file_lampiran')
-                ->store('lampiran_permintaan', 'public');
+                ->store('lampiran_permintaan', 'private');
         }
 
         $validated['mahasiswa_id'] = $mahasiswa->mahasiswa_id;
@@ -124,7 +124,7 @@ class PermintaanController extends Controller
             ->findOrFail($id);
 
         if ($permintaan->file_lampiran) {
-            Storage::disk('public')->delete($permintaan->file_lampiran);
+            StoredUpload::delete($permintaan->file_lampiran);
         }
 
         $permintaan->delete();

@@ -427,26 +427,22 @@ class PenilaianController extends Controller
 
     public function resetEdom()
     {
-        DB::transaction(function () {
-            Mahasiswa::query()->update(['status_edom' => 0]);
-        });
+        Setting::query()->firstOrFail()->update(['edom_enabled' => false]);
 
-        activity_log('reset_edom', 'Admin me-reset status EDOM seluruh mahasiswa');
+        activity_log('reset_edom', 'Admin menonaktifkan akses EDOM tahun akademik aktif');
 
-        Alert::success('Success', 'EDOM telah di-reset.');
+        Alert::success('Berhasil', 'Akses EDOM tahun akademik aktif telah dinonaktifkan. Data pengisian tidak dihapus.');
 
         return redirect()->back();
     }
 
     public function setupEdom()
     {
-        DB::transaction(function () {
-            Mahasiswa::query()->update(['status_edom' => 1]);
-        });
+        Setting::query()->firstOrFail()->update(['edom_enabled' => true]);
 
-        activity_log('setup_edom', 'Admin mengaktifkan kembali status EDOM seluruh mahasiswa');
+        activity_log('setup_edom', 'Admin mengaktifkan akses EDOM tahun akademik aktif');
 
-        Alert::success('Success', 'EDOM telah dipulihkan kembali.');
+        Alert::success('Berhasil', 'Akses EDOM tahun akademik aktif telah diaktifkan. Status selesai tetap dihitung dari jawaban per tahun akademik.');
 
         return redirect()->back();
     }

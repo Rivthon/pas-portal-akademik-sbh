@@ -63,13 +63,13 @@ class EvaluasiController extends Controller
     public function update(Request $request, Evaluasi $evaluasi): RedirectResponse
     {
         // Validasi input
-        $request->validate([
-            'nama' => 'required',
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
             // 'kategori' => 'required|in:teori,praktik',
         ]);
 
         // Update data
-        $evaluasi->update($request->all());
+        $evaluasi->update($validated);
 
         activity_log('update_evaluasi', 'Admin memperbarui evaluasi: '.$evaluasi->nama);
 

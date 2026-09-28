@@ -11,6 +11,7 @@ use App\Models\Pertemuan;
 use App\Models\ProgramStudi;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -308,8 +309,8 @@ class AbsensiController extends Controller
             return null;
         }
 
-        $path = storage_path('app/public/'.$relativePath);
-        if (! is_file($path)) {
+        $path = StoredUpload::absolutePath($relativePath);
+        if (! $path) {
             return null;
         }
 

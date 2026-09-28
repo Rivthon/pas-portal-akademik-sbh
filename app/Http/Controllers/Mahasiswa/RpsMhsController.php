@@ -8,8 +8,8 @@ use App\Models\Kurikulum;
 use App\Models\Rps;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
+use App\Support\StoredUpload;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class RpsMhsController extends Controller
 {
@@ -43,6 +43,7 @@ class RpsMhsController extends Controller
 
         $krsRecords = Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('ta_id', $activeTA->ta_id)
+            ->whereNotNull('disetujui_pada')
             ->get()
             ->keyBy('kurikulum_id');
 
@@ -87,6 +88,7 @@ class RpsMhsController extends Controller
         $krs = $activeTA ? Krs::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('ta_id', $activeTA->ta_id)
             ->where('kurikulum_id', $rps->kurikulum_id)
+            ->whereNotNull('disetujui_pada')
             ->first() : null;
 
         $isEnrolled = $activeTA
@@ -94,9 +96,9 @@ class RpsMhsController extends Controller
             && KrsClassResolver::normalize($rps->jenis_kelas) === KrsClassResolver::forKrs($krs, $mahasiswa);
 
         abort_unless($isEnrolled, 403, 'Anda tidak terdaftar pada mata kuliah RPS ini.');
-        abort_unless($rps->file && Storage::disk('public')->exists($rps->file), 404, 'File RPS tidak ditemukan.');
+        abort_unless(StoredUpload::exists($rps->file), 404, 'File RPS tidak ditemukan.');
 
-        return response()->file(Storage::disk('public')->path($rps->file), [
+        return response()->file(StoredUpload::absolutePath($rps->file), [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.($rps->nama_file ?: basename($rps->file)).'"',
         ]);

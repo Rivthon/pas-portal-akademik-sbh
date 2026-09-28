@@ -381,6 +381,12 @@
         $('#semesterModal').modal('show');
         };
    $(document).ready(function () {
+            const escapeHtml = (value) => $('<div>').text(String(value ?? '')).html();
+            const safeUrl = (value, fallback = '#') => {
+                const url = String(value ?? '');
+                return /^(https:\/\/|\/)/i.test(url) ? escapeHtml(url) : fallback;
+            };
+
             $.get("{{ route('mahasiswa.getBeritaKampus') }}", function (data) {
                 $("#loading").hide();
 
@@ -397,18 +403,23 @@
                     newsHtml += `<div class="carousel-item ${activeClass}"><div class="row g-3">`;
 
                     for (let j = i; j < i + chunkSize && j < data.length; j++) {
+                        const title = escapeHtml(data[j].title);
+                        const date = escapeHtml(data[j].date);
+                        const image = safeUrl(data[j].image, '/assets/img/no-image.jpg');
+                        const link = safeUrl(data[j].link, 'https://sbh.ac.id/artikel');
+                        const id = Number.parseInt(data[j].id, 10);
                         newsHtml += `
                             <div class="col-md-3 d-flex">
                                 <div class="card shadow-sm w-100">
-                                    <img src="${data[j].image}" class="card-img-top img-fluid" style="height: 180px; object-fit: cover;" alt="Thumbnail">
+                                    <img src="${image}" class="card-img-top img-fluid" style="height: 180px; object-fit: cover;" alt="Thumbnail">
                                     <div class="card-body d-flex flex-column">
                                         <h6 class="card-title">
-                                            <a href="${data[j].link}" target="_blank" class="text-decoration-none text-primary">
-                                                ${data[j].title.substring(0, 50)}...
+                                            <a href="${link}" target="_blank" rel="noopener" class="text-decoration-none text-primary">
+                                                ${title.substring(0, 50)}...
                                             </a>
                                         </h6>
-                                        <p class="card-text text-muted mb-2">${data[j].date}</p>
-                                    <a href="/mahasiswa/berita/${data[j].id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
+                                        <p class="card-text text-muted mb-2">${date}</p>
+                                    <a href="/mahasiswa/berita/${id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
                                     </div>
                                 </div>
                             </div>

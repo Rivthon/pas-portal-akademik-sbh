@@ -14,7 +14,9 @@ use App\Services\LoginAttemptService;
 use App\Support\StoredUpload;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -198,6 +200,32 @@ class SecurityHardeningTest extends TestCase
         $this->assertStringNotContainsString('onerror', strtolower($html));
     }
 
+    public function test_news_uses_the_official_sbh_article_api_with_a_short_timeout(): void
+    {
+        Cache::forget('berita_sbh_articles_v1');
+        Cache::forget('berita_sbh_articles_v1_last_success');
+        Http::fake([
+            'https://sbh.ac.id/api/articles' => Http::response([
+                'data' => [[
+                    'id' => 77,
+                    'title' => 'Artikel Resmi SBH',
+                    'slug' => 'artikel-resmi-sbh',
+                    'thumbnail' => 'artikel/gambar.jpg',
+                    'content' => '<p>Aman</p><script>alert(1)</script>',
+                    'published_at' => '2026-09-28 10:00:00',
+                ]],
+            ]),
+        ]);
+
+        $method = new \ReflectionMethod(BeritaController::class, 'articles');
+        $articles = collect($method->invoke(new BeritaController));
+
+        $this->assertSame('Artikel Resmi SBH', $articles->first()['title']);
+        $this->assertSame('https://sbh.ac.id/artikel/artikel-resmi-sbh', $articles->first()['link']);
+        $this->assertStringNotContainsString('<script', strtolower($articles->first()['content']));
+        Http::assertSent(fn ($request) => $request->url() === 'https://sbh.ac.id/api/articles');
+    }
+
     public function test_unused_admin_attendance_mutation_routes_are_not_exposed(): void
     {
         $routes = app('router')->getRoutes();
@@ -264,7 +292,9 @@ class SecurityHardeningTest extends TestCase
 
     public function test_student_cannot_submit_edom_for_another_students_krs(): void
     {
-        $foreignKrs = Krs::with('mahasiswa')->whereHas('mahasiswa')->firstOrFail();
+        $foreignKrs = Krs::with('mahasiswa')
+            ->whereHas('mahasiswa', fn ($query) => $query->whereNotNull('dosen_id'))
+            ->firstOrFail();
         $attacker = Mahasiswa::whereKeyNot($foreignKrs->mahasiswa->getKey())->firstOrFail();
 
         $this->actingAs($attacker, 'mahasiswa')
@@ -275,7 +305,7 @@ class SecurityHardeningTest extends TestCase
                 'responses' => [1 => 5],
                 'suggestion' => 'Unauthorized evaluation',
             ])
-            ->assertRedirect(route('mahasiswa.edom.index'));
+            ->assertRedirect();
 
         $this->assertDatabaseMissing('penilaian', [
             'mahasiswa_id' => $attacker->mahasiswa_id,

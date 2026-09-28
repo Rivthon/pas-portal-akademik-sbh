@@ -41,6 +41,17 @@
     let currentPage = 1;
     let perPage = 6; // Jumlah berita per halaman
 
+    function escapeHtml(value) {
+        const element = document.createElement('div');
+        element.textContent = String(value ?? '');
+        return element.innerHTML;
+    }
+
+    function safeImageUrl(value) {
+        const url = String(value ?? '');
+        return /^(https:\/\/|\/)/i.test(url) ? escapeHtml(url) : '/assets/img/no-image.jpg';
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         fetch('/mahasiswa/api/berita-kampus')
             .then(response => response.json())
@@ -71,18 +82,21 @@
         } else {
             document.getElementById("noNewsMessage").style.display = "none";
             paginatedData.forEach(post => {
-                let imageUrl = post.image ? post.image : '/assets/img/no-image.jpg';
+                let imageUrl = safeImageUrl(post.image);
+                let title = escapeHtml(post.title);
+                let date = escapeHtml(post.date);
+                let id = Number.parseInt(post.id, 10);
 
                 const beritaCard = `
                     <div class="col news-item">
                         <div class="card h-100 shadow-sm border-0">
                             <div class="ratio ratio-16x9">
-                                <img src="${imageUrl}" class="card-img-top rounded shadow-sm" alt="${post.title}" style="object-fit: cover;">
+                                <img src="${imageUrl}" class="card-img-top rounded shadow-sm" alt="${title}" style="object-fit: cover;">
                             </div>
                             <div class="card-body">
-                                <h6 class="card-title fw-bold">${post.title}</h6>
-                                <p class="text-muted small">${post.date}</p>
-                                <a href="/mahasiswa/berita/${post.id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
+                                <h6 class="card-title fw-bold">${title}</h6>
+                                <p class="text-muted small">${date}</p>
+                                <a href="/mahasiswa/berita/${id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
                             </div>
                         </div>
                     </div>
@@ -114,18 +128,21 @@
         } else {
             document.getElementById("noNewsMessage").style.display = "none";
             filteredData.forEach(post => {
-                let imageUrl = post.image ? post.image : '/assets/img/no-image.jpg';
+                let imageUrl = safeImageUrl(post.image);
+                let title = escapeHtml(post.title);
+                let date = escapeHtml(post.date);
+                let id = Number.parseInt(post.id, 10);
 
                 const beritaCard = `
                     <div class="col news-item">
                         <div class="card h-100 shadow-sm border-0">
                             <div class="ratio ratio-16x9">
-                                <img src="${imageUrl}" class="card-img-top rounded shadow-sm" alt="${post.title}" style="object-fit: cover;">
+                                <img src="${imageUrl}" class="card-img-top rounded shadow-sm" alt="${title}" style="object-fit: cover;">
                             </div>
                             <div class="card-body">
-                                <h6 class="card-title fw-bold">${post.title}</h6>
-                                <p class="text-muted small">${post.date}</p>
-                          <a href="/mahasiswa/berita/${post.id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
+                                <h6 class="card-title fw-bold">${title}</h6>
+                                <p class="text-muted small">${date}</p>
+                          <a href="/mahasiswa/berita/${id}" class="btn btn-outline-primary btn-sm">Baca Selengkapnya</a>
                             </div>
                         </div>
                     </div>

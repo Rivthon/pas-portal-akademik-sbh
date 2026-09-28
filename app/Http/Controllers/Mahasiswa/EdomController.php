@@ -10,6 +10,7 @@ use App\Models\Krs;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
+use App\Services\EdomCompletionService;
 use App\Support\KrsClassResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -61,6 +62,7 @@ class EdomController extends Controller
         ])
             ->where('mahasiswa_id', $mahasiswaId)
             ->where('ta_id', $selectedTaId)
+            ->whereNotNull('disetujui_pada')
             ->get();
 
         // Pada periode lama, hanya KRS yang sudah dicakup penerbitan KHS BAAK
@@ -69,10 +71,9 @@ class EdomController extends Controller
             $krsData = KhsPublication::filterPublishedKrs($krsData, $mahasiswa);
         }
 
-        $kurikulumIds = $krsData->pluck('kurikulum_id')->unique()->values();
         $existingRatings = DB::table('penilaian')
             ->where('mahasiswa_id', $mahasiswaId)
-            ->whereIn('kurikulum_id', $kurikulumIds)
+            ->whereIn('krs_id', $krsData->pluck('krs_id'))
             ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
             ->distinct()
             ->get()
@@ -155,6 +156,7 @@ class EdomController extends Controller
             // Ambil data KRS berdasarkan id dengan relasi terkait
             $krs = Krs::with(['kurikulum.mataKuliah', 'kurikulum.programStudi', 'tahunAjaran'])
                 ->where('mahasiswa_id', auth('mahasiswa')->id())
+                ->whereNotNull('disetujui_pada')
                 ->findOrFail($krs_id);
 
             abort_if(
@@ -197,6 +199,7 @@ class EdomController extends Controller
 
             $existingPenilaian = DB::table('penilaian')
                 ->where('mahasiswa_id', auth('mahasiswa')->id())
+                ->where('krs_id', $krs->krs_id)
                 ->where('dosen_id', $dosen_id)
                 ->where('kurikulum_id', $kurikulum_id)
                 ->where('jenis_dosen', $jenis_dosen)
@@ -206,6 +209,7 @@ class EdomController extends Controller
             // Cek apakah mahasiswa sudah mengisi saran
             $existingSaran = DB::table('saran')
                 ->where('mahasiswa_id', auth('mahasiswa')->id())
+                ->where('krs_id', $krs->krs_id)
                 ->where('dosen_id', $dosen_id)
                 ->where('kurikulum_id', $kurikulum_id)
                 ->where('jenis_dosen', $jenis_dosen)
@@ -247,6 +251,7 @@ class EdomController extends Controller
         // Cari data KRS berdasarkan ID
         $krs = Krs::with('kurikulum')
             ->where('mahasiswa_id', $mahasiswaId)
+            ->whereNotNull('disetujui_pada')
             ->find($krs_id);
         if (! $krs || ! Dosen::find($dosen_id)) {
             return redirect()
@@ -282,6 +287,7 @@ class EdomController extends Controller
         // 🛡️ Proteksi duplikasi: cek apakah sudah pernah submit untuk kombinasi ini
         $alreadySubmitted = DB::table('penilaian')
             ->where('mahasiswa_id', $mahasiswaId)
+            ->where('krs_id', $krs->krs_id)
             ->where('dosen_id', $dosen_id)
             ->where('kurikulum_id', $kurikulum_id)
             ->where('jenis_dosen', $jenisDosen)
@@ -381,7 +387,7 @@ class EdomController extends Controller
         }
     }
 
-    public function konfirmasiEdom(Request $request)
+    public function konfirmasiEdom(Request $request, EdomCompletionService $edomCompletion)
     {
         $mahasiswa = Auth::guard('mahasiswa')->user();
 
@@ -402,6 +408,7 @@ class EdomController extends Controller
         $krsRecords = Krs::with('kurikulum.mataKuliah')
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('ta_id', $selectedTaId)
+            ->whereNotNull('disetujui_pada')
             ->get();
 
         if ((int) $selectedTA->status_ta !== 1) {
@@ -416,45 +423,13 @@ class EdomController extends Controller
             return redirect()->route('mahasiswa.edom.index', $redirectParameters);
         }
 
-        $kurikulumIds = $krsRecords->pluck('kurikulum_id');
-
-        $requiredPairs = $krsRecords->flatMap(function ($krs) use ($mahasiswa) {
-            $searchKelas = KrsClassResolver::forKrs($krs, $mahasiswa);
-
-            return DB::table('dosen_mata_kuliah')
-                ->where('kurikulum_id', $krs->kurikulum_id)
-                ->where(function ($query) use ($searchKelas) {
-                    $query->whereRaw('LOWER(COALESCE(jenis_kelas, "")) = ?', [$searchKelas]);
-                    if ($searchKelas === 'reguler') {
-                        $query->orWhere(function ($praktik) {
-                            $praktik->whereRaw('LOWER(COALESCE(jenis_dosen, "")) = ?', ['praktik'])
-                                ->where(function ($kelas) {
-                                    $kelas->whereNull('jenis_kelas')->orWhere('jenis_kelas', '');
-                                });
-                        });
-                    }
-                })
-                ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
-                ->distinct()
-                ->get();
-        })
-            ->map(fn ($row) => $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas));
-
-        $filledPairs = DB::table('penilaian')
-            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->whereIn('kurikulum_id', $kurikulumIds)
-            ->select('dosen_id', 'kurikulum_id', 'jenis_dosen', 'jenis_kelas')
-            ->distinct()
-            ->get()
-            ->map(fn ($row) => $this->edomKey($row->dosen_id, $row->kurikulum_id, $row->jenis_dosen, $row->jenis_kelas));
-
-        $belumTerisi = $requiredPairs->diff($filledPairs)->count();
-        if ($requiredPairs->isEmpty() || $belumTerisi > 0) {
+        $edomStatus = $edomCompletion->status($mahasiswa, $selectedTaId);
+        if (! $edomStatus['complete']) {
             Alert::error(
                 'Error',
-                $requiredPairs->isEmpty()
+                $edomStatus['required'] === 0
                     ? 'Tidak ada data dosen untuk KRS pada Tahun Akademik ini.'
-                    : 'Anda belum mengisi semua EDOM. Masih ada '.$belumTerisi.' dosen yang belum dinilai.'
+                    : 'Anda belum mengisi semua EDOM. Masih ada '.$edomStatus['remaining'].' dosen yang belum dinilai.'
             )->persistent('Close');
 
             return redirect()->route('mahasiswa.edom.index', $redirectParameters);

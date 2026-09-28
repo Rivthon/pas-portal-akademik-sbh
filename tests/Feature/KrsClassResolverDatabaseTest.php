@@ -16,7 +16,7 @@ class KrsClassResolverDatabaseTest extends TestCase
     {
         $match = null;
 
-        foreach (Krs::with('mahasiswa')->get() as $krs) {
+        foreach (Krs::with('mahasiswa')->whereNotNull('disetujui_pada')->get() as $krs) {
             if (! $krs->mahasiswa) {
                 continue;
             }
@@ -67,6 +67,7 @@ class KrsClassResolverDatabaseTest extends TestCase
             $krs = Krs::with('mahasiswa')
                 ->where('ta_id', $materi->jadwal->ta_id)
                 ->where('kurikulum_id', $materi->jadwal->kurikulum_id)
+                ->whereNotNull('disetujui_pada')
                 ->get()
                 ->first(fn (Krs $item) => $item->mahasiswa
                     && KrsClassResolver::matches($item, $materi->jadwal, $item->mahasiswa));

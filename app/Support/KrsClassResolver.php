@@ -36,6 +36,7 @@ final class KrsClassResolver
         $krsByCourse = Krs::query()
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->where('ta_id', $taId)
+            ->whereNotNull('disetujui_pada')
             ->get()
             ->keyBy('kurikulum_id');
 

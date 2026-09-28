@@ -49,9 +49,9 @@
                     <tr>
                         <td>Lampiran</td>
                         <td>
-                            @if ($pengajuan->file)
-                            <a href="{{ asset('storage/' . $pengajuan->file) }}" class="btn btn-sm btn-outline-primary"
-                                target="_blank">Lihat File</a>
+                            @if ($pengajuan->bukti)
+                            <a href="{{ route('admin.pengajuan.evidence', $pengajuan) }}" class="btn btn-sm btn-outline-primary"
+                                target="_blank" rel="noopener">Lihat File</a>
                             @else
                             Tidak ada lampiran
                             @endif

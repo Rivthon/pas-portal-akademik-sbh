@@ -7,10 +7,10 @@ use App\Models\DosenMatakuliah;
 use App\Models\Rps;
 use App\Models\RpsRevision;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class RpsDosenController extends Controller
@@ -62,7 +62,7 @@ class RpsDosenController extends Controller
         $request->validate([
             'kurikulum_id' => 'required|exists:kurikulum,kurikulum_id',
             'jenis_kelas' => 'required|in:reguler,karyawan',
-            'file' => 'required|mimes:pdf|max:10240',
+            'file' => 'required|file|mimes:pdf|extensions:pdf|max:10240',
         ]);
 
         $dosen = Auth::guard('dosen')->user();
@@ -95,7 +95,7 @@ class RpsDosenController extends Controller
         $path = $request->file('file')->storeAs(
             'rps',
             $namaFile,
-            'public'
+            'private'
         );
 
         try {
@@ -126,12 +126,12 @@ class RpsDosenController extends Controller
                 }
             });
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($path);
+            StoredUpload::delete($path);
             throw $exception;
         }
 
-        if ($oldPath && $oldPath !== $path && Storage::disk('public')->exists($oldPath)) {
-            Storage::disk('public')->delete($oldPath);
+        if ($oldPath && $oldPath !== $path) {
+            StoredUpload::delete($oldPath);
         }
 
         activity_log(
@@ -159,9 +159,9 @@ class RpsDosenController extends Controller
             ->exists();
 
         abort_unless($isAssigned, 403, 'Anda tidak memiliki akses ke RPS ini.');
-        abort_unless($rps->file && Storage::disk('public')->exists($rps->file), 404, 'File RPS tidak ditemukan.');
+        abort_unless(StoredUpload::exists($rps->file), 404, 'File RPS tidak ditemukan.');
 
-        $response = response()->file(Storage::disk('public')->path($rps->file), [
+        $response = response()->file(StoredUpload::absolutePath($rps->file), [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.($rps->nama_file ?: basename($rps->file)).'"',
         ]);

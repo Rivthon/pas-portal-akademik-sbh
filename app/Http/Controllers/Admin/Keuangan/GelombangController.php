@@ -62,12 +62,12 @@ class GelombangController extends Controller
     public function update(Request $request, Gelombang $gelombang): RedirectResponse
     {
         // Validasi input
-        $request->validate([
-            'nama' => 'required',
+        $validated = $request->validate([
+            'nama' => 'required|string|max:255',
         ]);
 
         // Update data
-        $gelombang->update($request->all());
+        $gelombang->update($validated);
 
         activity_log('update_gelombang', 'Admin memperbarui gelombang: '.$gelombang->nama);
 

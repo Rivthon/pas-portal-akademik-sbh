@@ -7,8 +7,8 @@ use App\Models\DosenMatakuliah;
 use App\Models\ProgramStudi;
 use App\Models\Rps;
 use App\Models\TahunAkademik;
+use App\Support\StoredUpload;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class RpsController extends Controller
 {
@@ -63,9 +63,9 @@ class RpsController extends Controller
 
     public function show(Rps $rps)
     {
-        abort_unless($rps->file && Storage::disk('public')->exists($rps->file), 404);
+        abort_unless(StoredUpload::exists($rps->file), 404);
 
-        return response()->file(Storage::disk('public')->path($rps->file), [
+        return response()->file(StoredUpload::absolutePath($rps->file), [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.($rps->nama_file ?: basename($rps->file)).'"',
         ]);

@@ -230,7 +230,11 @@ class TagihanMahasiswaController extends Controller
     public function getMahasiswa(Request $request)
     {
         try {
-            Log::info('getMahasiswa parameters: ', $request->all());
+            Log::info('Memuat mahasiswa untuk pembuatan tagihan.', [
+                'program_studi' => $request->input('program_studi'),
+                'tahun_masuk' => $request->input('tahun_masuk'),
+                'gelombang_id' => $request->input('gelombang_id'),
+            ]);
 
             $query = Mahasiswa::query();
 

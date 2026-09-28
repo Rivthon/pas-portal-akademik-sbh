@@ -18,6 +18,7 @@ class RpsColleagueReplacementNotificationTest extends TestCase
 
     public function test_colleague_is_notified_when_another_lecturer_replaces_rps(): void
     {
+        Storage::fake('private');
         Storage::fake('public');
 
         $activeTa = TahunAkademik::where('status_ta', 1)->firstOrFail();
@@ -63,6 +64,7 @@ class RpsColleagueReplacementNotificationTest extends TestCase
 
     public function test_same_lecturer_reupload_does_not_create_colleague_notification(): void
     {
+        Storage::fake('private');
         Storage::fake('public');
         $activeTa = TahunAkademik::where('status_ta', 1)->firstOrFail();
         $assignment = DosenMatakuliah::whereRaw('LOWER(jenis_dosen) = ?', ['teori'])
