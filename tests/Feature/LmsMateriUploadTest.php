@@ -14,6 +14,12 @@ class LmsMateriUploadTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_material_limit_is_50_mb_without_increasing_task_limit(): void
+    {
+        $this->assertSame(51200, config('lms.uploads.max_kilobytes'));
+        $this->assertSame(10240, config('lms.temporary_task_upload.max_kilobytes'));
+    }
+
     public function test_assigned_dosen_can_upload_pdf_material(): void
     {
         Storage::fake('private');

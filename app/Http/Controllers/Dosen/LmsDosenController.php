@@ -304,7 +304,8 @@ class LmsDosenController extends Controller
     {
         $dosen = Auth::guard('dosen')->user();
         $extensions = implode(',', config('lms.uploads.extensions'));
-        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 51200);
+        $maxMegabytes = (int) ceil($maxKilobytes / 1024);
 
         $request->validate([
             'pertemuan_id' => 'required|exists:pertemuan,pertemuan_id',
@@ -318,7 +319,7 @@ class LmsDosenController extends Controller
             'file.uploaded' => 'File gagal diterima server. Periksa ukuran file dan pastikan tidak melebihi batas upload VPS.',
             'file.file' => 'Berkas materi harus berupa file yang valid.',
             'file.mimes' => 'Format file materi tidak didukung.',
-            'file.max' => 'Ukuran file materi maksimal 10 MB.',
+            'file.max' => 'Ukuran file materi maksimal '.$maxMegabytes.' MB.',
             'youtube_url.required_without' => 'Upload file atau isi link materi.',
             'youtube_url.url' => 'Link materi harus berupa URL yang valid.',
         ]);
@@ -375,7 +376,8 @@ class LmsDosenController extends Controller
         $materi = LmsMateri::findOrFail($id);
         $this->pastikanMateriMilikDosen($materi);
         $extensions = implode(',', config('lms.uploads.extensions'));
-        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
+        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 51200);
+        $maxMegabytes = (int) ceil($maxKilobytes / 1024);
 
         $request->validate([
             'judul' => 'required|string|max:255',
@@ -387,7 +389,7 @@ class LmsDosenController extends Controller
             'file.file' => 'Berkas materi harus berupa file yang valid.',
             'file.mimes' => 'Format file materi tidak didukung.',
             'file.extensions' => 'Ekstensi file materi tidak didukung.',
-            'file.max' => 'Ukuran file materi maksimal 10 MB.',
+            'file.max' => 'Ukuran file materi maksimal '.$maxMegabytes.' MB.',
         ]);
 
         $oldPath = $materi->file;
@@ -468,7 +470,7 @@ class LmsDosenController extends Controller
     {
         $dosen = Auth::guard('dosen')->user();
         $documentExtensions = implode(',', config('lms.uploads.document_extensions'));
-        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
+        $maxKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
         $request->merge([
             'tipe' => $request->input('tipe') ?: 'file',
         ]);
@@ -803,7 +805,7 @@ class LmsDosenController extends Controller
     {
         $dosen = Auth::guard('dosen')->user();
         $documentExtensions = implode(',', config('lms.uploads.document_extensions'));
-        $maxKilobytes = (int) config('lms.uploads.max_kilobytes', 10240);
+        $maxKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
 
         // 1. Otorisasi: Dosen hanya boleh mengubah tugas miliknya sendiri
         abort_unless((int) $tugas->dosen_id === (int) $dosen->dosen_id, 403);

@@ -3,7 +3,7 @@
 return [
     'uploads' => [
         // Samakan dengan upload_max_filesize dan post_max_size pada VPS.
-        'max_kilobytes' => (int) env('LMS_UPLOAD_MAX_KB', 10240),
+        'max_kilobytes' => (int) env('LMS_UPLOAD_MAX_KB', 51200),
         'extensions' => [
             'pdf', 'ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx',
             'zip', 'rar', 'jpg', 'jpeg', 'png', 'mp4', 'avi', 'mov', 'mkv',

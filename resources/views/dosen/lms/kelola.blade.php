@@ -518,7 +518,7 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT/PPTX, Word, Excel, Gambar, Video, ZIP/RAR — maksimal 10 MB di VPS</small></label>
+                                    <label class="form-label">Upload File <br><small class="text-muted">PDF, PPT/PPTX, Word, Excel, Gambar, Video, ZIP/RAR — maksimal {{ (int) ceil(config('lms.uploads.max_kilobytes', 51200) / 1024) }} MB</small></label>
                                     <input type="file" name="file" class="form-control"
                                         accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.zip,.rar,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv">
                                 </div>
