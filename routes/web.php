@@ -745,6 +745,8 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::post('/absensi-praktik/pertemuan-baru', [DosenAbsensiPraktikController::class, 'storePertemuan'])->name('absensi-praktik.pertemuan.store');
             Route::get('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'show'])->name('absensi-praktik.show');
             Route::put('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'update'])->name('absensi-praktik.update');
+            Route::put('/absensi-praktik/pertemuan/{pertemuan}/informasi', [DosenAbsensiPraktikController::class, 'updatePertemuan'])->name('absensi-praktik.pertemuan.update');
+            Route::delete('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'destroyPertemuan'])->name('absensi-praktik.pertemuan.destroy');
             Route::post('/absensi-praktik/pertemuan', [PerkuliahanDosenController::class, 'storePertemuanPraktik'])->name('absensi-praktik.store');
             Route::get('/pertemuan-praktik/list/{jadwal_praktik_id}', [PerkuliahanDosenController::class, 'listPertemuanPraktik'])->name('pertemuan-praktik.list');
             Route::get('/absensi-praktik/buat/{pertemuan_praktik_id}', [PerkuliahanDosenController::class, 'lihatPraktik'])->name('absensi-praktik.create');

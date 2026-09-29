@@ -137,6 +137,61 @@ class AbsensiPraktikController extends Controller
         return back()->with('success', 'Absensi praktik berhasil disimpan.');
     }
 
+    public function updatePertemuan(Request $request, PertemuanPraktik $pertemuan)
+    {
+        $pertemuan->load('jadwal');
+        $this->ensurePertemuanAktifMilikDosen($pertemuan);
+
+        $validated = $request->validate([
+            'tanggal_pertemuan' => ['required', 'date'],
+            'jam_mulai' => ['required', 'date_format:H:i'],
+            'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
+            'metode_pbm' => ['required', 'in:online,offline'],
+            'topik' => ['required', 'string', 'max:255'],
+            'sub_topik' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($pertemuan, $validated) {
+            $pertemuan->update($validated);
+            $pertemuan->absensi()->update(['tanggal' => $validated['tanggal_pertemuan']]);
+        });
+
+        activity_log('ubah_pertemuan_praktik', 'Dosen mengubah pertemuan praktik: '.$pertemuan->topik);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Pertemuan praktik berhasil diperbarui.']);
+        }
+
+        return redirect()->route('dosen.absensi-praktik.index')
+            ->with('success', 'Pertemuan praktik berhasil diperbarui.');
+    }
+
+    public function destroyPertemuan(Request $request, PertemuanPraktik $pertemuan)
+    {
+        $pertemuan->load('jadwal');
+        $this->ensurePertemuanAktifMilikDosen($pertemuan);
+
+        $identitasPertemuan = $pertemuan->tanggal_pertemuan?->format('Y-m-d').' - '.$pertemuan->topik;
+        $jumlahAbsensi = $pertemuan->absensi()->count();
+
+        DB::transaction(function () use ($pertemuan) {
+            $pertemuan->absensi()->delete();
+            $pertemuan->delete();
+        });
+
+        activity_log(
+            'hapus_pertemuan_praktik',
+            'Dosen menghapus pertemuan praktik '.$identitasPertemuan.' beserta '.$jumlahAbsensi.' data absensi'
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Pertemuan praktik dan data absensi terkait berhasil dihapus.']);
+        }
+
+        return redirect()->route('dosen.absensi-praktik.index')
+            ->with('success', 'Pertemuan praktik dan data absensi terkait berhasil dihapus.');
+    }
+
     private function jadwalDosenQuery(): Builder
     {
         $dosen = auth('dosen')->user();
@@ -158,6 +213,19 @@ class AbsensiPraktikController extends Controller
             (string) $pertemuan->dosen_id === (string) auth('dosen')->id()
                 && $this->jadwalDosenQuery()->whereKey($pertemuan->jadwal_praktik_id)->exists(),
             403
+        );
+    }
+
+    private function ensurePertemuanAktifMilikDosen(PertemuanPraktik $pertemuan): void
+    {
+        $this->ensurePertemuanMilikDosen($pertemuan);
+
+        $activeTaId = TahunAkademik::where('status_ta', 1)->value('ta_id');
+        abort_unless($activeTaId, 422, 'Tidak ada Tahun Akademik aktif.');
+        abort_unless(
+            (int) $pertemuan->jadwal?->ta_id === (int) $activeTaId,
+            403,
+            'Pertemuan praktik tahun akademik sebelumnya tidak dapat diubah.'
         );
     }
 

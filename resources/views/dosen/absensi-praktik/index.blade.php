@@ -77,10 +77,49 @@
                         </div>
                         <h6 class="fw-bold border-bottom pb-2">Riwayat Pertemuan</h6>
                         @forelse($item->pertemuan as $pertemuan)
-                            <a href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}" class="d-flex justify-content-between align-items-center text-decoration-none border rounded p-3 mb-2">
+                            @php($editModalId = 'edit-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id)
+                            @php($deleteFormId = 'hapus-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id)
+                            <div class="d-flex align-items-center gap-2 border rounded p-2 mb-2">
+                            <a href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}" class="d-flex justify-content-between align-items-center text-decoration-none flex-grow-1 p-1">
                                 <span><strong>{{ $pertemuan->topik ?: 'Tanpa topik' }}</strong><small class="d-block text-muted">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d M Y') }} · {{ substr($pertemuan->jam_mulai,0,5) }} · {{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</small></span>
                                 <span class="badge bg-label-success">{{ $pertemuan->absensi_count }} mahasiswa</span>
                             </a>
+                                <div class="dropdown flex-shrink-0">
+                                    <button type="button" class="btn btn-sm btn-icon btn-outline-primary" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Aksi pertemuan">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <a class="dropdown-item" href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}"><i class="bx bx-user-check me-2"></i>Isi Absensi</a>
+                                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#{{ $editModalId }}"><i class="bx bx-edit me-2"></i>Edit Pertemuan</button>
+                                        <div class="dropdown-divider"></div>
+                                        <button type="button" class="dropdown-item text-danger btn-hapus-pertemuan-praktik" data-form-id="{{ $deleteFormId }}" data-topik="{{ $pertemuan->topik ?: 'Tanpa topik' }}"><i class="bx bx-trash me-2"></i>Hapus Pertemuan</button>
+                                    </div>
+                                </div>
+                                <form id="{{ $deleteFormId }}" method="POST" action="{{ route('dosen.absensi-praktik.pertemuan.destroy', $pertemuan) }}" class="d-none">
+                                    @csrf @method('DELETE')
+                                </form>
+                            </div>
+
+                            <div class="modal fade" id="{{ $editModalId }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+                                    <form method="POST" action="{{ route('dosen.absensi-praktik.pertemuan.update', $pertemuan) }}">
+                                        @csrf @method('PUT')
+                                        <div class="modal-header"><h5 class="modal-title"><i class="bx bx-edit me-2"></i>Edit Pertemuan Praktik</h5><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div>
+                                        <div class="modal-body">
+                                            <p class="fw-bold mb-3">{{ $item->kurikulum?->mataKuliah?->nama ?? '-' }}</p>
+                                            <div class="row g-3">
+                                                <div class="col-md-4"><label class="form-label">Tanggal</label><input type="date" name="tanggal_pertemuan" class="form-control" value="{{ $pertemuan->tanggal_pertemuan->format('Y-m-d') }}" required></div>
+                                                <div class="col-md-4"><label class="form-label">Jam mulai</label><input type="time" name="jam_mulai" class="form-control" value="{{ substr($pertemuan->jam_mulai,0,5) }}" required></div>
+                                                <div class="col-md-4"><label class="form-label">Jam selesai</label><input type="time" name="jam_selesai" class="form-control" value="{{ substr($pertemuan->jam_selesai,0,5) }}" required></div>
+                                                <div class="col-md-4"><label class="form-label">Metode PBM</label><select name="metode_pbm" class="form-select" required><option value="offline" @selected(strtolower($pertemuan->metode_pbm ?: 'offline') === 'offline')>Offline / Tatap Muka</option><option value="online" @selected(strtolower($pertemuan->metode_pbm ?: '') === 'online')>Online / Daring</option></select></div>
+                                                <div class="col-12"><label class="form-label">Topik</label><input name="topik" class="form-control" value="{{ $pertemuan->topik }}" maxlength="255" required></div>
+                                                <div class="col-12"><label class="form-label">Subtopik / keterangan</label><textarea name="sub_topik" class="form-control" maxlength="255" rows="2">{{ $pertemuan->sub_topik }}</textarea></div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bx bx-save me-1"></i>Simpan Perubahan</button></div>
+                                    </form>
+                                </div></div>
+                            </div>
                         @empty
                             <p class="text-center text-muted py-3 mb-0">Belum ada pertemuan praktik.</p>
                         @endforelse
@@ -120,3 +159,30 @@
     </div>
 </div>
 @endsection
+
+@push('script')
+<script>
+document.querySelectorAll('.btn-hapus-pertemuan-praktik').forEach(function (button) {
+    button.addEventListener('click', function () {
+        const form = document.getElementById(this.dataset.formId);
+        const topik = this.dataset.topik || 'pertemuan ini';
+
+        Swal.fire({
+            title: 'Hapus pertemuan praktik?',
+            text: 'Pertemuan "' + topik + '" beserta seluruh data absensinya akan dihapus.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+            reverseButtons: true
+        }).then(function (result) {
+            if (result.isConfirmed && form) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+@endpush
