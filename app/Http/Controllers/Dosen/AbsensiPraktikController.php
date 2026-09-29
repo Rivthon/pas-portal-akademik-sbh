@@ -29,7 +29,7 @@ class AbsensiPraktikController extends Controller
             $jadwal = $this->jadwalDosenQuery()
                 ->where('ta_id', $activeTa->ta_id)
                 ->with([
-                    'kurikulum.mataKuliah', 'programStudi', 'ruangan',
+                    'kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'programStudi', 'ruangan',
                     'pertemuan' => fn ($query) => $query
                         ->where('dosen_id', $dosen->dosen_id)
                         ->withCount('absensi')
@@ -37,14 +37,32 @@ class AbsensiPraktikController extends Controller
                 ])
                 ->when($request->filled('search'), function (Builder $query) use ($request) {
                     $search = trim($request->string('search')->toString());
-                    $query->whereHas('kurikulum.mataKuliah', fn (Builder $query) => $query
-                        ->where('nama', 'like', '%'.$search.'%')
-                        ->orWhere('matakuliah_id', 'like', '%'.$search.'%'));
+                    $query->where(function (Builder $query) use ($search) {
+                        $query->whereHas('kurikulum.mataKuliah', fn (Builder $query) => $query
+                            ->where('nama', 'like', '%'.$search.'%')
+                            ->orWhere('matakuliah_id', 'like', '%'.$search.'%'))
+                            ->orWhereHas('kurikulum.dosenToMatakuliah.dosen', fn (Builder $query) => $query
+                                ->where('nama', 'like', '%'.$search.'%'));
+                    });
                 })
+                ->when(
+                    in_array($request->input('jenis_kelas'), ['reguler', 'karyawan'], true),
+                    fn (Builder $query) => $query->whereRaw('LOWER(jenis_kelas) = ?', [$request->input('jenis_kelas')])
+                )
                 ->orderBy('hari')->orderBy('jam_mulai')->get();
         }
 
-        return view('dosen.absensi-praktik.index', compact('jadwal', 'activeTa'));
+        $jadwalPerSemester = $jadwal
+            ->groupBy(fn (JadwalPraktik $item) => (int) ($item->kurikulum?->mataKuliah?->smt
+                ?: $item->kurikulum?->mataKuliah?->semester))
+            ->sortKeys();
+        $statistik = [
+            'total' => $jadwal->count(),
+            'reguler' => $jadwal->filter(fn (JadwalPraktik $item) => KrsClassResolver::normalize($item->jenis_kelas) === 'reguler')->count(),
+            'karyawan' => $jadwal->filter(fn (JadwalPraktik $item) => KrsClassResolver::normalize($item->jenis_kelas) === 'karyawan')->count(),
+        ];
+
+        return view('dosen.absensi-praktik.index', compact('jadwal', 'jadwalPerSemester', 'activeTa', 'statistik'));
     }
 
     public function storePertemuan(Request $request)

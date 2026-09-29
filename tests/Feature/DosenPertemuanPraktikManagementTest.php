@@ -15,6 +15,22 @@ class DosenPertemuanPraktikManagementTest extends TestCase
 {
     use DatabaseTransactions;
 
+    public function test_practice_index_is_grouped_by_semester_and_has_course_filters(): void
+    {
+        [$dosen, $jadwal] = $this->assignedPracticeSchedule();
+        $semester = (int) ($jadwal->kurikulum?->mataKuliah?->smt
+            ?: $jadwal->kurikulum?->mataKuliah?->semester);
+
+        $this->actingAs($dosen, 'dosen')
+            ->get(route('dosen.absensi-praktik.index'))
+            ->assertOk()
+            ->assertSee('semesterPraktikAccordion', false)
+            ->assertSee('Semester '.$semester)
+            ->assertSee('filterPraktikSearch', false)
+            ->assertSee('filterPraktikKelas', false)
+            ->assertSee('Kelola Pertemuan &amp; Absensi', false);
+    }
+
     public function test_dosen_can_update_their_practice_meeting_and_attendance_date(): void
     {
         [$dosen, $jadwal] = $this->assignedPracticeSchedule();
