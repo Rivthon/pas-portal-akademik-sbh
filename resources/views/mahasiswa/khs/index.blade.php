@@ -21,23 +21,33 @@
 @if($khsLocked ?? false)
     <div class="card shadow-sm mb-4 border-top border-5 border-warning">
         <div class="card-body text-center py-5">
-            <i class="bx {{ ($khsLockReason ?? '') === 'edom' ? 'bx-message-square-edit' : 'bx-lock-alt' }} text-warning" style="font-size:4rem"></i>
+            <i class="bx {{ in_array(($khsLockReason ?? ''), ['edom', 'edom_closed'], true) ? 'bx-message-square-edit' : 'bx-lock-alt' }} text-warning" style="font-size:4rem"></i>
             <h4 class="mt-3">
-                {{ ($khsLockReason ?? '') === 'edom' ? 'Selesaikan EDOM Terlebih Dahulu' : 'KHS Belum Diaktifkan' }}
+                @switch($khsLockReason ?? '')
+                    @case('edom') Selesaikan EDOM Terlebih Dahulu @break
+                    @case('edom_closed') EDOM Belum Dibuka Admin @break
+                    @default KHS Belum Diaktifkan
+                @endswitch
             </h4>
             <p class="text-muted mx-auto" style="max-width:620px">
                 {{ $khsLockMessage ?? 'KHS semester aktif belum dapat dibuka.' }}
             </p>
-            @if(($khsLockReason ?? '') === 'edom')
+            @if(in_array(($khsLockReason ?? ''), ['edom', 'edom_closed'], true))
                 @if(($edomStatus['required'] ?? 0) > 0)
                     <div class="d-flex justify-content-center gap-2 mb-3">
                         <span class="badge bg-label-primary">{{ $edomStatus['filled'] ?? 0 }} dari {{ $edomStatus['required'] ?? 0 }} EDOM selesai</span>
                         <span class="badge bg-label-warning">Sisa {{ $edomStatus['remaining'] ?? 0 }}</span>
                     </div>
                 @endif
-                <a href="{{ route('mahasiswa.edom.index', ['ta_id' => $selectedTaId]) }}" class="btn btn-warning">
-                    <i class="bx bx-edit me-1"></i>Buka EDOM
-                </a>
+                @if($edomEnabled ?? false)
+                    <a href="{{ route('mahasiswa.edom.index', ['ta_id' => $selectedTaId]) }}" class="btn btn-warning">
+                        <i class="bx bx-edit me-1"></i>Buka EDOM
+                    </a>
+                @else
+                    <span class="btn btn-label-secondary disabled" aria-disabled="true">
+                        <i class="bx bx-lock-alt me-1"></i>Menunggu EDOM Dibuka Admin
+                    </span>
+                @endif
             @endif
         </div>
     </div>

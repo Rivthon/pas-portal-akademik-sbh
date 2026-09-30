@@ -15,7 +15,8 @@ class EnsureEdomIsEnabled
     public function handle(Request $request, Closure $next): Response
     {
         $mahasiswa = $request->user('mahasiswa');
-        $activeTaId = (int) (TahunAkademik::query()->where('status_ta', 1)->value('ta_id') ?? 0);
+        $activeTa = TahunAkademik::query()->where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
+        $activeTaId = (int) ($activeTa?->ta_id ?? 0);
         $targetTaId = $request->integer('ta_id');
         $routeKrsId = (int) ($request->route('krs_id') ?? 0);
 
@@ -54,9 +55,9 @@ class EnsureEdomIsEnabled
         $enabled = (bool) (Setting::query()->value('edom_enabled') ?? true);
 
         if (! $enabled) {
-            return redirect()
-                ->route('mahasiswa.dashboard')
-                ->with('warning', 'Pengisian EDOM tahun akademik aktif belum dibuka oleh admin. Silakan coba kembali sesuai jadwal akademik.');
+            return response()->view('mahasiswa.edom.closed', [
+                'tahunAkademik' => $activeTa,
+            ]);
         }
 
         return $next($request);

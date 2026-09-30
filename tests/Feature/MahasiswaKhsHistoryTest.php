@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
+use App\Models\Setting;
 use App\Models\TahunAkademik;
 use App\Services\EdomCompletionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -148,6 +149,7 @@ class MahasiswaKhsHistoryTest extends TestCase
 
     public function test_active_khs_with_incomplete_edom_shows_explanation_instead_of_403(): void
     {
+        Setting::query()->firstOrFail()->update(['edom_enabled' => true]);
         $activeTa = TahunAkademik::where('status_ta', 1)->firstOrFail();
         $mahasiswa = Mahasiswa::query()->firstOrFail();
         $mahasiswa->update(['status_akhir' => 1]);
@@ -168,5 +170,29 @@ class MahasiswaKhsHistoryTest extends TestCase
             ->assertSee('6 dari 8 EDOM selesai')
             ->assertSee('Sisa 2')
             ->assertSee(route('mahasiswa.edom.index', ['ta_id' => $activeTa->ta_id]));
+    }
+
+    public function test_active_khs_explains_when_edom_is_still_closed_by_admin(): void
+    {
+        Setting::query()->firstOrFail()->update(['edom_enabled' => false]);
+        $mahasiswa = Mahasiswa::query()->firstOrFail();
+        $mahasiswa->update(['status_akhir' => 1]);
+
+        $this->mock(EdomCompletionService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('status')->once()->andReturn([
+                'required' => 8,
+                'filled' => 0,
+                'remaining' => 8,
+                'complete' => false,
+            ]);
+        });
+
+        $response = $this->actingAs($mahasiswa, 'mahasiswa')
+            ->get(route('mahasiswa.kartu-hasil.index'));
+
+        $response->assertOk()
+            ->assertSee('EDOM Belum Dibuka Admin')
+            ->assertSee('Menunggu EDOM Dibuka Admin')
+            ->assertDontSee('href="'.route('mahasiswa.edom.index', ['ta_id' => TahunAkademik::where('status_ta', 1)->value('ta_id')]).'"', false);
     }
 }

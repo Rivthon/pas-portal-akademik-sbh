@@ -688,12 +688,17 @@ class AkademikController extends Controller
 
         $edomStatus = $edomCompletion->status($mahasiswa, (int) $activeTa->ta_id);
         if (! $edomStatus['complete']) {
+            $edomEnabled = (bool) (Setting::query()->value('edom_enabled') ?? true);
+
             return $this->activeKhsLockedView(
                 $mahasiswa,
                 $activeTa,
-                'edom',
-                'KHS sudah diaktifkan BAAK, tetapi seluruh EDOM tahun akademik aktif harus diselesaikan terlebih dahulu.',
-                $edomStatus
+                $edomEnabled ? 'edom' : 'edom_closed',
+                $edomEnabled
+                    ? 'KHS sudah diaktifkan BAAK, tetapi seluruh EDOM tahun akademik aktif harus diselesaikan terlebih dahulu.'
+                    : 'KHS sudah diaktifkan BAAK, tetapi pengisian EDOM tahun akademik aktif belum dibuka oleh admin.',
+                $edomStatus,
+                $edomEnabled
             );
         }
 
@@ -829,7 +834,8 @@ class AkademikController extends Controller
         TahunAkademik $ta,
         string $reason,
         string $message,
-        ?array $edomStatus = null
+        ?array $edomStatus = null,
+        bool $edomEnabled = true
     ) {
         return view('mahasiswa.khs.index', [
             'khs' => collect(),
@@ -845,6 +851,7 @@ class AkademikController extends Controller
             'khsLockReason' => $reason,
             'khsLockMessage' => $message,
             'edomStatus' => $edomStatus,
+            'edomEnabled' => $edomEnabled,
         ]);
     }
 
