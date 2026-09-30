@@ -150,4 +150,34 @@ class LmsQuizOptionETest extends TestCase
         $quiz = LmsQuiz::query()->where('judul', $title)->firstOrFail();
         $this->assertFalse($quiz->aktif);
     }
+
+    public function test_lecturer_can_delete_own_quiz_and_its_questions(): void
+    {
+        $existingQuiz = LmsQuiz::with('jadwal')->firstOrFail();
+        $dosen = Dosen::findOrFail($existingQuiz->dosen_id);
+        $quiz = LmsQuiz::create([
+            'jadwal_id' => $existingQuiz->jadwal_id,
+            'pertemuan_id' => null,
+            'dosen_id' => $existingQuiz->dosen_id,
+            'judul' => 'Quiz untuk dihapus '.uniqid(),
+            'deskripsi' => 'Data pengujian tombol hapus quiz',
+            'durasi_menit' => 60,
+            'aktif' => false,
+        ]);
+        $question = LmsQuizSoal::create([
+            'quiz_id' => $quiz->quiz_id,
+            'tipe' => 'essay',
+            'pertanyaan' => 'Soal yang ikut terhapus',
+            'bobot' => 10,
+            'urutan' => 1,
+        ]);
+
+        $this->actingAs($dosen, 'dosen')
+            ->delete(route('dosen.lms.quiz.destroy', $quiz))
+            ->assertRedirect(route('dosen.lms.quiz.index', $existingQuiz->jadwal_id))
+            ->assertSessionHas('success', 'Quiz dan seluruh jawabannya berhasil dihapus.');
+
+        $this->assertDatabaseMissing('lms_quiz', ['quiz_id' => $quiz->quiz_id]);
+        $this->assertDatabaseMissing('lms_quiz_soal', ['soal_id' => $question->soal_id]);
+    }
 }

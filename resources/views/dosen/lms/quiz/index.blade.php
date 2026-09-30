@@ -11,6 +11,7 @@
     </div>
 
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+    @if(session('error')) <div class="alert alert-danger"><i class="bx bx-error-circle me-1"></i>{{ session('error') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
 
     <div class="card border-0 shadow-sm overflow-hidden mb-4 quiz-hero">
@@ -39,7 +40,15 @@
                         <small class="text-muted d-block mb-3"><i class="bx bx-time me-1"></i>Deadline: {{ $quiz->deadline?->translatedFormat('d M Y H:i') ?? 'Tanpa deadline' }}</small>
                         <div class="d-flex gap-2">
                             <a href="{{ route('dosen.lms.quiz.manage', $quiz) }}" class="btn btn-primary flex-grow-1">Kelola Soal</a>
-                            <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-outline-primary"><i class="bx bx-bar-chart"></i></a>
+                            <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-outline-primary" title="Hasil & Penilaian"><i class="bx bx-bar-chart"></i></a>
+                            <form method="POST" action="{{ route('dosen.lms.quiz.destroy', $quiz) }}"
+                                onsubmit="return confirm('Hapus quiz ini? Seluruh soal, pengerjaan, jawaban, dan nilai quiz akan ikut terhapus permanen.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-outline-danger" title="Hapus Quiz" aria-label="Hapus Quiz">
+                                    <i class="bx bx-trash"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

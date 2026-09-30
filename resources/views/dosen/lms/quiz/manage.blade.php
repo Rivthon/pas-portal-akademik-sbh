@@ -14,6 +14,12 @@
                 <i class="bx bx-copy-alt me-1"></i>Salin ke Quiz Lain
             </button>
             <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-sm btn-primary"><i class="bx bx-bar-chart me-1"></i>Hasil & Penilaian</a>
+            <form method="POST" action="{{ route('dosen.lms.quiz.destroy', $quiz) }}"
+                onsubmit="return confirm('Hapus quiz ini? Seluruh soal, pengerjaan, jawaban, dan nilai quiz akan ikut terhapus permanen.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bx bx-trash me-1"></i>Hapus Quiz</button>
+            </form>
         </div>
     </div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif

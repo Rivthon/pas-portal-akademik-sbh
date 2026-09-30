@@ -60,6 +60,9 @@ class QuizDosenController extends Controller
     public function destroy(LmsQuiz $quiz)
     {
         $quiz = $this->quizMilikDosen($quiz);
+        $quizId = $quiz->quiz_id;
+        $quizTitle = $quiz->judul;
+        $jadwalId = $quiz->jadwal_id;
         $quiz->load('attempts.jawaban');
         foreach ($quiz->attempts->flatMap->jawaban as $jawaban) {
             if (StoredUpload::exists($jawaban->file)) {
@@ -68,7 +71,9 @@ class QuizDosenController extends Controller
         }
         $quiz->delete();
 
-        return redirect()->route('dosen.lms.quiz.index', $quiz->jadwal_id)
+        activity_log('hapus_quiz', 'Dosen menghapus quiz '.$quizId.' ('.$quizTitle.') dari jadwal '.$jadwalId);
+
+        return redirect()->route('dosen.lms.quiz.index', $jadwalId)
             ->with('success', 'Quiz dan seluruh jawabannya berhasil dihapus.');
     }
 
