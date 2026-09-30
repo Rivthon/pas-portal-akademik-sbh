@@ -3,7 +3,9 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Jadwal;
+use App\Models\Krs;
 use App\Models\Mahasiswa;
+use App\Models\PengajuanTranskrip;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -120,6 +122,18 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertJsonStructure(['riwayat']);
 
         $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/nilai')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik',
+                'uts' => ['aktif', 'pesan', 'mata_kuliah'],
+                'uas' => ['aktif', 'pesan', 'mata_kuliah'],
+                'riwayat',
+                'transkrip' => ['total_sks', 'ipk', 'predikat', 'mata_kuliah'],
+                'pengajuan_transkrip' => ['dapat_mengajukan', 'pengajuan_terakhir'],
+            ]);
+
+        $this->withToken($token)
             ->getJson('/api/v1/mahasiswa/jadwal')
             ->assertOk()
             ->assertJsonStructure(['tahun_akademik', 'teori', 'praktik']);
@@ -197,5 +211,56 @@ class MahasiswaMobileApiTest extends TestCase
                 ->where('ta_id', $tahunAkademik->ta_id)
                 ->whereNotNull('disetujui_pada')
                 ->count(), 'mata_kuliah');
+    }
+
+    public function test_inactive_exam_grade_is_not_exposed_by_mobile_api(): void
+    {
+        $tahunAkademik = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
+        $krs = Krs::query()
+            ->where('ta_id', $tahunAkademik->ta_id)
+            ->whereHas('kurikulum.mataKuliah')
+            ->first();
+
+        if (! $krs) {
+            $this->markTestSkipped('Tidak ada KRS aktif pada database uji.');
+        }
+
+        $mahasiswa = Mahasiswa::findOrFail($krs->mahasiswa_id);
+        $mahasiswa->update(['status_nilai_uts' => 0]);
+        $krs->update(['uts' => 88]);
+        Sanctum::actingAs($mahasiswa, ['mahasiswa']);
+
+        $this->getJson('/api/v1/mahasiswa/nilai')
+            ->assertOk()
+            ->assertJsonPath('uts.aktif', false)
+            ->assertJsonCount(0, 'uts.mata_kuliah');
+    }
+
+    public function test_student_can_submit_only_one_active_transcript_request(): void
+    {
+        $mahasiswa = Mahasiswa::query()->firstOrFail();
+        PengajuanTranskrip::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->delete();
+        Sanctum::actingAs($mahasiswa, ['mahasiswa']);
+
+        $payload = [
+            'jenis' => 'sementara',
+            'keperluan' => 'Seminar Usulan Penelitian',
+        ];
+
+        $this->postJson('/api/v1/mahasiswa/nilai/pengajuan-transkrip', $payload)
+            ->assertCreated()
+            ->assertJsonPath('pengajuan.status', 'pending');
+
+        $this->assertDatabaseHas('pengajuan_transkrip', [
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'jenis' => 'sementara',
+            'keperluan' => 'Seminar Usulan Penelitian',
+            'status' => 'pending',
+        ]);
+
+        $this->postJson('/api/v1/mahasiswa/nilai/pengajuan-transkrip', $payload)
+            ->assertUnprocessable();
     }
 }

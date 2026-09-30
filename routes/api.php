@@ -31,6 +31,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/krs', [AcademicController::class, 'krs']);
             Route::get('/khs', [AcademicController::class, 'khs']);
             Route::get('/khs/riwayat', [AcademicController::class, 'khsHistory']);
+            Route::get('/nilai', [AcademicController::class, 'grades']);
+            Route::post('/nilai/pengajuan-transkrip', [AcademicController::class, 'submitTranscriptRequest'])
+                ->middleware('throttle:5,1');
             Route::get('/jadwal', [StudyController::class, 'schedules']);
             Route::get('/absensi', AttendanceController::class);
             Route::get('/rps', [StudyController::class, 'rps']);

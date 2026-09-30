@@ -8,6 +8,7 @@ use App\Models\Krs;
 use App\Models\KrsGuidanceMessage;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
+use App\Models\PengajuanTranskrip;
 use App\Models\TahunAkademik;
 use App\Services\EdomCompletionService;
 use Illuminate\Http\JsonResponse;
@@ -425,6 +426,167 @@ class AcademicController extends Controller
         ]);
     }
 
+    public function grades(Request $request): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $ta = $this->activeAcademicYear();
+
+        $currentItems = collect();
+        if ($ta) {
+            $currentItems = Krs::query()
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->where('ta_id', $ta->ta_id)
+                ->whereHas('kurikulum.mataKuliah')
+                ->with('kurikulum.mataKuliah')
+                ->get()
+                ->unique('kurikulum_id')
+                ->sortBy(fn (Krs $item) => $item->kurikulum?->mataKuliah?->nama)
+                ->values();
+        }
+
+        $historyItems = Krs::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->when($ta, fn ($query) => $query->where('ta_id', '!=', $ta->ta_id))
+            ->whereHas('kurikulum.mataKuliah')
+            ->where(function ($query) {
+                $query->whereNotNull('uts')->orWhereNotNull('uas');
+            })
+            ->with(['kurikulum.mataKuliah', 'tahunAjaran'])
+            ->get()
+            ->filter(fn (Krs $item) => filled($item->uts) || filled($item->uas))
+            ->unique(fn (Krs $item) => $item->ta_id.'-'.$item->kurikulum_id)
+            ->groupBy('ta_id')
+            ->sortKeysDesc();
+
+        $edomCompletionByAcademicYear = [];
+        $published = $this->publishedKhs($mahasiswa)
+            ->filter(function (Krs $item) use ($mahasiswa, $ta, &$edomCompletionByAcademicYear) {
+                if ($ta && (int) $item->ta_id === (int) $ta->ta_id
+                    && (int) $mahasiswa->status_akhir !== 1) {
+                    return false;
+                }
+
+                $taId = (int) $item->ta_id;
+                $edomCompletionByAcademicYear[$taId] ??= $this->edomCompletion
+                    ->status($mahasiswa, $taId)['complete'];
+
+                return $edomCompletionByAcademicYear[$taId];
+            })
+            ->sortBy(fn (Krs $item) => sprintf(
+                '%010d|%s',
+                (int) $item->ta_id,
+                strtolower((string) $item->kurikulum?->mataKuliah?->nama)
+            ))
+            ->values();
+        [$transcriptCredits, $transcriptWeight] = $this->totals($published);
+        $ipk = round($transcriptCredits > 0 ? $transcriptWeight / $transcriptCredits : 0, 2);
+        $latestTranscriptRequest = PengajuanTranskrip::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->latest('id')
+            ->first();
+
+        activity_log('lihat_nilai_mobile', 'Mahasiswa melihat manajemen nilai melalui aplikasi Android');
+
+        return response()->json([
+            'tahun_akademik' => $ta ? $this->academicYearPayload($ta) : null,
+            'uts' => $this->currentExamPayload(
+                $currentItems,
+                (int) $mahasiswa->status_nilai_uts === 1,
+                'uts',
+                $ta
+            ),
+            'uas' => $this->currentExamPayload(
+                $currentItems,
+                (int) $mahasiswa->status_nilai_uas === 1,
+                'uas',
+                $ta
+            ),
+            'riwayat' => $historyItems->map(function (Collection $items) {
+                $period = $items->first()?->tahunAjaran;
+
+                return [
+                    'tahun_akademik' => $period ? $this->academicYearPayload($period) : null,
+                    'mata_kuliah' => $items
+                        ->sortBy(fn (Krs $item) => $item->kurikulum?->mataKuliah?->nama)
+                        ->map(fn (Krs $item) => $this->examCoursePayload($item))
+                        ->values(),
+                ];
+            })->values(),
+            'transkrip' => [
+                'total_sks' => $transcriptCredits,
+                'ipk' => $ipk,
+                'predikat' => $this->transcriptPredicate($ipk),
+                'mata_kuliah' => $published->map(fn (Krs $item) => [
+                    ...$this->courseIdentityPayload($item),
+                    'tahun_akademik' => $item->kurikulum?->tahunAjaran
+                        ? $this->academicYearPayload($item->kurikulum->tahunAjaran)
+                        : null,
+                    'nilai_huruf' => $item->khs,
+                    'bobot' => $this->gradeWeight($item->khs),
+                ])->values(),
+            ],
+            'pengajuan_transkrip' => $this->transcriptRequestPayload($latestTranscriptRequest),
+        ]);
+    }
+
+    public function submitTranscriptRequest(Request $request): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $validated = $request->validate([
+            'jenis' => ['required', 'in:sementara'],
+            'keperluan' => ['required', 'string', 'max:255'],
+            'bukti' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'extensions:jpg,jpeg,png', 'max:2048'],
+        ], [
+            'jenis.required' => 'Jenis transkrip wajib dipilih.',
+            'jenis.in' => 'Jenis transkrip tidak valid.',
+            'keperluan.required' => 'Keperluan pengajuan wajib diisi.',
+            'keperluan.max' => 'Keperluan maksimal 255 karakter.',
+            'bukti.image' => 'Bukti harus berupa gambar JPG atau PNG.',
+            'bukti.mimes' => 'Bukti harus berupa gambar JPG atau PNG.',
+            'bukti.max' => 'Ukuran bukti maksimal 2 MB.',
+        ]);
+
+        $result = DB::transaction(function () use ($mahasiswa, $request, $validated) {
+            Mahasiswa::query()->whereKey($mahasiswa->mahasiswa_id)->lockForUpdate()->firstOrFail();
+            $latest = PengajuanTranskrip::query()
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->latest('id')
+                ->first();
+
+            if ($latest && $latest->status !== 'ditolak') {
+                return null;
+            }
+
+            return PengajuanTranskrip::create([
+                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                'jenis' => $validated['jenis'],
+                'keperluan' => trim($validated['keperluan']),
+                'bukti' => $request->hasFile('bukti')
+                    ? $request->file('bukti')->store('bukti_pengajuan', 'private')
+                    : null,
+                'status' => 'pending',
+            ]);
+        });
+
+        if (! $result) {
+            return response()->json([
+                'message' => 'Masih ada pengajuan transkrip yang sedang berjalan atau sudah disetujui.',
+            ], 422);
+        }
+
+        activity_log(
+            'pengajuan_transkrip_mobile',
+            'Mahasiswa mengajukan transkrip sementara melalui aplikasi Android'
+        );
+
+        return response()->json([
+            'message' => 'Pengajuan transkrip berhasil dikirim.',
+            'pengajuan' => $this->transcriptRequestPayload($result)['pengajuan_terakhir'],
+        ], 201);
+    }
+
     private function khsPayload(
         Mahasiswa $mahasiswa,
         TahunAkademik $ta,
@@ -475,6 +637,83 @@ class AcademicController extends Controller
             'ips' => null,
             'ipk' => null,
             'mata_kuliah' => [],
+        ];
+    }
+
+    private function currentExamPayload(
+        Collection $items,
+        bool $enabled,
+        string $component,
+        ?TahunAkademik $ta
+    ): array {
+        $label = strtoupper($component);
+
+        return [
+            'aktif' => $enabled && $ta !== null,
+            'pesan' => match (true) {
+                ! $ta => 'Tahun akademik aktif belum ditentukan.',
+                ! $enabled => 'Nilai '.$label.' belum diaktifkan oleh BAUK.',
+                default => null,
+            },
+            'mata_kuliah' => $enabled && $ta
+                ? $items->map(fn (Krs $item) => [
+                    ...$this->courseIdentityPayload($item),
+                    'nilai' => $this->numericScore($item->{$component}),
+                ])->values()
+                : [],
+        ];
+    }
+
+    private function examCoursePayload(Krs $item): array
+    {
+        return [
+            ...$this->courseIdentityPayload($item),
+            'uts' => $this->numericScore($item->uts),
+            'uas' => $this->numericScore($item->uas),
+        ];
+    }
+
+    private function courseIdentityPayload(Krs $item): array
+    {
+        return [
+            'id' => (int) $item->krs_id,
+            'kode' => $item->kurikulum?->mataKuliah?->matakuliah_id,
+            'nama' => $item->kurikulum?->mataKuliah?->nama,
+            'sks' => (int) ($item->kurikulum?->mataKuliah?->sks ?? 0),
+            'semester' => (int) ($item->kurikulum?->mataKuliah?->smt ?? 0),
+        ];
+    }
+
+    private function numericScore(mixed $score): ?float
+    {
+        $normalized = str_replace(',', '.', trim((string) $score));
+
+        return $normalized !== '' && is_numeric($normalized) ? (float) $normalized : null;
+    }
+
+    private function transcriptPredicate(float $ipk): string
+    {
+        return match (true) {
+            $ipk >= 3.51 => 'Dengan Pujian',
+            $ipk >= 3.00 => 'Sangat Baik',
+            $ipk >= 2.50 => 'Baik',
+            $ipk >= 2.00 => 'Cukup',
+            default => 'Kurang',
+        };
+    }
+
+    private function transcriptRequestPayload(?PengajuanTranskrip $request): array
+    {
+        return [
+            'dapat_mengajukan' => ! $request || $request->status === 'ditolak',
+            'pengajuan_terakhir' => $request ? [
+                'id' => (int) $request->id,
+                'jenis' => $request->jenis,
+                'keperluan' => $request->keperluan,
+                'status' => $request->status,
+                'catatan' => $request->catatan,
+                'diajukan_pada' => $request->created_at?->toIso8601String(),
+            ] : null,
         ];
     }
 
