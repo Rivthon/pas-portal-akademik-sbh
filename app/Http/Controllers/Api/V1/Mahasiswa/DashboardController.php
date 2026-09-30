@@ -67,6 +67,8 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (LmsMateri $item) => [
                 'id' => (int) $item->materi_id,
+                'jadwal_id' => (int) $item->jadwal_id,
+                'pertemuan_id' => $item->pertemuan_id ? (int) $item->pertemuan_id : null,
                 'jenis' => 'materi',
                 'judul' => $item->judul,
                 'mata_kuliah' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',
@@ -83,6 +85,8 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (LmsTugas $item) => [
                 'id' => (int) $item->tugas_id,
+                'jadwal_id' => (int) $item->jadwal_id,
+                'pertemuan_id' => $item->pertemuan_id ? (int) $item->pertemuan_id : null,
                 'jenis' => 'tugas',
                 'judul' => $item->judul,
                 'mata_kuliah' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',
@@ -99,6 +103,8 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (LmsQuiz $item) => [
                 'id' => (int) $item->quiz_id,
+                'jadwal_id' => (int) $item->jadwal_id,
+                'pertemuan_id' => $item->pertemuan_id ? (int) $item->pertemuan_id : null,
                 'jenis' => 'quiz',
                 'judul' => $item->judul,
                 'mata_kuliah' => $item->jadwal?->kurikulum?->mataKuliah?->nama ?? '-',

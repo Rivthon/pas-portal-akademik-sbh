@@ -3,8 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Mahasiswa;
+use App\Models\TahunAkademik;
+use App\Support\KrsClassResolver;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class MahasiswaMobileApiTest extends TestCase
@@ -73,10 +76,96 @@ class MahasiswaMobileApiTest extends TestCase
             ]);
 
         $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/lms')
+            ->assertOk()
+            ->assertJsonStructure(['tahun_akademik', 'kelas']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/krs')
+            ->assertOk()
+            ->assertJsonStructure(['tahun_akademik', 'status', 'total_sks', 'mata_kuliah']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/krs/pilihan')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik',
+                'pengisian_diaktifkan',
+                'dapat_diubah',
+                'mode',
+                'mata_kuliah',
+            ]);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/khs')
+            ->assertOk()
+            ->assertJsonStructure(['tahun_akademik', 'terkunci', 'total_sks', 'mata_kuliah']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/khs/riwayat')
+            ->assertOk()
+            ->assertJsonStructure(['riwayat']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/jadwal')
+            ->assertOk()
+            ->assertJsonStructure(['tahun_akademik', 'teori', 'praktik']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/rps')
+            ->assertOk()
+            ->assertJsonStructure(['tahun_akademik', 'mata_kuliah']);
+
+        $this->withToken($token)
             ->postJson('/api/v1/mahasiswa/logout')
             ->assertOk();
 
         $this->assertNotNull($tokenId);
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $tokenId]);
+    }
+
+    public function test_student_only_receives_lms_class_from_approved_matching_krs(): void
+    {
+        $tahunAkademik = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
+        $mahasiswa = Mahasiswa::query()
+            ->whereHas('krs', fn ($query) => $query
+                ->where('ta_id', $tahunAkademik->ta_id)
+                ->whereNotNull('disetujui_pada'))
+            ->get()
+            ->first(fn (Mahasiswa $candidate) => KrsClassResolver::jadwalIdsForMahasiswa(
+                $candidate,
+                (int) $tahunAkademik->ta_id
+            )->isNotEmpty());
+
+        if (! $mahasiswa) {
+            $this->markTestSkipped('Tidak ada KRS aktif yang cocok dengan jadwal pada database uji.');
+        }
+
+        $jadwalId = KrsClassResolver::jadwalIdsForMahasiswa(
+            $mahasiswa,
+            (int) $tahunAkademik->ta_id
+        )->first();
+
+        Sanctum::actingAs($mahasiswa, ['mahasiswa']);
+
+        $this->getJson('/api/v1/mahasiswa/lms')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $jadwalId]);
+
+        $this->getJson('/api/v1/mahasiswa/lms/'.$jadwalId)
+            ->assertOk()
+            ->assertJsonPath('kelas.id', $jadwalId)
+            ->assertJsonStructure(['kelas', 'pertemuan']);
+
+        $this->getJson('/api/v1/mahasiswa/jadwal')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $jadwalId]);
+
+        $this->getJson('/api/v1/mahasiswa/rps')
+            ->assertOk()
+            ->assertJsonCount($mahasiswa->krs()
+                ->where('ta_id', $tahunAkademik->ta_id)
+                ->whereNotNull('disetujui_pada')
+                ->count(), 'mata_kuliah');
     }
 }
