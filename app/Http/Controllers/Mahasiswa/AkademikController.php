@@ -676,16 +676,26 @@ class AkademikController extends Controller
 
         $activeTa = TahunAkademik::where('status_ta', 1)->first(['ta_id', 'nama', 'semester']);
         abort_unless($activeTa, 404, 'Tahun akademik aktif belum ditentukan.');
-        abort_unless(
-            (int) $mahasiswa->status_akhir === 1,
-            403,
-            'KHS semester aktif belum diaktifkan oleh bagian administrasi.'
-        );
-        abort_unless(
-            $edomCompletion->isComplete($mahasiswa, (int) $activeTa->ta_id),
-            403,
-            'Silakan selesaikan seluruh EDOM tahun akademik aktif sebelum melihat KHS.'
-        );
+
+        if ((int) $mahasiswa->status_akhir !== 1) {
+            return $this->activeKhsLockedView(
+                $mahasiswa,
+                $activeTa,
+                'activation',
+                'KHS semester aktif belum diaktifkan oleh BAAK.'
+            );
+        }
+
+        $edomStatus = $edomCompletion->status($mahasiswa, (int) $activeTa->ta_id);
+        if (! $edomStatus['complete']) {
+            return $this->activeKhsLockedView(
+                $mahasiswa,
+                $activeTa,
+                'edom',
+                'KHS sudah diaktifkan BAAK, tetapi seluruh EDOM tahun akademik aktif harus diselesaikan terlebih dahulu.',
+                $edomStatus
+            );
+        }
 
         try {
             $allPublishedKhs = $this->publishedKhs($mahasiswa);
@@ -812,6 +822,30 @@ class AkademikController extends Controller
             ->filter(fn ($item) => $item->kurikulum && $item->kurikulum->mataKuliah);
 
         return KhsPublication::filterPublishedKrs($khs, $mahasiswa);
+    }
+
+    private function activeKhsLockedView(
+        $mahasiswa,
+        TahunAkademik $ta,
+        string $reason,
+        string $message,
+        ?array $edomStatus = null
+    ) {
+        return view('mahasiswa.khs.index', [
+            'khs' => collect(),
+            'mahasiswa' => $mahasiswa,
+            'ta' => $ta,
+            'ips' => 0,
+            'ipk' => 0,
+            'khsPublished' => false,
+            'selectedTaId' => (int) $ta->ta_id,
+            'isHistorical' => false,
+            'semesterKhs' => '',
+            'khsLocked' => true,
+            'khsLockReason' => $reason,
+            'khsLockMessage' => $message,
+            'edomStatus' => $edomStatus,
+        ]);
     }
 
     /**

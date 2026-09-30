@@ -18,17 +18,27 @@
     </div>
 </div>
 
-@if((int) auth('mahasiswa')->user()->status_edom !== 1)
+@if($khsLocked ?? false)
     <div class="card shadow-sm mb-4 border-top border-5 border-warning">
         <div class="card-body text-center py-5">
-            <i class="bx bx-message-square-edit text-warning" style="font-size:4rem"></i>
-            <h4 class="mt-3">Selesaikan EDOM Terlebih Dahulu</h4>
+            <i class="bx {{ ($khsLockReason ?? '') === 'edom' ? 'bx-message-square-edit' : 'bx-lock-alt' }} text-warning" style="font-size:4rem"></i>
+            <h4 class="mt-3">
+                {{ ($khsLockReason ?? '') === 'edom' ? 'Selesaikan EDOM Terlebih Dahulu' : 'KHS Belum Diaktifkan' }}
+            </h4>
             <p class="text-muted mx-auto" style="max-width:620px">
-                KHS semester aktif sudah tersedia, tetapi baru dapat dilihat setelah seluruh EDOM selesai dan dikonfirmasi.
+                {{ $khsLockMessage ?? 'KHS semester aktif belum dapat dibuka.' }}
             </p>
-            <a href="{{ route('mahasiswa.edom.index') }}" class="btn btn-warning">
-                <i class="bx bx-edit me-1"></i>Buka EDOM
-            </a>
+            @if(($khsLockReason ?? '') === 'edom')
+                @if(($edomStatus['required'] ?? 0) > 0)
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <span class="badge bg-label-primary">{{ $edomStatus['filled'] ?? 0 }} dari {{ $edomStatus['required'] ?? 0 }} EDOM selesai</span>
+                        <span class="badge bg-label-warning">Sisa {{ $edomStatus['remaining'] ?? 0 }}</span>
+                    </div>
+                @endif
+                <a href="{{ route('mahasiswa.edom.index', ['ta_id' => $selectedTaId]) }}" class="btn btn-warning">
+                    <i class="bx bx-edit me-1"></i>Buka EDOM
+                </a>
+            @endif
         </div>
     </div>
 @else

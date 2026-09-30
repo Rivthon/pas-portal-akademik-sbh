@@ -6,7 +6,9 @@ use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
+use App\Services\EdomCompletionService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class MahasiswaKhsHistoryTest extends TestCase
@@ -41,6 +43,16 @@ class MahasiswaKhsHistoryTest extends TestCase
             'published_by_user_id' => null,
             'published_at' => now(),
         ]);
+
+        $this->mock(EdomCompletionService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('status')->andReturn([
+                'required' => 1,
+                'filled' => 1,
+                'remaining' => 0,
+                'complete' => true,
+            ]);
+            $mock->shouldReceive('isComplete')->andReturnTrue();
+        });
 
         $this->actingAs($mahasiswa, 'mahasiswa')
             ->get(route('mahasiswa.khs.riwayat', ['ta_id' => $selectedTaId]))
@@ -84,7 +96,9 @@ class MahasiswaKhsHistoryTest extends TestCase
 
         $this->actingAs($mahasiswa, 'mahasiswa')
             ->get(route('mahasiswa.kartu-hasil.index'))
-            ->assertForbidden();
+            ->assertOk()
+            ->assertSee('KHS Belum Diaktifkan')
+            ->assertSee('belum diaktifkan oleh BAAK');
 
         $this->get(route('mahasiswa.khs.cetak', ['ta_id' => $activeTa->ta_id]))
             ->assertForbidden();
@@ -115,11 +129,44 @@ class MahasiswaKhsHistoryTest extends TestCase
 
         $historicalTaId = TahunAkademik::where('ta_id', '<', $activeTa->ta_id)->max('ta_id');
 
+        $this->mock(EdomCompletionService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('status')->andReturn([
+                'required' => 1,
+                'filled' => 1,
+                'remaining' => 0,
+                'complete' => true,
+            ]);
+        });
+
         $this->actingAs($mahasiswa, 'mahasiswa')
             ->get(route('mahasiswa.kartu-hasil.index', ['ta_id' => $historicalTaId]))
             ->assertOk()
             ->assertSee('SEMESTER AKTIF')
             ->assertSee($activeTa->nama)
             ->assertSee($krs->kurikulum->mataKuliah->nama);
+    }
+
+    public function test_active_khs_with_incomplete_edom_shows_explanation_instead_of_403(): void
+    {
+        $activeTa = TahunAkademik::where('status_ta', 1)->firstOrFail();
+        $mahasiswa = Mahasiswa::query()->firstOrFail();
+        $mahasiswa->update(['status_akhir' => 1]);
+
+        $this->mock(EdomCompletionService::class, function (MockInterface $mock) {
+            $mock->shouldReceive('status')->once()->andReturn([
+                'required' => 8,
+                'filled' => 6,
+                'remaining' => 2,
+                'complete' => false,
+            ]);
+        });
+
+        $this->actingAs($mahasiswa, 'mahasiswa')
+            ->get(route('mahasiswa.kartu-hasil.index'))
+            ->assertOk()
+            ->assertSee('Selesaikan EDOM Terlebih Dahulu')
+            ->assertSee('6 dari 8 EDOM selesai')
+            ->assertSee('Sisa 2')
+            ->assertSee(route('mahasiswa.edom.index', ['ta_id' => $activeTa->ta_id]));
     }
 }
