@@ -40,7 +40,7 @@ class QuizDosenController extends Controller
         $data = $this->validateQuiz($request, $jadwal);
         $data['jadwal_id'] = $jadwal->id;
         $data['dosen_id'] = Auth::guard('dosen')->id();
-        $data['aktif'] = $request->boolean('aktif', true);
+        $data['aktif'] = $request->boolean('aktif');
         $quiz = LmsQuiz::create($data);
 
         return redirect()->route('dosen.lms.quiz.manage', $quiz)
@@ -80,16 +80,16 @@ class QuizDosenController extends Controller
             'pertemuan', 'soal',
         ])->loadCount('attempts');
 
-        $sourceQuizzes = LmsQuiz::query()
+        $destinationQuizzes = LmsQuiz::query()
             ->where('dosen_id', Auth::guard('dosen')->id())
             ->where('quiz_id', '!=', $quiz->quiz_id)
-            ->whereHas('soal')
+            ->whereDoesntHave('attempts')
             ->with(['jadwal.kurikulum.mataKuliah', 'jadwal.kurikulum.programStudi'])
             ->withCount('soal')
             ->latest()
             ->get();
 
-        return view('dosen.lms.quiz.manage', compact('quiz', 'sourceQuizzes'));
+        return view('dosen.lms.quiz.manage', compact('quiz', 'destinationQuizzes'));
     }
 
     public function storeSoal(Request $request, LmsQuiz $quiz)
@@ -111,41 +111,44 @@ class QuizDosenController extends Controller
 
     public function copySoal(Request $request, LmsQuiz $quiz)
     {
-        $quiz = $this->quizMilikDosen($quiz);
-        if ($quiz->attempts()->exists()) {
-            return back()->with(
-                'error',
-                'Soal tidak dapat disalin karena quiz tujuan sudah mulai dikerjakan mahasiswa.'
-            );
-        }
-
-        $validated = $request->validate([
-            'source_quiz_id' => [
-                'required',
-                'integer',
-                Rule::notIn([(int) $quiz->quiz_id]),
-                'exists:lms_quiz,quiz_id',
-            ],
-        ], [
-            'source_quiz_id.required' => 'Pilih quiz sumber yang akan disalin.',
-            'source_quiz_id.not_in' => 'Quiz sumber harus berbeda dari quiz tujuan.',
-            'source_quiz_id.exists' => 'Quiz sumber tidak ditemukan.',
-        ]);
-
-        $sourceQuiz = LmsQuiz::query()->findOrFail($validated['source_quiz_id']);
-        $sourceQuiz = $this->quizMilikDosen($sourceQuiz);
+        $sourceQuiz = $this->quizMilikDosen($quiz);
         $sourceQuiz->load('soal');
 
         if ($sourceQuiz->soal->isEmpty()) {
-            return back()->with('error', 'Quiz sumber belum memiliki soal untuk disalin.');
+            return back()->with('error', 'Quiz ini belum memiliki soal untuk disalin.');
         }
 
-        $copied = DB::transaction(function () use ($quiz, $sourceQuiz) {
-            $nextOrder = ((int) $quiz->soal()->max('urutan')) + 1;
+        $validated = $request->validate([
+            'destination_quiz_id' => [
+                'required',
+                'integer',
+                Rule::notIn([(int) $sourceQuiz->quiz_id]),
+                'exists:lms_quiz,quiz_id',
+            ],
+        ], [
+            'destination_quiz_id.required' => 'Pilih quiz tujuan penyalinan soal.',
+            'destination_quiz_id.not_in' => 'Quiz tujuan harus berbeda dari quiz sumber.',
+            'destination_quiz_id.exists' => 'Quiz tujuan tidak ditemukan.',
+        ]);
+
+        $destinationQuiz = LmsQuiz::query()->findOrFail($validated['destination_quiz_id']);
+        $destinationQuiz = $this->quizMilikDosen($destinationQuiz);
+
+        $copied = DB::transaction(function () use ($destinationQuiz, $sourceQuiz) {
+            $lockedDestination = LmsQuiz::query()
+                ->whereKey($destinationQuiz->quiz_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedDestination->attempts()->exists()) {
+                return null;
+            }
+
+            $nextOrder = ((int) $lockedDestination->soal()->max('urutan')) + 1;
 
             foreach ($sourceQuiz->soal as $sourceQuestion) {
                 LmsQuizSoal::create([
-                    'quiz_id' => $quiz->quiz_id,
+                    'quiz_id' => $lockedDestination->quiz_id,
                     'tipe' => $sourceQuestion->tipe,
                     'pertanyaan' => $sourceQuestion->pertanyaan,
                     'opsi' => $sourceQuestion->opsi,
@@ -158,12 +161,21 @@ class QuizDosenController extends Controller
             return $sourceQuiz->soal->count();
         });
 
+        if ($copied === null) {
+            return back()->with(
+                'error',
+                'Soal tidak dapat disalin karena quiz tujuan sudah mulai dikerjakan mahasiswa.'
+            );
+        }
+
         activity_log(
             'salin_soal_quiz',
-            'Dosen menyalin '.$copied.' soal dari quiz '.$sourceQuiz->quiz_id.' ke quiz '.$quiz->quiz_id
+            'Dosen menyalin '.$copied.' soal dari quiz '.$sourceQuiz->quiz_id.' ke quiz '.$destinationQuiz->quiz_id
         );
 
-        return back()->with('success', $copied.' soal berhasil disalin dari quiz “'.$sourceQuiz->judul.'”.');
+        return redirect()
+            ->route('dosen.lms.quiz.manage', $destinationQuiz)
+            ->with('success', $copied.' soal berhasil disalin dari quiz “'.$sourceQuiz->judul.'”.');
     }
 
     public function updateSoal(Request $request, LmsQuizSoal $soal)

@@ -62,7 +62,7 @@
                     <div class="col-md-4"><label class="form-label">Mulai</label><input type="datetime-local" name="mulai_at" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Deadline</label><input type="datetime-local" name="deadline" class="form-control"></div>
                     <div class="col-md-4"><label class="form-label">Durasi (menit)</label><input type="number" name="durasi_menit" min="1" class="form-control"></div>
-                    <div class="col-12"><div class="form-check"><input type="checkbox" name="aktif" value="1" checked class="form-check-input" id="quizActive"><label for="quizActive" class="form-check-label">Langsung tampilkan kepada mahasiswa</label></div></div>
+                    <div class="col-12"><div class="form-check"><input type="checkbox" name="aktif" value="1" class="form-check-input" id="quizActive"><label for="quizActive" class="form-check-label">Langsung tampilkan kepada mahasiswa</label><small class="text-muted d-block">Secara default quiz disimpan sebagai draft. Centang hanya jika quiz sudah siap ditampilkan.</small></div></div>
                 </div>
             </div>
             <div class="modal-footer"><button class="btn btn-primary">Buat & Tambahkan Soal</button></div>

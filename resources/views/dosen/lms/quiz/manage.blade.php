@@ -9,9 +9,9 @@
         <a href="{{ route('dosen.lms.quiz.index', $quiz->jadwal) }}" class="btn btn-sm btn-label-secondary"><i class="bx bx-arrow-back me-1"></i>Daftar Quiz</a>
         <div class="d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-sm btn-outline-primary"
-                @if(!$quizLocked && $sourceQuizzes->isNotEmpty()) data-bs-toggle="modal" data-bs-target="#copyQuestions" @else disabled @endif
-                title="{{ $quizLocked ? 'Quiz sudah dikerjakan mahasiswa' : ($sourceQuizzes->isEmpty() ? 'Belum ada quiz lain yang memiliki soal' : 'Salin soal dari quiz lain') }}">
-                <i class="bx bx-copy-alt me-1"></i>Salin Soal
+                @if($quiz->soal->isNotEmpty() && $destinationQuizzes->isNotEmpty()) data-bs-toggle="modal" data-bs-target="#copyQuestions" @else disabled @endif
+                title="{{ $quiz->soal->isEmpty() ? 'Quiz ini belum memiliki soal' : ($destinationQuizzes->isEmpty() ? 'Belum ada quiz tujuan yang belum dikerjakan' : 'Salin soal ke quiz lain') }}">
+                <i class="bx bx-copy-alt me-1"></i>Salin ke Quiz Lain
             </button>
             <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-sm btn-primary"><i class="bx bx-bar-chart me-1"></i>Hasil & Penilaian</a>
         </div>
@@ -106,33 +106,33 @@
                 @csrf
                 <div class="modal-header">
                     <div>
-                        <h5 class="modal-title mb-1">Salin Soal dari Quiz Lain</h5>
-                        <small class="text-muted">Soal akan ditambahkan ke bagian akhir quiz ini. Quiz sumber tidak akan berubah.</small>
+                        <h5 class="modal-title mb-1">Salin Soal ke Quiz Lain</h5>
+                        <small class="text-muted">Seluruh soal dari “{{ $quiz->judul }}” akan disalin. Quiz ini tidak akan berubah.</small>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <label class="form-label fw-semibold">Pilih Quiz Sumber</label>
-                    <select name="source_quiz_id" class="form-select" required>
-                        <option value="">-- Pilih quiz yang sudah memiliki soal --</option>
-                        @foreach($sourceQuizzes as $sourceQuiz)
+                    <label class="form-label fw-semibold">Pilih Quiz Tujuan</label>
+                    <select name="destination_quiz_id" class="form-select" required>
+                        <option value="">-- Pilih quiz tujuan yang belum dikerjakan --</option>
+                        @foreach($destinationQuizzes as $destinationQuiz)
                             @php
-                                $sourceCourse = $sourceQuiz->jadwal?->kurikulum?->mataKuliah;
-                                $sourceClass = strtolower((string) $sourceQuiz->jadwal?->jenis_kelas) === 'karyawan' ? 'Reguler B' : 'Reguler A';
+                                $destinationCourse = $destinationQuiz->jadwal?->kurikulum?->mataKuliah;
+                                $destinationClass = strtolower((string) $destinationQuiz->jadwal?->jenis_kelas) === 'karyawan' ? 'Reguler B' : 'Reguler A';
                             @endphp
-                            <option value="{{ $sourceQuiz->quiz_id }}" @selected(old('source_quiz_id') == $sourceQuiz->quiz_id)>
-                                {{ $sourceQuiz->judul }} — {{ $sourceCourse?->nama ?? 'Mata kuliah tidak tersedia' }} — {{ $sourceClass }} — {{ $sourceQuiz->soal_count }} soal
+                            <option value="{{ $destinationQuiz->quiz_id }}" @selected(old('destination_quiz_id') == $destinationQuiz->quiz_id)>
+                                {{ $destinationQuiz->judul }} — {{ $destinationCourse?->nama ?? 'Mata kuliah tidak tersedia' }} — {{ $destinationClass }} — {{ $destinationQuiz->aktif ? 'Aktif' : 'Draft' }} — {{ $destinationQuiz->soal_count }} soal saat ini
                             </option>
                         @endforeach
                     </select>
                     <div class="alert alert-info border-0 mt-3 mb-0">
                         <i class="bx bx-info-circle me-1"></i>
-                        Tipe soal, opsi A–E, kunci jawaban, bobot, dan urutan akan ikut disalin. Soal hasil salinan masih dapat diedit selama quiz tujuan belum dikerjakan mahasiswa.
+                        Quiz lama boleh sudah berjalan. Tipe soal, opsi A–E, kunci jawaban, bobot, dan urutan akan ikut disalin ke quiz tujuan yang belum pernah dikerjakan mahasiswa.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary"><i class="bx bx-copy-alt me-1"></i>Salin Semua Soal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bx bx-copy-alt me-1"></i>Salin ke Quiz Tujuan</button>
                 </div>
             </form>
         </div>

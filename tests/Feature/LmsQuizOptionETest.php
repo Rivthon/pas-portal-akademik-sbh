@@ -76,6 +76,15 @@ class LmsQuizOptionETest extends TestCase
     {
         $source = LmsQuiz::with(['jadwal', 'soal'])->whereHas('soal')->firstOrFail();
         $dosen = Dosen::findOrFail($source->dosen_id);
+        if (! $source->attempts()->exists()) {
+            $mahasiswa = Mahasiswa::query()->firstOrFail();
+            LmsQuizAttempt::create([
+                'quiz_id' => $source->quiz_id,
+                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+                'status' => 'draft',
+                'started_at' => now(),
+            ]);
+        }
         $destination = LmsQuiz::create([
             'jadwal_id' => $source->jadwal_id,
             'pertemuan_id' => null,
@@ -89,10 +98,10 @@ class LmsQuizOptionETest extends TestCase
         ]);
 
         $this->actingAs($dosen, 'dosen')
-            ->post(route('dosen.lms.quiz.soal.copy', $destination), [
-                'source_quiz_id' => $source->quiz_id,
+            ->post(route('dosen.lms.quiz.soal.copy', $source), [
+                'destination_quiz_id' => $destination->quiz_id,
             ])
-            ->assertRedirect()
+            ->assertRedirect(route('dosen.lms.quiz.manage', $destination))
             ->assertSessionHas('success');
 
         $copiedQuestions = $destination->soal()->orderBy('urutan')->get();
@@ -117,10 +126,28 @@ class LmsQuizOptionETest extends TestCase
 
         $this->actingAs($dosen, 'dosen')
             ->post(route('dosen.lms.quiz.soal.copy', $quiz), [
-                'source_quiz_id' => $quiz->quiz_id,
+                'destination_quiz_id' => $quiz->quiz_id,
             ])
-            ->assertSessionHasErrors('source_quiz_id');
+            ->assertSessionHasErrors('destination_quiz_id');
 
         $this->assertSame($questionCount, $quiz->soal()->count());
+    }
+
+    public function test_new_quiz_is_saved_as_draft_when_active_checkbox_is_not_checked(): void
+    {
+        $existingQuiz = LmsQuiz::with('jadwal')->firstOrFail();
+        $dosen = Dosen::findOrFail($existingQuiz->dosen_id);
+        $title = 'Quiz draft '.uniqid();
+
+        $this->actingAs($dosen, 'dosen')
+            ->post(route('dosen.lms.quiz.store', $existingQuiz->jadwal), [
+                'judul' => $title,
+                'deskripsi' => 'Quiz harus tersimpan sebagai draft',
+                'durasi_menit' => 60,
+            ])
+            ->assertRedirect();
+
+        $quiz = LmsQuiz::query()->where('judul', $title)->firstOrFail();
+        $this->assertFalse($quiz->aktif);
     }
 }
