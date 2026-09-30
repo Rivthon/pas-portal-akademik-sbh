@@ -36,7 +36,7 @@
                     <td class="center">{{ $loop->iteration }}</td><td>{{ $data->mahasiswa->nim ?? '-' }}</td><td class="left">{{ $data->mahasiswa->nama ?? '-' }}</td>
                     @foreach($tugasList as $tugas)
                         @php($pengumpulan = $data->nilai_per_tugas[$tugas->tugas_id] ?? null)
-                        <td class="center">{{ $pengumpulan?->nilai ?? 0 }}</td>
+                        <td class="center">{{ $pengumpulan === false ? '-' : ($pengumpulan?->nilai ?? 0) }}</td>
                     @endforeach
                     @foreach($quizList as $quiz)
                         @php($attemptQuiz = $data->nilai_per_quiz[$quiz->quiz_id] ?? null)

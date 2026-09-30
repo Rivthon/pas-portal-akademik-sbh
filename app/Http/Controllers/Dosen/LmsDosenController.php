@@ -21,6 +21,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -72,14 +73,18 @@ class LmsDosenController extends Controller
             'materi',
             'tugas.pengumpulan',
             'tugas.soal',
+            'tugas.targetMahasiswa',
         ])
             ->where('jadwal_id', $jadwal->id)
             ->orderBy('pertemuan_id', 'asc')
             ->get();
 
+        $peserta = $this->pesertaJadwal($jadwal);
+
         return view('dosen.lms.kelola', compact(
             'jadwal',
-            'pertemuan'
+            'pertemuan',
+            'peserta'
         ));
     }
 
@@ -89,7 +94,7 @@ class LmsDosenController extends Controller
         $jadwal->load(['kurikulum.mataKuliah', 'kurikulum.programStudi']);
 
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
-            ->with(['pertemuan', 'pengumpulan'])
+            ->with(['pertemuan', 'pengumpulan', 'targetMahasiswa'])
             ->orderBy('pertemuan_id')
             ->orderBy('deadline')
             ->get();
@@ -122,14 +127,23 @@ class LmsDosenController extends Controller
             + (float) $quizList->sum('nilai_maksimal_gradebook');
 
         $rekap = $peserta->map(function ($mahasiswa) use (
-            $tugasList, $quizList, $pengumpulan, $attemptQuiz, $totalMaksimal
+            $tugasList, $quizList, $pengumpulan, $attemptQuiz
         ) {
             $nilaiDiperoleh = 0;
             $jumlahDinilai = 0;
             $nilaiPerTugas = [];
             $nilaiPerQuiz = [];
+            $tugasMahasiswa = $tugasList->filter(fn (LmsTugas $tugas) => $tugas
+                ->ditujukanKepada((int) $mahasiswa->mahasiswa_id));
+            $totalMaksimalMahasiswa = (float) $tugasMahasiswa->sum('nilai_maksimal')
+                + (float) $quizList->sum('nilai_maksimal_gradebook');
 
             foreach ($tugasList as $tugas) {
+                if (! $tugas->ditujukanKepada((int) $mahasiswa->mahasiswa_id)) {
+                    $nilaiPerTugas[$tugas->tugas_id] = false;
+
+                    continue;
+                }
                 $item = $pengumpulan->get($mahasiswa->mahasiswa_id.'-'.$tugas->tugas_id);
                 $nilaiPerTugas[$tugas->tugas_id] = $item;
 
@@ -153,8 +167,8 @@ class LmsDosenController extends Controller
                 'nilai_per_quiz' => $nilaiPerQuiz,
                 'nilai_diperoleh' => $nilaiDiperoleh,
                 'jumlah_dinilai' => $jumlahDinilai,
-                'persentase' => $totalMaksimal > 0
-                    ? round(($nilaiDiperoleh / $totalMaksimal) * 100, 1)
+                'persentase' => $totalMaksimalMahasiswa > 0
+                    ? round(($nilaiDiperoleh / $totalMaksimalMahasiswa) * 100, 1)
                     : 0,
             ];
         });
@@ -473,6 +487,7 @@ class LmsDosenController extends Controller
         $maxKilobytes = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
         $request->merge([
             'tipe' => $request->input('tipe') ?: 'file',
+            'cakupan' => $request->input('cakupan') ?: 'semua',
         ]);
 
         $request->validate([
@@ -481,6 +496,9 @@ class LmsDosenController extends Controller
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
             'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
+            'cakupan' => ['required', Rule::in(['semua', 'individu'])],
+            'mahasiswa_ids' => ['required_if:cakupan,individu', 'array', 'min:1'],
+            'mahasiswa_ids.*' => ['integer', 'distinct'],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|mimes:'.$documentExtensions.'|extensions:'.$documentExtensions.'|max:'.$maxKilobytes,
@@ -494,6 +512,8 @@ class LmsDosenController extends Controller
             'Pertemuan tidak sesuai dengan jadwal mata kuliah.'
         );
 
+        $targetIds = $this->validatedTargetMahasiswaIds($request, $jadwal);
+
         $lampiran = null;
 
         if ($request->hasFile('lampiran')) {
@@ -501,20 +521,29 @@ class LmsDosenController extends Controller
         }
 
         try {
-            $tugas = LmsTugas::create([
-                'jadwal_id' => $request->jadwal_id,
-                'pertemuan_id' => $request->pertemuan_id,
-                'dosen_id' => $dosen->dosen_id,
-                'judul' => $request->judul,
-                'deskripsi' => $request->deskripsi,
-                'tipe' => $request->tipe,
-                'deadline' => $request->deadline,
-                'nilai_maksimal' => $request->nilai_maksimal,
-                'lampiran' => $lampiran,
-                'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
-                'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
-                'aktif' => true,
-            ]);
+            $tugas = DB::transaction(function () use ($request, $dosen, $lampiran, $targetIds) {
+                $tugas = LmsTugas::create([
+                    'jadwal_id' => $request->jadwal_id,
+                    'pertemuan_id' => $request->pertemuan_id,
+                    'dosen_id' => $dosen->dosen_id,
+                    'judul' => $request->judul,
+                    'deskripsi' => $request->deskripsi,
+                    'tipe' => $request->tipe,
+                    'cakupan' => $request->cakupan,
+                    'deadline' => $request->deadline,
+                    'nilai_maksimal' => $request->nilai_maksimal,
+                    'lampiran' => $lampiran,
+                    'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
+                    'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
+                    'aktif' => true,
+                ]);
+
+                if ($request->cakupan === 'individu') {
+                    $tugas->targetMahasiswa()->sync($targetIds);
+                }
+
+                return $tugas;
+            });
         } catch (Throwable $exception) {
             StoredUpload::delete($lampiran);
             throw $exception;
@@ -536,6 +565,43 @@ class LmsDosenController extends Controller
         $dosen = Auth::guard('dosen')->user();
 
         return Jadwal::accessibleInLmsByDosen($dosen->dosen_id)->findOrFail($jadwalId);
+    }
+
+    private function pesertaJadwal(Jadwal $jadwal)
+    {
+        return Krs::with('mahasiswa')
+            ->where('kurikulum_id', $jadwal->kurikulum_id)
+            ->where('ta_id', $jadwal->ta_id)
+            ->whereNotNull('disetujui_pada')
+            ->get()
+            ->filter(fn (Krs $krs) => $krs->mahasiswa
+                && KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa))
+            ->pluck('mahasiswa')
+            ->filter()
+            ->unique('mahasiswa_id')
+            ->sortBy(fn ($mahasiswa) => $mahasiswa->nama ?? $mahasiswa->name ?? '')
+            ->values();
+    }
+
+    private function validatedTargetMahasiswaIds(Request $request, Jadwal $jadwal): array
+    {
+        if ($request->input('cakupan') !== 'individu') {
+            return [];
+        }
+
+        $requestedIds = collect($request->input('mahasiswa_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+        $participantIds = $this->pesertaJadwal($jadwal)->pluck('mahasiswa_id')->map(fn ($id) => (int) $id);
+
+        if ($requestedIds->isEmpty() || $requestedIds->diff($participantIds)->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'mahasiswa_ids' => 'Pilih minimal satu mahasiswa yang terdaftar pada kelas ini.',
+            ]);
+        }
+
+        return $requestedIds->all();
     }
 
     private function pastikanMateriMilikDosen(LmsMateri $materi): void
@@ -574,22 +640,12 @@ class LmsDosenController extends Controller
          * Ambil seluruh mahasiswa yang mengambil mata kuliah
          * berdasarkan kurikulum dan kelas pada jadwal.
          */
-        $peserta = Krs::with('mahasiswa')
-            ->where('kurikulum_id', $tugas->jadwal->kurikulum_id)
-            ->where('ta_id', $tugas->jadwal->ta_id)
-            ->whereNotNull('disetujui_pada')
-            ->get()
-            ->filter(fn (Krs $krs) => $krs->mahasiswa
-                && KrsClassResolver::matches($krs, $tugas->jadwal, $krs->mahasiswa))
-            ->pluck('mahasiswa')
-            ->filter()
-            ->unique('mahasiswa_id')
-            ->sortBy(function ($mahasiswa) {
-                return $mahasiswa->nama_mahasiswa
-                    ?? $mahasiswa->nama
-                    ?? '';
-            })
-            ->values();
+        $peserta = $this->pesertaJadwal($tugas->jadwal);
+        if ($tugas->cakupan === 'individu') {
+            $targetIds = $tugas->targetMahasiswa()->pluck('mahasiswa.mahasiswa_id')
+                ->map(fn ($id) => (int) $id);
+            $peserta = $peserta->whereIn('mahasiswa_id', $targetIds)->values();
+        }
 
         /*
          * Pengumpulan dikelompokkan berdasarkan mahasiswa_id
@@ -811,6 +867,7 @@ class LmsDosenController extends Controller
         abort_unless((int) $tugas->dosen_id === (int) $dosen->dosen_id, 403);
         $request->merge([
             'tipe' => $request->input('tipe') ?: ($tugas->tipe ?: 'file'),
+            'cakupan' => $request->input('cakupan') ?: ($tugas->cakupan ?: 'semua'),
         ]);
 
         // 2. Validasi Input
@@ -818,6 +875,9 @@ class LmsDosenController extends Controller
             'judul' => 'required|max:255',
             'deskripsi' => 'nullable',
             'tipe' => ['required', Rule::in(['file', 'pilihan_ganda', 'teks'])],
+            'cakupan' => ['required', Rule::in(['semua', 'individu'])],
+            'mahasiswa_ids' => ['required_if:cakupan,individu', 'array', 'min:1'],
+            'mahasiswa_ids.*' => ['integer', 'distinct'],
             'deadline' => 'required|date',
             'nilai_maksimal' => 'required|integer|min:1|max:1000',
             'lampiran' => 'nullable|file|mimes:'.$documentExtensions.'|extensions:'.$documentExtensions.'|max:'.$maxKilobytes,
@@ -826,6 +886,19 @@ class LmsDosenController extends Controller
         if ($request->tipe !== $tugas->tipe && $tugas->pengumpulan()->exists()) {
             throw ValidationException::withMessages([
                 'tipe' => 'Tipe tugas tidak dapat diubah karena sudah ada pengumpulan mahasiswa.',
+            ]);
+        }
+
+        $jadwal = $this->jadwalMilikDosen($tugas->jadwal_id);
+        $targetIds = $this->validatedTargetMahasiswaIds($request, $jadwal);
+        $targetBerubah = $request->cakupan !== $tugas->cakupan
+            || ($request->cakupan === 'individu'
+                && collect($targetIds)->sort()->values()->all() !== $tugas->targetMahasiswa()
+                    ->pluck('mahasiswa.mahasiswa_id')->map(fn ($id) => (int) $id)->sort()->values()->all());
+
+        if ($targetBerubah && $tugas->pengumpulan()->exists()) {
+            throw ValidationException::withMessages([
+                'mahasiswa_ids' => 'Target mahasiswa tidak dapat diubah karena sudah ada pengumpulan.',
             ]);
         }
 
@@ -838,16 +911,20 @@ class LmsDosenController extends Controller
         }
 
         try {
-            $tugas->update([
-                'judul' => $request->judul,
-                'deskripsi' => $request->deskripsi,
-                'tipe' => $request->tipe,
-                'deadline' => $request->deadline,
-                'nilai_maksimal' => $request->nilai_maksimal,
-                'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
-                'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
-                'lampiran' => $tugas->lampiran,
-            ]);
+            DB::transaction(function () use ($request, $tugas, $targetIds) {
+                $tugas->update([
+                    'judul' => $request->judul,
+                    'deskripsi' => $request->deskripsi,
+                    'tipe' => $request->tipe,
+                    'cakupan' => $request->cakupan,
+                    'deadline' => $request->deadline,
+                    'nilai_maksimal' => $request->nilai_maksimal,
+                    'izinkan_terlambat' => $request->boolean('izinkan_terlambat'),
+                    'izinkan_upload_ulang' => $request->boolean('izinkan_upload_ulang'),
+                    'lampiran' => $tugas->lampiran,
+                ]);
+                $tugas->targetMahasiswa()->sync($request->cakupan === 'individu' ? $targetIds : []);
+            });
         } catch (Throwable $exception) {
             StoredUpload::delete($newLampiran);
             throw $exception;

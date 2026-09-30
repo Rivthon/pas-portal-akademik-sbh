@@ -327,6 +327,15 @@
 
                                             <!-- CARD BADGES STATUS TUGAS -->
                                             <div class="mb-3 d-flex flex-wrap gap-1">
+                                                @if($tugas->cakupan === 'individu')
+                                                    <span class="badge bg-label-danger rounded-pill">
+                                                        <i class="bx bx-user-check me-1"></i>Tugas Individu · {{ $tugas->targetMahasiswa->count() }} mahasiswa
+                                                    </span>
+                                                @else
+                                                    <span class="badge bg-label-success rounded-pill">
+                                                        <i class="bx bx-group me-1"></i>Semua mahasiswa
+                                                    </span>
+                                                @endif
                                                 @if($tugas->izinkan_terlambat)
                                                     <span class="badge bg-label-warning rounded-pill">
                                                         Pengumpulan terlambat diizinkan
@@ -421,6 +430,51 @@
                                                             @if($tugas->pengumpulan->isNotEmpty())
                                                                 <small class="text-muted">Jenis tidak dapat diganti karena sudah ada pengumpulan.</small>
                                                             @endif
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Penerima Tugas</label>
+                                                            <select name="cakupan" class="form-select task-scope" required
+                                                                @disabled($tugas->pengumpulan->isNotEmpty())>
+                                                                <option value="semua" @selected($tugas->cakupan !== 'individu')>Semua mahasiswa di kelas</option>
+                                                                <option value="individu" @selected($tugas->cakupan === 'individu')>Tugas Individu (pilih mahasiswa)</option>
+                                                            </select>
+                                                            @if($tugas->pengumpulan->isNotEmpty())
+                                                                <input type="hidden" name="cakupan" value="{{ $tugas->cakupan }}">
+                                                                <small class="text-muted">Penerima tidak dapat diubah karena sudah ada pengumpulan.</small>
+                                                            @endif
+                                                        </div>
+
+                                                        <div class="task-target-panel border rounded-3 p-3 mb-3 {{ $tugas->cakupan === 'individu' ? '' : 'd-none' }}">
+                                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                                <strong class="small">Pilih mahasiswa penerima</strong>
+                                                                <div class="btn-group btn-group-sm">
+                                                                    <button type="button" class="btn btn-outline-primary task-select-all">Pilih Semua</button>
+                                                                    <button type="button" class="btn btn-outline-secondary task-clear-all">Kosongkan</button>
+                                                                </div>
+                                                            </div>
+                                                            <input type="search" class="form-control form-control-sm task-student-search mb-2" placeholder="Cari nama atau NIM...">
+                                                            <div class="task-student-list">
+                                                                @php($selectedTargetIds = $tugas->targetMahasiswa->pluck('mahasiswa_id')->map(fn($id) => (int) $id))
+                                                                @forelse($peserta as $mahasiswa)
+                                                                    <label class="task-student-item form-check border-bottom py-2 mb-0">
+                                                                        <input class="form-check-input" type="checkbox" name="mahasiswa_ids[]"
+                                                                            value="{{ $mahasiswa->mahasiswa_id }}"
+                                                                            @checked($selectedTargetIds->contains((int) $mahasiswa->mahasiswa_id))
+                                                                            @disabled($tugas->pengumpulan->isNotEmpty())>
+                                                                        <span class="form-check-label ms-1">
+                                                                            <span class="fw-semibold">{{ $mahasiswa->nama ?? $mahasiswa->name }}</span>
+                                                                            <small class="text-muted ms-1">{{ $mahasiswa->nim }}</small>
+                                                                        </span>
+                                                                        @if($tugas->pengumpulan->isNotEmpty() && $selectedTargetIds->contains((int) $mahasiswa->mahasiswa_id))
+                                                                            <input type="hidden" name="mahasiswa_ids[]" value="{{ $mahasiswa->mahasiswa_id }}">
+                                                                        @endif
+                                                                    </label>
+                                                                @empty
+                                                                    <div class="text-muted small">Belum ada mahasiswa dengan KRS yang sudah disetujui pada kelas ini.</div>
+                                                                @endforelse
+                                                            </div>
+                                                            <div class="small text-primary mt-2 task-selected-count"></div>
                                                         </div>
 
                                                         <div class="row">
@@ -572,6 +626,40 @@
                                     <small class="text-muted">Pilihan ganda memakai soal A-E. Jawaban teks ditulis langsung oleh mahasiswa di LMS.</small>
                                 </div>
 
+                                <div class="mb-3">
+                                    <label class="form-label">Penerima Tugas</label>
+                                    <select name="cakupan" class="form-select task-scope" required>
+                                        <option value="semua">Semua mahasiswa di kelas</option>
+                                        <option value="individu">Tugas Individu (pilih mahasiswa)</option>
+                                    </select>
+                                    <small class="text-muted">Tugas individu hanya tampil kepada mahasiswa yang dipilih.</small>
+                                </div>
+
+                                <div class="task-target-panel border rounded-3 p-3 mb-3 d-none">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                        <strong class="small">Pilih mahasiswa penerima</strong>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary task-select-all">Pilih Semua</button>
+                                            <button type="button" class="btn btn-outline-secondary task-clear-all">Kosongkan</button>
+                                        </div>
+                                    </div>
+                                    <input type="search" class="form-control form-control-sm task-student-search mb-2" placeholder="Cari nama atau NIM...">
+                                    <div class="task-student-list">
+                                        @forelse($peserta as $mahasiswa)
+                                            <label class="task-student-item form-check border-bottom py-2 mb-0">
+                                                <input class="form-check-input" type="checkbox" name="mahasiswa_ids[]" value="{{ $mahasiswa->mahasiswa_id }}">
+                                                <span class="form-check-label ms-1">
+                                                    <span class="fw-semibold">{{ $mahasiswa->nama ?? $mahasiswa->name }}</span>
+                                                    <small class="text-muted ms-1">{{ $mahasiswa->nim }}</small>
+                                                </span>
+                                            </label>
+                                        @empty
+                                            <div class="text-muted small">Belum ada mahasiswa dengan KRS yang sudah disetujui pada kelas ini.</div>
+                                        @endforelse
+                                    </div>
+                                    <div class="small text-primary mt-2 task-selected-count">0 mahasiswa dipilih</div>
+                                </div>
+
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">Deadline</label>
@@ -665,6 +753,13 @@
     .meeting-toggle:not(.collapsed) .meeting-chevron {
         transform: rotate(180deg);
     }
+    .task-student-list {
+        max-height: 240px;
+        overflow-y: auto;
+    }
+    .task-student-item {
+        cursor: pointer;
+    }
     @media (max-width: 767.98px) {
         .meeting-toggle {
             align-items: flex-start !important;
@@ -677,4 +772,43 @@
         }
     }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form').forEach(function (form) {
+        const scope = form.querySelector('.task-scope');
+        const panel = form.querySelector('.task-target-panel');
+        if (!scope || !panel) return;
+
+        const checkboxes = Array.from(panel.querySelectorAll('input[type="checkbox"][name="mahasiswa_ids[]"]'));
+        const count = panel.querySelector('.task-selected-count');
+        const search = panel.querySelector('.task-student-search');
+        const update = function () {
+            panel.classList.toggle('d-none', scope.value !== 'individu');
+            checkboxes.forEach(function (checkbox) {
+                checkbox.required = scope.value === 'individu' && checkboxes.filter(item => item.checked).length === 0;
+            });
+            if (count) count.textContent = checkboxes.filter(item => item.checked).length + ' mahasiswa dipilih';
+        };
+
+        scope.addEventListener('change', update);
+        checkboxes.forEach(checkbox => checkbox.addEventListener('change', update));
+        panel.querySelector('.task-select-all')?.addEventListener('click', function () {
+            checkboxes.filter(item => !item.disabled && !item.closest('.task-student-item').classList.contains('d-none'))
+                .forEach(item => item.checked = true);
+            update();
+        });
+        panel.querySelector('.task-clear-all')?.addEventListener('click', function () {
+            checkboxes.filter(item => !item.disabled).forEach(item => item.checked = false);
+            update();
+        });
+        search?.addEventListener('input', function () {
+            const keyword = search.value.toLowerCase().trim();
+            panel.querySelectorAll('.task-student-item').forEach(function (item) {
+                item.classList.toggle('d-none', !item.textContent.toLowerCase().includes(keyword));
+            });
+        });
+        update();
+    });
+});
+</script>
 @endsection

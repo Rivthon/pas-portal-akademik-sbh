@@ -115,7 +115,9 @@
                                 @foreach($tugasList as $tugas)
                                     @php($pengumpulan = $data->nilai_per_tugas[$tugas->tugas_id] ?? null)
                                     <td class="text-center">
-                                        @if($pengumpulan)
+                                        @if($pengumpulan === false)
+                                            <span class="text-muted" title="Tugas tidak diberikan kepada mahasiswa ini">—</span>
+                                        @elseif($pengumpulan)
                                             <form action="{{ route('dosen.lms.pengumpulan.nilai', $pengumpulan) }}" method="POST"
                                                   class="d-flex justify-content-center align-items-center gap-1">
                                                 @csrf

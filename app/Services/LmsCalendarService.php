@@ -18,7 +18,7 @@ class LmsCalendarService
         if ($jadwalIds->isNotEmpty()) {
             $events = $events
                 ->concat($this->materiEvents($jadwalIds, $viewer))
-                ->concat($this->tugasEvents($jadwalIds, $viewer))
+                ->concat($this->tugasEvents($jadwalIds, $viewer, $ownerId))
                 ->concat($this->quizEvents($jadwalIds, $viewer));
         }
 
@@ -50,12 +50,18 @@ class LmsCalendarService
             ]);
     }
 
-    private function tugasEvents(Collection $jadwalIds, string $viewer): Collection
+    private function tugasEvents(Collection $jadwalIds, string $viewer, int $ownerId): Collection
     {
-        return LmsTugas::with('jadwal.kurikulum.mataKuliah')
+        $query = LmsTugas::with('jadwal.kurikulum.mataKuliah')
             ->whereIn('jadwal_id', $jadwalIds)
             ->where('aktif', true)
-            ->whereNotNull('deadline')
+            ->whereNotNull('deadline');
+
+        if ($viewer === 'mahasiswa') {
+            $query->visibleForMahasiswa($ownerId);
+        }
+
+        return $query
             ->orderBy('deadline')
             ->get()
             ->map(fn ($tugas) => [

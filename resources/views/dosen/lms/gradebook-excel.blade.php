@@ -23,7 +23,7 @@
                 <td>{{ $loop->iteration }}</td><td>{{ $data->mahasiswa->nim ?? '-' }}</td><td>{{ $data->mahasiswa->nama ?? '-' }}</td>
                 @foreach($tugasList as $tugas)
                     @php($pengumpulan = $data->nilai_per_tugas[$tugas->tugas_id] ?? null)
-                    <td>{{ $pengumpulan?->nilai ?? 0 }}</td>
+                    <td>{{ $pengumpulan === false ? '-' : ($pengumpulan?->nilai ?? 0) }}</td>
                 @endforeach
                 @foreach($quizList as $quiz)
                     @php($attemptQuiz = $data->nilai_per_quiz[$quiz->quiz_id] ?? null)

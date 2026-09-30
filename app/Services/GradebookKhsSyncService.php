@@ -27,7 +27,7 @@ class GradebookKhsSyncService
         }
 
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
-            ->with('pengumpulan')
+            ->with(['pengumpulan', 'targetMahasiswa'])
             ->get();
         $quizList = LmsQuiz::where('jadwal_id', $jadwal->id)
             ->with(['soal', 'attempts'])
@@ -61,12 +61,15 @@ class GradebookKhsSyncService
         $weights = $this->weights($jadwal);
 
         DB::transaction(function () use (
-            $pesertaKrs, $tugasList, $quizList, $pengumpulan, $attemptQuiz, $totalMaksimal, $weights
+            $pesertaKrs, $tugasList, $quizList, $pengumpulan, $attemptQuiz, $weights
         ) {
             foreach ($pesertaKrs as $krs) {
                 $nilaiDiperoleh = 0;
 
-                foreach ($tugasList as $tugas) {
+                $tugasMahasiswa = $tugasList->filter(fn (LmsTugas $tugas) => $tugas
+                    ->ditujukanKepada((int) $krs->mahasiswa_id));
+
+                foreach ($tugasMahasiswa as $tugas) {
                     $item = $pengumpulan->get($krs->mahasiswa_id.'-'.$tugas->tugas_id);
                     if ($item && $item->nilai !== null) {
                         $nilaiDiperoleh += (float) $item->nilai;
@@ -80,7 +83,9 @@ class GradebookKhsSyncService
                     }
                 }
 
-                $nilaiTugas = $this->normalizedScore($nilaiDiperoleh, $totalMaksimal);
+                $totalMaksimalMahasiswa = (float) $tugasMahasiswa->sum('nilai_maksimal')
+                    + (float) $quizList->sum(fn ($quiz) => $quiz->soal->sum('bobot'));
+                $nilaiTugas = $this->normalizedScore($nilaiDiperoleh, $totalMaksimalMahasiswa);
                 $nilaiAkhir = $this->finalScore([
                     'uts' => $krs->uts,
                     'uas' => $krs->uas,

@@ -44,7 +44,8 @@ class LmsMahasiswaController extends Controller
             ->withCount([
                 'pertemuan',
                 'materi' => fn ($query) => $query->where('status', 1),
-                'tugas' => fn ($query) => $query->where('aktif', true),
+                'tugas' => fn ($query) => $query->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id),
                 'quiz' => fn ($query) => $query->where('aktif', true),
             ])
             ->orderBy('hari')->orderBy('jam_mulai')->get();
@@ -70,6 +71,7 @@ class LmsMahasiswaController extends Controller
             ->with([
                 'materi' => fn ($query) => $query->where('status', 1)->orderBy('created_at'),
                 'tugas' => fn ($query) => $query->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
                     ->with(['pengumpulan' => fn ($query) => $query
                         ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)])
                     ->orderBy('deadline'),
@@ -87,6 +89,7 @@ class LmsMahasiswaController extends Controller
 
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
             ->where('aktif', true)
+            ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
             ->with([
                 'pertemuan',
                 'pengumpulan' => fn ($query) => $query
@@ -121,6 +124,7 @@ class LmsMahasiswaController extends Controller
                 'kurikulum.mataKuliah',
                 'kurikulum.programStudi',
                 'tugas' => fn ($query) => $query->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
                     ->with(['pengumpulan' => fn ($pengumpulan) => $pengumpulan
                         ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)]),
                 'quiz' => fn ($query) => $query->where('aktif', true)
@@ -166,6 +170,7 @@ class LmsMahasiswaController extends Controller
         $jadwal->load(['kurikulum.mataKuliah', 'kurikulum.programStudi']);
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
             ->where('aktif', true)
+            ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
             ->with([
                 'pertemuan',
                 'pengumpulan' => fn ($query) => $query
@@ -236,6 +241,7 @@ class LmsMahasiswaController extends Controller
             'materi', // Memuat relasi materi per pertemuan
             'tugas' => function ($query) use ($mahasiswa) {
                 $query->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
                     ->with([
                         'pengumpulan' => function ($q) use ($mahasiswa) {
                             $q->where('mahasiswa_id', $mahasiswa->mahasiswa_id);
@@ -805,7 +811,8 @@ class LmsMahasiswaController extends Controller
             return false;
         }
 
-        return $this->mahasiswaTerdaftarPadaJadwal($tugas->jadwal, $mahasiswa);
+        return $this->mahasiswaTerdaftarPadaJadwal($tugas->jadwal, $mahasiswa)
+            && $tugas->ditujukanKepada((int) $mahasiswa->mahasiswa_id);
     }
 
     private function mahasiswaTerdaftarPadaJadwal(Jadwal $jadwal, $mahasiswa): bool

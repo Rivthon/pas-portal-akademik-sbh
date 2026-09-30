@@ -48,7 +48,8 @@ class LmsController extends Controller
             ->withCount([
                 'pertemuan',
                 'materi' => fn ($query) => $query->where('status', 1),
-                'tugas' => fn ($query) => $query->where('aktif', true),
+                'tugas' => fn ($query) => $query->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id),
                 'quiz' => fn ($query) => $query->where('aktif', true),
             ])
             ->orderByRaw("FIELD(LOWER(hari), 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu')")
@@ -80,7 +81,8 @@ class LmsController extends Controller
         ])->loadCount([
             'pertemuan',
             'materi' => fn ($query) => $query->where('status', 1),
-            'tugas' => fn ($query) => $query->where('aktif', true),
+            'tugas' => fn ($query) => $query->where('aktif', true)
+                ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id),
             'quiz' => fn ($query) => $query->where('aktif', true),
         ]);
 
@@ -93,6 +95,7 @@ class LmsController extends Controller
                     ->orderBy('created_at'),
                 'tugas' => fn ($query) => $query
                     ->where('aktif', true)
+                    ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
                     ->with(['pengumpulan' => fn ($submission) => $submission
                         ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)])
                     ->orderBy('deadline'),

@@ -124,6 +124,7 @@ class DashboardController extends Controller
 
         $tugas = LmsTugas::whereIn('jadwal_id', $jadwalIds)
             ->where('aktif', true)
+            ->visibleForMahasiswa((int) $mahasiswa->mahasiswa_id)
             ->with('jadwal.kurikulum.mataKuliah')
             ->latest()
             ->limit(8)

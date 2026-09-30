@@ -48,11 +48,11 @@ class DashboardController extends Controller
                 'status_krs' => (bool) $mahasiswa->status_krs,
                 'status_mahasiswa' => $mahasiswa->status_mhs,
             ],
-            'pengumuman_lms' => $this->announcements($jadwalIds),
+            'pengumuman_lms' => $this->announcements($jadwalIds, (int) $mahasiswa->mahasiswa_id),
         ]);
     }
 
-    private function announcements(Collection $jadwalIds): Collection
+    private function announcements(Collection $jadwalIds, int $mahasiswaId): Collection
     {
         if ($jadwalIds->isEmpty()) {
             return collect();
@@ -79,6 +79,7 @@ class DashboardController extends Controller
         $tugas = LmsTugas::query()
             ->whereIn('jadwal_id', $jadwalIds)
             ->where('aktif', true)
+            ->visibleForMahasiswa($mahasiswaId)
             ->with('jadwal.kurikulum.mataKuliah')
             ->latest()
             ->limit(6)
