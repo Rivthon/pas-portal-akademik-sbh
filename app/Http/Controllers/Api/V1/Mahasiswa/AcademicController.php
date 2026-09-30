@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\KhsPublication;
 use App\Models\Krs;
+use App\Models\KrsGuidanceMessage;
 use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
@@ -273,6 +274,95 @@ class AcademicController extends Controller
         ]);
     }
 
+    public function krsDiscussion(Request $request): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $mahasiswa->loadMissing('dosen');
+        $ta = $this->activeAcademicYear();
+
+        if (! $ta) {
+            return response()->json([
+                'tahun_akademik' => null,
+                'dosen_pembimbing' => $mahasiswa->dosen?->nama,
+                'tersedia' => false,
+                'terkunci' => true,
+                'pesan_status' => 'Tahun akademik aktif belum ditentukan.',
+                'pesan' => [],
+            ]);
+        }
+
+        $locked = $this->isKrsDiscussionLocked($mahasiswa, (int) $ta->ta_id);
+        $messages = KrsGuidanceMessage::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $ta->ta_id)
+            ->oldest()
+            ->get();
+
+        return response()->json([
+            'tahun_akademik' => $this->academicYearPayload($ta),
+            'dosen_pembimbing' => $mahasiswa->dosen?->nama,
+            'tersedia' => (bool) $mahasiswa->dosen_id,
+            'terkunci' => $locked,
+            'pesan_status' => match (true) {
+                ! $mahasiswa->dosen_id => 'Dosen Pembimbing Akademik belum ditentukan.',
+                $locked => 'Diskusi KRS ditutup karena KRS telah disetujui. Forum akan aktif kembali jika ACC dibatalkan.',
+                default => null,
+            },
+            'pesan' => $messages->map(fn (KrsGuidanceMessage $message) => [
+                'id' => (int) $message->id,
+                'pengirim' => $message->sender_type,
+                'milik_saya' => $message->sender_type === 'mahasiswa',
+                'label_pengirim' => $message->sender_type === 'mahasiswa' ? 'Anda' : 'Dosen Pembimbing',
+                'isi' => $message->message,
+                'dikirim_pada' => $message->created_at?->toIso8601String(),
+            ])->values(),
+        ]);
+    }
+
+    public function sendKrsDiscussion(Request $request): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $ta = $this->activeAcademicYear();
+
+        if (! $mahasiswa->dosen_id) {
+            return response()->json([
+                'message' => 'Dosen Pembimbing Akademik belum ditentukan.',
+            ], 422);
+        }
+        if (! $ta) {
+            return response()->json(['message' => 'Tahun akademik aktif belum ditentukan.'], 422);
+        }
+        if ($this->isKrsDiscussionLocked($mahasiswa, (int) $ta->ta_id)) {
+            return response()->json([
+                'message' => 'Diskusi KRS sudah ditutup karena KRS telah disetujui.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+        ], [
+            'message.required' => 'Umpan balik tidak boleh kosong.',
+            'message.max' => 'Umpan balik maksimal 2.000 karakter.',
+        ]);
+
+        KrsGuidanceMessage::create([
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'dosen_id' => $mahasiswa->dosen_id,
+            'ta_id' => $ta->ta_id,
+            'sender_type' => 'mahasiswa',
+            'message' => trim($validated['message']),
+        ]);
+
+        activity_log(
+            'balas_bimbingan_krs_mobile',
+            'Mahasiswa mengirim umpan balik KRS melalui aplikasi Android'
+        );
+
+        return response()->json(['message' => 'Umpan balik berhasil dikirim kepada Dosen Pembimbing.']);
+    }
+
     public function khs(Request $request): JsonResponse
     {
         /** @var Mahasiswa $mahasiswa */
@@ -431,6 +521,16 @@ class AcademicController extends Controller
         return TahunAkademik::query()
             ->where('status_ta', 1)
             ->first(['ta_id', 'nama', 'semester']);
+    }
+
+    private function isKrsDiscussionLocked(Mahasiswa $mahasiswa, int $taId): bool
+    {
+        $krs = Krs::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->where('ta_id', $taId);
+
+        return (clone $krs)->exists()
+            && ! (clone $krs)->whereNull('disetujui_pada')->exists();
     }
 
     private function academicYearPayload(TahunAkademik $ta): array

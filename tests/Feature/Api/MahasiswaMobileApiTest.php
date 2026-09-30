@@ -86,6 +86,18 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertJsonStructure(['tahun_akademik', 'status', 'total_sks', 'mata_kuliah']);
 
         $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/krs/diskusi')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik',
+                'dosen_pembimbing',
+                'tersedia',
+                'terkunci',
+                'pesan_status',
+                'pesan',
+            ]);
+
+        $this->withToken($token)
             ->getJson('/api/v1/mahasiswa/krs/pilihan')
             ->assertOk()
             ->assertJsonStructure([

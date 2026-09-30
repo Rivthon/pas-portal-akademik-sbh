@@ -23,6 +23,9 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::get('/dashboard', DashboardController::class);
             Route::get('/krs/pilihan', [AcademicController::class, 'krsOptions']);
+            Route::get('/krs/diskusi', [AcademicController::class, 'krsDiscussion']);
+            Route::post('/krs/diskusi', [AcademicController::class, 'sendKrsDiscussion'])
+                ->middleware('throttle:20,1');
             Route::put('/krs', [AcademicController::class, 'saveKrs']);
             Route::get('/krs', [AcademicController::class, 'krs']);
             Route::get('/khs', [AcademicController::class, 'khs']);
