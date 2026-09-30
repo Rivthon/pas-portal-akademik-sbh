@@ -71,4 +71,56 @@ class LmsQuizOptionETest extends TestCase
             ->assertOk()
             ->assertSee('Soal quiz sudah dikunci.');
     }
+
+    public function test_lecturer_can_copy_all_questions_to_another_quiz(): void
+    {
+        $source = LmsQuiz::with(['jadwal', 'soal'])->whereHas('soal')->firstOrFail();
+        $dosen = Dosen::findOrFail($source->dosen_id);
+        $destination = LmsQuiz::create([
+            'jadwal_id' => $source->jadwal_id,
+            'pertemuan_id' => null,
+            'dosen_id' => $source->dosen_id,
+            'judul' => 'Quiz tujuan salinan '.uniqid(),
+            'deskripsi' => 'Quiz tujuan pengujian',
+            'mulai_at' => null,
+            'deadline' => null,
+            'durasi_menit' => 60,
+            'aktif' => false,
+        ]);
+
+        $this->actingAs($dosen, 'dosen')
+            ->post(route('dosen.lms.quiz.soal.copy', $destination), [
+                'source_quiz_id' => $source->quiz_id,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $copiedQuestions = $destination->soal()->orderBy('urutan')->get();
+        $this->assertCount($source->soal->count(), $copiedQuestions);
+
+        foreach ($source->soal->values() as $index => $sourceQuestion) {
+            $copied = $copiedQuestions[$index];
+            $this->assertSame($sourceQuestion->tipe, $copied->tipe);
+            $this->assertSame($sourceQuestion->pertanyaan, $copied->pertanyaan);
+            $this->assertSame($sourceQuestion->opsi, $copied->opsi);
+            $this->assertSame($sourceQuestion->kunci_jawaban, $copied->kunci_jawaban);
+            $this->assertSame((float) $sourceQuestion->bobot, (float) $copied->bobot);
+        }
+    }
+
+    public function test_quiz_cannot_copy_questions_from_itself(): void
+    {
+        $quiz = LmsQuiz::with('soal')->whereHas('soal')->firstOrFail();
+        $quiz->attempts()->delete();
+        $dosen = Dosen::findOrFail($quiz->dosen_id);
+        $questionCount = $quiz->soal->count();
+
+        $this->actingAs($dosen, 'dosen')
+            ->post(route('dosen.lms.quiz.soal.copy', $quiz), [
+                'source_quiz_id' => $quiz->quiz_id,
+            ])
+            ->assertSessionHasErrors('source_quiz_id');
+
+        $this->assertSame($questionCount, $quiz->soal()->count());
+    }
 }

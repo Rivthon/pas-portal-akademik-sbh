@@ -842,6 +842,7 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
                 Route::put('/quiz/{quiz}', [QuizDosenController::class, 'update'])->name('quiz.update');
                 Route::delete('/quiz/{quiz}', [QuizDosenController::class, 'destroy'])->name('quiz.destroy');
                 Route::post('/quiz/{quiz}/soal', [QuizDosenController::class, 'storeSoal'])->name('quiz.soal.store');
+                Route::post('/quiz/{quiz}/soal/salin', [QuizDosenController::class, 'copySoal'])->name('quiz.soal.copy');
                 Route::put('/quiz/soal/{soal}', [QuizDosenController::class, 'updateSoal'])->name('quiz.soal.update');
                 Route::delete('/quiz/soal/{soal}', [QuizDosenController::class, 'destroySoal'])->name('quiz.soal.destroy');
                 Route::get('/quiz/{quiz}/hasil', [QuizDosenController::class, 'hasil'])->name('quiz.hasil');

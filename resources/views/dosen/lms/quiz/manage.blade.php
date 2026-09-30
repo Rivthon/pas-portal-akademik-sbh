@@ -1,11 +1,20 @@
 @extends('layouts.dosen')
 
 @section('content')
-@php($quizLocked = (int) $quiz->attempts_count > 0)
+@php
+    $quizLocked = (int) $quiz->attempts_count > 0;
+@endphp
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
         <a href="{{ route('dosen.lms.quiz.index', $quiz->jadwal) }}" class="btn btn-sm btn-label-secondary"><i class="bx bx-arrow-back me-1"></i>Daftar Quiz</a>
-        <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-sm btn-primary"><i class="bx bx-bar-chart me-1"></i>Hasil & Penilaian</a>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                @if(!$quizLocked && $sourceQuizzes->isNotEmpty()) data-bs-toggle="modal" data-bs-target="#copyQuestions" @else disabled @endif
+                title="{{ $quizLocked ? 'Quiz sudah dikerjakan mahasiswa' : ($sourceQuizzes->isEmpty() ? 'Belum ada quiz lain yang memiliki soal' : 'Salin soal dari quiz lain') }}">
+                <i class="bx bx-copy-alt me-1"></i>Salin Soal
+            </button>
+            <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-sm btn-primary"><i class="bx bx-bar-chart me-1"></i>Hasil & Penilaian</a>
+        </div>
     </div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
     @if(session('error')) <div class="alert alert-danger"><i class="bx bx-error-circle me-1"></i>{{ session('error') }}</div> @endif
@@ -89,6 +98,46 @@
         <div class="col-12"><div class="form-check"><input type="checkbox" name="aktif" value="1" class="form-check-input" id="activeEdit" {{ $quiz->aktif?'checked':'' }}><label for="activeEdit" class="form-check-label">Aktif dan tampil kepada mahasiswa</label></div></div>
     </div></div><div class="modal-footer"><button class="btn btn-primary">Simpan</button></div>
 </form></div></div></div>
+
+<div class="modal fade" id="copyQuestions" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ route('dosen.lms.quiz.soal.copy', $quiz) }}" method="POST" onsubmit="return confirm('Salin seluruh soal dari quiz yang dipilih?')">
+                @csrf
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">Salin Soal dari Quiz Lain</h5>
+                        <small class="text-muted">Soal akan ditambahkan ke bagian akhir quiz ini. Quiz sumber tidak akan berubah.</small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-semibold">Pilih Quiz Sumber</label>
+                    <select name="source_quiz_id" class="form-select" required>
+                        <option value="">-- Pilih quiz yang sudah memiliki soal --</option>
+                        @foreach($sourceQuizzes as $sourceQuiz)
+                            @php
+                                $sourceCourse = $sourceQuiz->jadwal?->kurikulum?->mataKuliah;
+                                $sourceClass = strtolower((string) $sourceQuiz->jadwal?->jenis_kelas) === 'karyawan' ? 'Reguler B' : 'Reguler A';
+                            @endphp
+                            <option value="{{ $sourceQuiz->quiz_id }}" @selected(old('source_quiz_id') == $sourceQuiz->quiz_id)>
+                                {{ $sourceQuiz->judul }} — {{ $sourceCourse?->nama ?? 'Mata kuliah tidak tersedia' }} — {{ $sourceClass }} — {{ $sourceQuiz->soal_count }} soal
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="alert alert-info border-0 mt-3 mb-0">
+                        <i class="bx bx-info-circle me-1"></i>
+                        Tipe soal, opsi A–E, kunci jawaban, bobot, dan urutan akan ikut disalin. Soal hasil salinan masih dapat diedit selama quiz tujuan belum dikerjakan mahasiswa.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary"><i class="bx bx-copy-alt me-1"></i>Salin Semua Soal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <style>.question-number{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;flex:none}</style>
 <script>document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.question-form').forEach(f=>{const s=f.querySelector('.question-type'),p=f.querySelector('.pg-fields');const t=()=>{p.style.display=s.value==='pilihan_ganda'?'block':'none';p.querySelectorAll('input,select').forEach(e=>e.disabled=s.value!=='pilihan_ganda')};s.addEventListener('change',t);t()})})</script>
 @endsection

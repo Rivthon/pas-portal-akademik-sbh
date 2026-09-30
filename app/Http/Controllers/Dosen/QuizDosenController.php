@@ -14,6 +14,7 @@ use App\Services\GradebookKhsSyncService;
 use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -79,7 +80,16 @@ class QuizDosenController extends Controller
             'pertemuan', 'soal',
         ])->loadCount('attempts');
 
-        return view('dosen.lms.quiz.manage', compact('quiz'));
+        $sourceQuizzes = LmsQuiz::query()
+            ->where('dosen_id', Auth::guard('dosen')->id())
+            ->where('quiz_id', '!=', $quiz->quiz_id)
+            ->whereHas('soal')
+            ->with(['jadwal.kurikulum.mataKuliah', 'jadwal.kurikulum.programStudi'])
+            ->withCount('soal')
+            ->latest()
+            ->get();
+
+        return view('dosen.lms.quiz.manage', compact('quiz', 'sourceQuizzes'));
     }
 
     public function storeSoal(Request $request, LmsQuiz $quiz)
@@ -97,6 +107,63 @@ class QuizDosenController extends Controller
         LmsQuizSoal::create($data);
 
         return back()->with('success', 'Soal berhasil ditambahkan.');
+    }
+
+    public function copySoal(Request $request, LmsQuiz $quiz)
+    {
+        $quiz = $this->quizMilikDosen($quiz);
+        if ($quiz->attempts()->exists()) {
+            return back()->with(
+                'error',
+                'Soal tidak dapat disalin karena quiz tujuan sudah mulai dikerjakan mahasiswa.'
+            );
+        }
+
+        $validated = $request->validate([
+            'source_quiz_id' => [
+                'required',
+                'integer',
+                Rule::notIn([(int) $quiz->quiz_id]),
+                'exists:lms_quiz,quiz_id',
+            ],
+        ], [
+            'source_quiz_id.required' => 'Pilih quiz sumber yang akan disalin.',
+            'source_quiz_id.not_in' => 'Quiz sumber harus berbeda dari quiz tujuan.',
+            'source_quiz_id.exists' => 'Quiz sumber tidak ditemukan.',
+        ]);
+
+        $sourceQuiz = LmsQuiz::query()->findOrFail($validated['source_quiz_id']);
+        $sourceQuiz = $this->quizMilikDosen($sourceQuiz);
+        $sourceQuiz->load('soal');
+
+        if ($sourceQuiz->soal->isEmpty()) {
+            return back()->with('error', 'Quiz sumber belum memiliki soal untuk disalin.');
+        }
+
+        $copied = DB::transaction(function () use ($quiz, $sourceQuiz) {
+            $nextOrder = ((int) $quiz->soal()->max('urutan')) + 1;
+
+            foreach ($sourceQuiz->soal as $sourceQuestion) {
+                LmsQuizSoal::create([
+                    'quiz_id' => $quiz->quiz_id,
+                    'tipe' => $sourceQuestion->tipe,
+                    'pertanyaan' => $sourceQuestion->pertanyaan,
+                    'opsi' => $sourceQuestion->opsi,
+                    'kunci_jawaban' => $sourceQuestion->kunci_jawaban,
+                    'bobot' => $sourceQuestion->bobot,
+                    'urutan' => $nextOrder++,
+                ]);
+            }
+
+            return $sourceQuiz->soal->count();
+        });
+
+        activity_log(
+            'salin_soal_quiz',
+            'Dosen menyalin '.$copied.' soal dari quiz '.$sourceQuiz->quiz_id.' ke quiz '.$quiz->quiz_id
+        );
+
+        return back()->with('success', $copied.' soal berhasil disalin dari quiz “'.$sourceQuiz->judul.'”.');
     }
 
     public function updateSoal(Request $request, LmsQuizSoal $soal)
