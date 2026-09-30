@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Mahasiswa\AcademicController;
+use App\Http\Controllers\Api\V1\Mahasiswa\AttendanceController;
 use App\Http\Controllers\Api\V1\Mahasiswa\AuthController;
 use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
@@ -31,6 +32,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/khs', [AcademicController::class, 'khs']);
             Route::get('/khs/riwayat', [AcademicController::class, 'khsHistory']);
             Route::get('/jadwal', [StudyController::class, 'schedules']);
+            Route::get('/absensi', AttendanceController::class);
             Route::get('/rps', [StudyController::class, 'rps']);
             Route::get('/rps/{rps}/file', [StudyController::class, 'rpsFile']);
             Route::get('/lms', [LmsController::class, 'index']);

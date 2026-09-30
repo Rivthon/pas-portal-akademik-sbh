@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Jadwal;
 use App\Models\Mahasiswa;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
@@ -124,6 +125,18 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertJsonStructure(['tahun_akademik', 'teori', 'praktik']);
 
         $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/absensi')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik_tersedia',
+                'tahun_akademik',
+                'semester_tersedia',
+                'semester',
+                'teori',
+                'praktik',
+            ]);
+
+        $this->withToken($token)
             ->getJson('/api/v1/mahasiswa/rps')
             ->assertOk()
             ->assertJsonStructure(['tahun_akademik', 'mata_kuliah']);
@@ -168,6 +181,11 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('kelas.id', $jadwalId)
             ->assertJsonStructure(['kelas', 'pertemuan']);
+
+        $jadwal = Jadwal::with('kurikulum.mataKuliah')->findOrFail($jadwalId);
+        $this->getJson('/api/v1/mahasiswa/absensi?ta_id='.$tahunAkademik->ta_id.'&semester='.$jadwal->kurikulum->mataKuliah->smt)
+            ->assertOk()
+            ->assertJsonFragment(['kurikulum_id' => (int) $jadwal->kurikulum_id]);
 
         $this->getJson('/api/v1/mahasiswa/jadwal')
             ->assertOk()
