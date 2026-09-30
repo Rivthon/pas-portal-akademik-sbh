@@ -1,12 +1,14 @@
 @extends('layouts.dosen')
 
 @section('content')
+@php($quizLocked = (int) $quiz->attempts_count > 0)
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
         <a href="{{ route('dosen.lms.quiz.index', $quiz->jadwal) }}" class="btn btn-sm btn-label-secondary"><i class="bx bx-arrow-back me-1"></i>Daftar Quiz</a>
         <a href="{{ route('dosen.lms.quiz.hasil', $quiz) }}" class="btn btn-sm btn-primary"><i class="bx bx-bar-chart me-1"></i>Hasil & Penilaian</a>
     </div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+    @if(session('error')) <div class="alert alert-danger"><i class="bx bx-error-circle me-1"></i>{{ session('error') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
 
     <div class="card border-0 shadow-sm mb-4">
@@ -22,12 +24,23 @@
         Urutan akan tetap sama saat mahasiswa memuat ulang halaman dan soal terkunci setelah ujian mulai dikerjakan.
     </div>
 
+    @if($quizLocked)
+        <div class="alert alert-warning border-0 shadow-sm d-flex align-items-start gap-2">
+            <i class="bx bx-lock-alt fs-4"></i>
+            <div>
+                <strong>Soal quiz sudah dikunci.</strong>
+                <div>Quiz telah mulai dikerjakan oleh {{ $quiz->attempts_count }} mahasiswa. Soal tidak dapat ditambah, diubah, atau dihapus agar isi ujian dan hasil mahasiswa tetap konsisten.</div>
+            </div>
+        </div>
+    @endif
+
     <div class="row g-4">
         <div class="col-xl-4">
             <div class="card border-0 shadow-sm sticky-xl-top" style="top:1rem">
                 <div class="card-header bg-white"><h5 class="fw-bold mb-0"><i class="bx bx-plus-circle text-primary me-2"></i>Tambah Soal</h5></div>
                 <div class="card-body">
                     <form action="{{ route('dosen.lms.quiz.soal.store', $quiz) }}" method="POST" class="question-form">@csrf
+                        <fieldset @disabled($quizLocked)>
                         <div class="mb-3"><label class="form-label">Tipe</label><select name="tipe" class="form-select question-type"><option value="pilihan_ganda">Pilihan Ganda</option><option value="essay">Essay</option></select></div>
                         <div class="mb-3"><label class="form-label">Pertanyaan</label><textarea name="pertanyaan" class="form-control" rows="4" required></textarea></div>
                         <div class="pg-fields">
@@ -38,6 +51,7 @@
                         </div>
                         <div class="row g-2 mb-3"><div class="col-6"><label class="form-label">Bobot</label><input type="number" step=".01" min=".01" name="bobot" value="10" class="form-control" required></div><div class="col-6"><label class="form-label">Urutan</label><input type="number" min="1" name="urutan" value="{{ $quiz->soal->count()+1 }}" class="form-control"></div></div>
                         <button class="btn btn-primary w-100"><i class="bx bx-plus me-1"></i>Tambahkan Soal</button>
+                        </fieldset>
                     </form>
                 </div>
             </div>
@@ -48,7 +62,7 @@
                     <div class="card-body p-4">
                         <div class="d-flex justify-content-between gap-3">
                             <div class="d-flex gap-3"><span class="avatar-initial rounded-circle bg-label-primary question-number">{{ $loop->iteration }}</span><div><div class="d-flex gap-2 mb-2"><span class="badge bg-label-{{ $soal->tipe === 'essay' ? 'warning' : 'info' }}">{{ $soal->tipe === 'essay' ? 'Essay' : 'Pilihan Ganda' }}</span><span class="badge bg-label-secondary">Bobot {{ $soal->bobot }}</span></div><h6 class="fw-bold mb-2">{!! nl2br(e($soal->pertanyaan)) !!}</h6></div></div>
-                            <div class="d-flex gap-1"><button class="btn btn-sm btn-icon btn-label-warning" data-bs-toggle="modal" data-bs-target="#editSoal{{ $soal->soal_id }}"><i class="bx bx-edit"></i></button><form method="POST" action="{{ route('dosen.lms.quiz.soal.destroy', $soal) }}" onsubmit="return confirm('Hapus soal ini?')">@csrf @method('DELETE')<button class="btn btn-sm btn-icon btn-label-danger"><i class="bx bx-trash"></i></button></form></div>
+                            <div class="d-flex gap-1"><button class="btn btn-sm btn-icon btn-label-warning" @if(!$quizLocked) data-bs-toggle="modal" data-bs-target="#editSoal{{ $soal->soal_id }}" @else disabled title="Soal terkunci karena quiz sudah dikerjakan" @endif><i class="bx {{ $quizLocked ? 'bx-lock-alt' : 'bx-edit' }}"></i></button><form method="POST" action="{{ route('dosen.lms.quiz.soal.destroy', $soal) }}" onsubmit="return confirm('Hapus soal ini?')">@csrf @method('DELETE')<button class="btn btn-sm btn-icon btn-label-danger" @disabled($quizLocked) title="{{ $quizLocked ? 'Soal terkunci karena quiz sudah dikerjakan' : 'Hapus soal' }}"><i class="bx bx-trash"></i></button></form></div>
                         </div>
                         @if($soal->tipe === 'pilihan_ganda')
                             <div class="row g-2 mt-2">@foreach($soal->opsi ?? [] as $i => $opsi)<div class="col-md-6"><div class="border rounded p-2 {{ (string)$i === (string)$soal->kunci_jawaban ? 'border-success bg-label-success' : '' }}"><strong>{{ chr(65+$i) }}.</strong> {{ $opsi }} @if((string)$i === (string)$soal->kunci_jawaban)<i class="bx bx-check float-end"></i>@endif</div></div>@endforeach</div>

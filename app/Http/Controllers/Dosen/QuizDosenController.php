@@ -85,8 +85,12 @@ class QuizDosenController extends Controller
     public function storeSoal(Request $request, LmsQuiz $quiz)
     {
         $quiz = $this->quizMilikDosen($quiz);
-        abort_if($quiz->attempts()->exists(), 422,
-            'Soal tidak dapat ditambahkan karena quiz sudah mulai dikerjakan mahasiswa.');
+        if ($quiz->attempts()->exists()) {
+            return back()->with(
+                'error',
+                'Soal tidak dapat ditambahkan karena quiz sudah mulai dikerjakan mahasiswa.'
+            );
+        }
         $data = $this->validateSoal($request);
         $data['quiz_id'] = $quiz->quiz_id;
         $data['urutan'] = $request->integer('urutan', ($quiz->soal()->max('urutan') ?? 0) + 1);
@@ -98,8 +102,12 @@ class QuizDosenController extends Controller
     public function updateSoal(Request $request, LmsQuizSoal $soal)
     {
         $this->quizMilikDosen($soal->quiz);
-        abort_if($soal->quiz->attempts()->exists(), 422,
-            'Soal tidak dapat diubah karena quiz sudah mulai dikerjakan mahasiswa.');
+        if ($soal->quiz->attempts()->exists()) {
+            return back()->with(
+                'error',
+                'Soal tidak dapat diubah karena quiz sudah mulai dikerjakan mahasiswa.'
+            );
+        }
         $soal->update($this->validateSoal($request));
 
         return back()->with('success', 'Soal berhasil diperbarui.');
@@ -108,8 +116,12 @@ class QuizDosenController extends Controller
     public function destroySoal(LmsQuizSoal $soal)
     {
         $this->quizMilikDosen($soal->quiz);
-        abort_if($soal->quiz->attempts()->exists(), 422,
-            'Soal tidak dapat dihapus karena quiz sudah mulai dikerjakan mahasiswa.');
+        if ($soal->quiz->attempts()->exists()) {
+            return back()->with(
+                'error',
+                'Soal tidak dapat dihapus karena quiz sudah mulai dikerjakan mahasiswa.'
+            );
+        }
         $soal->delete();
 
         return back()->with('success', 'Soal berhasil dihapus.');
