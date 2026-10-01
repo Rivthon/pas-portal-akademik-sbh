@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Mahasiswa\EdomController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
 use App\Http\Controllers\Api\V1\Mahasiswa\PedomanAkademikController;
 use App\Http\Controllers\Api\V1\Mahasiswa\SkpiController;
+use App\Http\Controllers\Api\V1\Mahasiswa\StudentServiceController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudyController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,10 +52,27 @@ Route::prefix('v1')->group(function () {
             Route::get('/pedoman-akademik', [PedomanAkademikController::class, 'index']);
             Route::get('/pedoman-akademik/{pedoman}/file', [PedomanAkademikController::class, 'file'])
                 ->middleware('throttle:30,1');
+            Route::get('/pelayanan/helpdesk', [StudentServiceController::class, 'helpdesk']);
+            Route::post('/pelayanan/helpdesk', [StudentServiceController::class, 'storeHelpdesk'])
+                ->middleware('throttle:10,1');
+            Route::delete('/pelayanan/helpdesk/{permintaan}', [StudentServiceController::class, 'destroyHelpdesk'])
+                ->middleware('throttle:10,1');
+            Route::get('/pelayanan/helpdesk/{permintaan}/lampiran', [StudentServiceController::class, 'helpdeskAttachment']);
+            Route::get('/pelayanan/administrasi', [StudentServiceController::class, 'finance']);
+            Route::get('/pelayanan/cuti', [StudentServiceController::class, 'leave']);
+            Route::post('/pelayanan/cuti', [StudentServiceController::class, 'storeLeave'])
+                ->middleware('throttle:5,1');
+            Route::patch('/pelayanan/cuti/{cuti}/batalkan', [StudentServiceController::class, 'cancelLeave'])
+                ->middleware('throttle:5,1');
+            Route::get('/pelayanan/cuti/{cuti}/lampiran', [StudentServiceController::class, 'leaveAttachment']);
+            Route::get('/pelayanan/profil', [StudentServiceController::class, 'profile']);
+            Route::post('/pelayanan/profil', [StudentServiceController::class, 'updateProfile'])
+                ->middleware('throttle:10,1');
             Route::get('/nilai', [AcademicController::class, 'grades']);
             Route::post('/nilai/pengajuan-transkrip', [AcademicController::class, 'submitTranscriptRequest'])
                 ->middleware('throttle:5,1');
             Route::get('/jadwal', [StudyController::class, 'schedules']);
+            Route::get('/jadwal-ujian', [StudyController::class, 'examSchedules']);
             Route::get('/absensi', AttendanceController::class);
             Route::get('/rps', [StudyController::class, 'rps']);
             Route::get('/rps/{rps}/file', [StudyController::class, 'rpsFile']);

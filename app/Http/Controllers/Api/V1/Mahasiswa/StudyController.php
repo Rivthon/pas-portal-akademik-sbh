@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\V1\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\JadwalPraktik;
+use App\Models\JadwalUap;
+use App\Models\JadwalUas;
+use App\Models\JadwalUts;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\Rps;
@@ -79,6 +82,94 @@ class StudyController extends Controller
             'tahun_akademik' => $this->academicYearPayload($ta),
             'teori' => $this->sortSchedules($theory),
             'praktik' => $this->sortSchedules($practice),
+        ]);
+    }
+
+    public function examSchedules(Request $request): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $ta = $this->activeAcademicYear();
+        $isMidtermActive = (bool) $mahasiswa->status_uts;
+        $isFinalActive = (bool) $mahasiswa->status_uas;
+        $isMidwifery = (int) $mahasiswa->jurusan_id === 15401
+            || str_contains(strtolower((string) $mahasiswa->programStudi?->nama), 'kebidanan');
+        $isUapEligible = $isMidwifery && (int) $mahasiswa->semester === 6;
+        $isUapActive = $isUapEligible && (bool) $mahasiswa->status_uap;
+
+        if (! $ta) {
+            return response()->json([
+                'tahun_akademik' => null,
+                'program_studi' => $mahasiswa->programStudi?->nama,
+                'semester' => (int) $mahasiswa->semester,
+                'uts' => $this->examSection(false, 'Belum ada tahun akademik aktif.'),
+                'uas' => $this->examSection(false, 'Belum ada tahun akademik aktif.'),
+                'uap' => $this->examSection(false, 'Belum ada tahun akademik aktif.', $isUapEligible),
+            ]);
+        }
+
+        $courseClasses = $this->approvedKrs($mahasiswa, (int) $ta->ta_id)
+            ->load('kurikulum.mataKuliah')
+            ->filter(fn (Krs $krs) => $krs->kurikulum?->mataKuliah)
+            ->groupBy(fn (Krs $krs) => (string) $krs->kurikulum->mataKuliah->matakuliah_id)
+            ->map(fn ($items) => $items
+                ->map(fn (Krs $krs) => KrsClassResolver::forKrs($krs, $mahasiswa))
+                ->unique()
+                ->values());
+
+        $midterms = $isMidtermActive
+            ? $this->courseExamItems(JadwalUts::class, $ta, $mahasiswa, $courseClasses)
+            : collect();
+        $finals = $isFinalActive
+            ? $this->courseExamItems(JadwalUas::class, $ta, $mahasiswa, $courseClasses)
+            : collect();
+        $uapItems = $isUapActive
+            ? JadwalUap::query()
+                ->where('ta_id', $ta->ta_id)
+                ->where('jurusan_id', $mahasiswa->jurusan_id)
+                ->orderBy('tanggal')
+                ->orderBy('jam_mulai')
+                ->get()
+                ->map(fn (JadwalUap $schedule) => [
+                    'id' => (int) $schedule->id,
+                    'jenis' => 'uap',
+                    'kode' => 'UAP',
+                    'nama' => $schedule->nama,
+                    'sks' => null,
+                    'semester' => (int) $mahasiswa->semester,
+                    'kelas' => null,
+                    'tanggal' => $this->formatDate($schedule->tanggal),
+                    'jam_mulai' => $this->formatTime($schedule->jam_mulai),
+                    'jam_selesai' => $this->formatTime($schedule->jam_selesai),
+                    'ruangan' => null,
+                ])
+                ->values()
+            : collect();
+
+        return response()->json([
+            'tahun_akademik' => $this->academicYearPayload($ta),
+            'program_studi' => $mahasiswa->programStudi?->nama,
+            'semester' => (int) $mahasiswa->semester,
+            'uts' => $this->examSection(
+                $isMidtermActive,
+                $isMidtermActive ? null : 'Jadwal UTS belum diaktifkan oleh BAUK.',
+                true,
+                $midterms
+            ),
+            'uas' => $this->examSection(
+                $isFinalActive,
+                $isFinalActive ? null : 'Jadwal UAS belum diaktifkan oleh BAUK.',
+                true,
+                $finals
+            ),
+            'uap' => $this->examSection(
+                $isUapActive,
+                ! $isUapEligible
+                    ? 'Jadwal UAP hanya tersedia untuk mahasiswa Kebidanan semester 6.'
+                    : ($isUapActive ? null : 'Jadwal UAP belum diaktifkan oleh BAUK.'),
+                $isUapEligible,
+                $uapItems
+            ),
         ]);
     }
 
@@ -194,6 +285,55 @@ class StudyController extends Controller
             ->get();
     }
 
+    private function courseExamItems(string $model, TahunAkademik $ta, Mahasiswa $mahasiswa, $courseClasses)
+    {
+        if ($courseClasses->isEmpty()) {
+            return collect();
+        }
+
+        return $model::query()
+            ->where('ta_id', $ta->ta_id)
+            ->where('jurusan_id', $mahasiswa->jurusan_id)
+            ->whereIn('matakuliah_id', $courseClasses->keys())
+            ->with(['mataKuliah', 'ruangan'])
+            ->orderBy('tanggal')
+            ->orderBy('jam_mulai')
+            ->get()
+            ->filter(function ($schedule) use ($courseClasses) {
+                $allowedClasses = $courseClasses->get((string) $schedule->matakuliah_id, collect());
+
+                return $allowedClasses->contains(KrsClassResolver::normalize($schedule->jenis_kelas));
+            })
+            ->map(fn ($schedule) => [
+                'id' => (int) $schedule->id,
+                'jenis' => $schedule instanceof JadwalUts ? 'uts' : 'uas',
+                'kode' => $schedule->mataKuliah?->matakuliah_id,
+                'nama' => $schedule->mataKuliah?->nama,
+                'sks' => (int) ($schedule->mataKuliah?->sks ?? 0),
+                'semester' => (int) ($schedule->mataKuliah?->smt ?? 0),
+                'kelas' => $this->classLabel(KrsClassResolver::normalize($schedule->jenis_kelas)),
+                'tanggal' => $this->formatDate($schedule->tanggal),
+                'jam_mulai' => $this->formatTime($schedule->jam_mulai),
+                'jam_selesai' => $this->formatTime($schedule->jam_selesai),
+                'ruangan' => $schedule->ruangan?->nama,
+            ])
+            ->values();
+    }
+
+    private function examSection(
+        bool $active,
+        ?string $message,
+        bool $available = true,
+        $items = null
+    ): array {
+        return [
+            'tersedia' => $available,
+            'aktif' => $active,
+            'pesan' => $message,
+            'jadwal' => ($items ?? collect())->values(),
+        ];
+    }
+
     private function sortSchedules($items)
     {
         $days = collect(['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'minggu']);
@@ -229,5 +369,14 @@ class StudyController extends Controller
         }
 
         return substr((string) $value, 0, 5);
+    }
+
+    private function formatDate($value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        return substr((string) $value, 0, 10);
     }
 }

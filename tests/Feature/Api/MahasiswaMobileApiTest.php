@@ -7,6 +7,7 @@ use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\PedomanAkademik;
+use App\Models\PengajuanCuti;
 use App\Models\PengajuanTranskrip;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
@@ -153,6 +154,18 @@ class MahasiswaMobileApiTest extends TestCase
             ->getJson('/api/v1/mahasiswa/jadwal')
             ->assertOk()
             ->assertJsonStructure(['tahun_akademik', 'teori', 'praktik']);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/jadwal-ujian')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik',
+                'program_studi',
+                'semester',
+                'uts' => ['tersedia', 'aktif', 'pesan', 'jadwal'],
+                'uas' => ['tersedia', 'aktif', 'pesan', 'jadwal'],
+                'uap' => ['tersedia', 'aktif', 'pesan', 'jadwal'],
+            ]);
 
         $this->withToken($token)
             ->getJson('/api/v1/mahasiswa/absensi')
@@ -373,6 +386,96 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_student_can_use_helpdesk_finance_and_safe_profile_mobile_services(): void
+    {
+        $students = Mahasiswa::query()->limit(2)->get();
+        if ($students->count() < 2) {
+            $this->markTestSkipped('Dibutuhkan dua mahasiswa untuk pengujian Pelayanan Mahasiswa.');
+        }
+        $owner = $students->first();
+        $other = $students->last();
+        $originalNim = $owner->nim;
+        Sanctum::actingAs($owner);
+
+        $this->getJson('/api/v1/mahasiswa/pelayanan/administrasi')
+            ->assertOk()
+            ->assertJsonStructure([
+                'ringkasan' => ['total_tagihan', 'total_dibayar', 'sisa'],
+                'tagihan',
+            ]);
+        $this->getJson('/api/v1/mahasiswa/pelayanan/profil')
+            ->assertOk()
+            ->assertJsonPath('profil.akademik.nim', $originalNim);
+
+        $created = $this->postJson('/api/v1/mahasiswa/pelayanan/helpdesk', [
+            'jenis_permintaan' => 'fitur',
+            'judul' => 'Pengujian Helpdesk Mobile',
+            'deskripsi' => 'Permintaan ini dibuat otomatis melalui pengujian API mobile.',
+            'prioritas' => 'sedang',
+        ])->assertCreated()->json();
+
+        $this->getJson('/api/v1/mahasiswa/pelayanan/helpdesk')
+            ->assertOk()
+            ->assertJsonFragment(['id' => $created['id'], 'status' => 'menunggu']);
+
+        Sanctum::actingAs($other);
+        $this->deleteJson('/api/v1/mahasiswa/pelayanan/helpdesk/'.$created['id'])
+            ->assertNotFound();
+
+        Sanctum::actingAs($owner);
+        $this->postJson('/api/v1/mahasiswa/pelayanan/profil', [
+            'nama' => $owner->nama,
+            'email' => $owner->email,
+            'no_telp' => '081234567890',
+        ])->assertOk()
+            ->assertJsonPath('profil.no_telp', '081234567890')
+            ->assertJsonPath('profil.akademik.nim', $originalNim);
+        $this->assertSame($originalNim, $owner->fresh()->nim);
+
+        $this->deleteJson('/api/v1/mahasiswa/pelayanan/helpdesk/'.$created['id'])
+            ->assertOk();
+    }
+
+    public function test_student_can_submit_and_cancel_their_own_leave_request_through_mobile_api(): void
+    {
+        $activeTa = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
+        $student = Mahasiswa::query()
+            ->whereRaw('LOWER(status_mhs) = ?', ['aktif'])
+            ->whereNotNull('dosen_id')
+            ->whereHas('programStudi', fn ($query) => $query->whereNotNull('kaprodi_dosen_id'))
+            ->first();
+        if (! $student) {
+            $this->markTestSkipped('Tidak ada mahasiswa aktif dengan Dospem dan Kaprodi untuk pengujian cuti.');
+        }
+        PengajuanCuti::query()
+            ->where('mahasiswa_id', $student->mahasiswa_id)
+            ->where('ta_id', $activeTa->ta_id)
+            ->delete();
+        Sanctum::actingAs($student);
+
+        $this->getJson('/api/v1/mahasiswa/pelayanan/cuti')
+            ->assertOk()
+            ->assertJsonPath('dapat_mengajukan', true);
+        $created = $this->postJson('/api/v1/mahasiswa/pelayanan/cuti', [
+            'alasan' => 'Pengajuan cuti akademik untuk kebutuhan pengujian aplikasi mobile.',
+        ])->assertCreated()->json();
+
+        $other = Mahasiswa::query()->where('mahasiswa_id', '!=', $student->mahasiswa_id)->first();
+        if ($other) {
+            Sanctum::actingAs($other);
+            $this->patchJson('/api/v1/mahasiswa/pelayanan/cuti/'.$created['id'].'/batalkan')
+                ->assertNotFound();
+        }
+
+        Sanctum::actingAs($student);
+        $this->patchJson('/api/v1/mahasiswa/pelayanan/cuti/'.$created['id'].'/batalkan')
+            ->assertOk();
+        $this->assertDatabaseHas('pengajuan_cuti', [
+            'id' => $created['id'],
+            'status' => PengajuanCuti::DIBATALKAN,
+        ]);
+    }
+
     public function test_student_only_receives_lms_class_from_approved_matching_krs(): void
     {
         $tahunAkademik = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
@@ -444,6 +547,30 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('uts.aktif', false)
             ->assertJsonCount(0, 'uts.mata_kuliah');
+    }
+
+    public function test_exam_schedule_activation_and_uap_program_scope_are_enforced(): void
+    {
+        $mahasiswa = Mahasiswa::query()
+            ->where('jurusan_id', '!=', 15401)
+            ->firstOrFail();
+        $mahasiswa->update([
+            'status_uts' => 0,
+            'status_uas' => 0,
+            'status_uap' => 1,
+            'semester' => 6,
+        ]);
+        Sanctum::actingAs($mahasiswa, ['mahasiswa']);
+
+        $this->getJson('/api/v1/mahasiswa/jadwal-ujian')
+            ->assertOk()
+            ->assertJsonPath('uts.aktif', false)
+            ->assertJsonCount(0, 'uts.jadwal')
+            ->assertJsonPath('uas.aktif', false)
+            ->assertJsonCount(0, 'uas.jadwal')
+            ->assertJsonPath('uap.tersedia', false)
+            ->assertJsonPath('uap.aktif', false)
+            ->assertJsonCount(0, 'uap.jadwal');
     }
 
     public function test_student_can_submit_only_one_active_transcript_request(): void
