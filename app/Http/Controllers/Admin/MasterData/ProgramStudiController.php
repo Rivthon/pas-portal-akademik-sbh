@@ -24,7 +24,7 @@ class ProgramStudiController extends Controller
 
     public function index(): View
     {
-        $programStudis = ProgramStudi::with('kaprodi')->latest()->paginate(5);
+        $programStudis = ProgramStudi::with(['kaprodi', 'sekprodi'])->latest()->paginate(5);
 
         return view('admin.master-data.program-studi.index', compact('programStudis'))
             ->with('i', (request()->input('page', 1) - 1) * 5);
@@ -44,6 +44,7 @@ class ProgramStudiController extends Controller
             'jurusan_id' => 'required|string|max:10|unique:program_studi,jurusan_id',
             'nama' => 'required|string|max:255',
             'kaprodi_dosen_id' => 'required|integer|exists:dosen,dosen_id',
+            'sekprodi_dosen_id' => 'nullable|integer|different:kaprodi_dosen_id|exists:dosen,dosen_id',
             'jenjang' => 'required|string|in:D3,S1,S2,S3', // Validasi pilihan jenjang
             'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi untuk file TTD
             'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi Header BAAK
@@ -62,6 +63,7 @@ class ProgramStudiController extends Controller
                 'nama' => $data['nama'],
                 'kaprod' => $data['kaprod'],
                 'kaprodi_dosen_id' => $data['kaprodi_dosen_id'],
+                'sekprodi_dosen_id' => $data['sekprodi_dosen_id'] ?? null,
                 'jenjang' => $data['jenjang'],
                 'ttd' => $newUploads['ttd'] ?? null,
                 'header_baak' => $newUploads['header_baak'] ?? null,
@@ -102,6 +104,7 @@ class ProgramStudiController extends Controller
             'jurusan_id' => 'required|in:'.$programStudi->jurusan_id,
             'jenjang' => 'required|string|in:D3,S1,S2,S3',
             'kaprodi_dosen_id' => 'nullable|integer|exists:dosen,dosen_id',
+            'sekprodi_dosen_id' => 'nullable|integer|different:kaprodi_dosen_id|exists:dosen,dosen_id',
             'ttd' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_baak' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'header_kapro' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',

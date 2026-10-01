@@ -17,6 +17,7 @@ class RestrictMahasiswaCuti
         'mahasiswa.cuti.*',
         'mahasiswa.calendar-akademik.file',
         'mahasiswa.pedoman-akademik.*',
+        'mahasiswa.berkas-program-studi.*',
         'mahasiswa.administrasi.index',
         'mahasiswa.getBerita',
         'mahasiswa.index.berita',

@@ -250,6 +250,12 @@ $isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
                 <div class="fw-medium">Pedoman Akademik</div>
             </a>
         </li>
+        <li class="menu-item @if(Route::is('mahasiswa.berkas-program-studi.*')) active @endif">
+            <a href="{{ route('mahasiswa.berkas-program-studi.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-folder-open text-success"></i>
+                <div class="fw-medium">Berkas Program Studi</div>
+            </a>
+        </li>
         <li class="menu-item @if(Route::is('mahasiswa.permintaan.*') || Route::is('mahasiswa.cuti.*') || Route::is('mahasiswa.index.berita') || Route::is('mahasiswa.administrasi.*') || Route::is('mahasiswa.profile.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-cog text-secondary"></i>

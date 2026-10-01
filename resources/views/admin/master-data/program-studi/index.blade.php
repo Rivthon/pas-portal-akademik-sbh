@@ -49,6 +49,7 @@
                     <th>Kode Prog. Studi</th>
                     <th>Prog. Studi</th>
                     <th>Kaprod</th>
+                    <th>Sekprodi</th>
                     <th width="200px">Aksi</th>
                 </tr>
             </thead>
@@ -66,6 +67,14 @@
                         </span>
                         @else
                         <span class="badge bg-label-warning mt-1">Data lama</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if ($r->sekprodi)
+                        <div class="fw-semibold">{{ $r->sekprodi->nama }}</div>
+                        <span class="badge bg-label-info mt-1"><i class="bx bx-folder-open me-1"></i>Pengelola berkas</span>
+                        @else
+                        <span class="text-muted">Belum ditentukan</span>
                         @endif
                     </td>
                     <td>

@@ -64,6 +64,26 @@
                             <div class="form-text">Akun ini akan menjadi identitas Kaprodi untuk proses verifikasi.</div>
                         </div>
 
+                        <!-- Pemilihan akun Sekprodi -->
+                        <div class="col-md-6 mb-3">
+                            <label for="sekprodi_dosen_id" class="form-label"><strong>Sekprodi:</strong></label>
+                            <select name="sekprodi_dosen_id" id="sekprodi_dosen_id"
+                                class="form-select @error('sekprodi_dosen_id') is-invalid @enderror">
+                                <option value="">-- Belum ditentukan --</option>
+                                @foreach ($dosen as $item)
+                                <option value="{{ $item->dosen_id }}"
+                                    {{ (string) old('sekprodi_dosen_id', $programStudi->sekprodi_dosen_id) === (string) $item->dosen_id ? 'selected' : '' }}>
+                                    {{ $item->nama }} — {{ $item->kd_dosen ?: 'Tanpa kode' }}
+                                    ({{ $item->programStudi?->nama ?: 'Prodi belum tersedia' }})
+                                </option>
+                                @endforeach
+                            </select>
+                            @error('sekprodi_dosen_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text">Hanya akun ini yang mendapat menu unggah dan kelola Berkas Program Studi.</div>
+                        </div>
+
                         <!-- Input untuk Jenjang -->
                         <div class="col-md-6 mb-3">
                             <label for="jenjang" class="form-label"><strong>Jenjang:</strong></label>
@@ -186,4 +206,22 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const kaprodi = document.getElementById('kaprodi_dosen_id');
+    const sekprodi = document.getElementById('sekprodi_dosen_id');
+    if (!kaprodi || !sekprodi) return;
+    function syncLeadershipOptions() {
+        Array.from(kaprodi.options).forEach(option => option.disabled = false);
+        Array.from(sekprodi.options).forEach(option => option.disabled = false);
+        const kaprodiOption = sekprodi.querySelector('option[value="' + kaprodi.value + '"]');
+        const sekprodiOption = kaprodi.querySelector('option[value="' + sekprodi.value + '"]');
+        if (kaprodi.value && kaprodiOption && !kaprodiOption.selected) kaprodiOption.disabled = true;
+        if (sekprodi.value && sekprodiOption && !sekprodiOption.selected) sekprodiOption.disabled = true;
+    }
+    kaprodi.addEventListener('change', syncLeadershipOptions);
+    sekprodi.addEventListener('change', syncLeadershipOptions);
+    syncLeadershipOptions();
+});
+</script>
 @endsection

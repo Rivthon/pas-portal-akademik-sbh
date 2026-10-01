@@ -25,6 +25,15 @@
             </a>
         </li>
 
+        <li class="menu-item @if(Route::is('dosen.berkas-program-studi.*')) active @endif">
+            <a href="{{ route('dosen.berkas-program-studi.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-folder-open text-primary"></i>
+                <div class="fw-medium">
+                    {{ auth('dosen')->user()?->programStudiSebagaiSekprodi()->exists() ? 'Sekprodi · Kelola Berkas' : 'Berkas Program Studi' }}
+                </div>
+            </a>
+        </li>
+
         @if(auth('dosen')->user()?->programStudiDipimpin()->exists())
         <li class="menu-item @if(Route::is('dosen.kaprodi.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">

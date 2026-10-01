@@ -87,6 +87,16 @@ class Dosen extends Authenticatable
         return $this->hasMany(ProgramStudi::class, 'kaprodi_dosen_id', 'dosen_id');
     }
 
+    public function programStudiSebagaiSekprodi()
+    {
+        return $this->hasMany(ProgramStudi::class, 'sekprodi_dosen_id', 'dosen_id');
+    }
+
+    public function berkasProgramStudiDiunggah()
+    {
+        return $this->hasMany(BerkasProgramStudi::class, 'uploaded_by_dosen_id', 'dosen_id');
+    }
+
     public function rps()
     {
         return $this->hasMany(

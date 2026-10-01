@@ -55,6 +55,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
 use App\Http\Controllers\CalendarAkademikFileController;
 use App\Http\Controllers\Dosen\AbsensiPraktikController as DosenAbsensiPraktikController;
+use App\Http\Controllers\Dosen\BerkasProgramStudiController as DosenBerkasProgramStudiController;
 use App\Http\Controllers\Dosen\CutiController as DosenCutiController;
 use App\Http\Controllers\Dosen\DashboardDosenController;
 use App\Http\Controllers\Dosen\KaprodiCutiController;
@@ -73,6 +74,7 @@ use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
 use App\Http\Controllers\Mahasiswa\AkademikController;
+use App\Http\Controllers\Mahasiswa\BerkasProgramStudiController as MahasiswaBerkasProgramStudiController;
 use App\Http\Controllers\Mahasiswa\CutiController as MahasiswaCutiController;
 use App\Http\Controllers\Mahasiswa\DashboardController;
 use App\Http\Controllers\Mahasiswa\EdomController;
@@ -132,6 +134,10 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
             ->name('pedoman-akademik.preview');
         Route::get('/pedoman-akademik/{pedoman}/download', [MahasiswaPedomanAkademikController::class, 'download'])
             ->name('pedoman-akademik.download');
+        Route::get('/berkas-program-studi', [MahasiswaBerkasProgramStudiController::class, 'index'])
+            ->name('berkas-program-studi.index');
+        Route::get('/berkas-program-studi/{berkas}/download', [MahasiswaBerkasProgramStudiController::class, 'download'])
+            ->name('berkas-program-studi.download');
         // Profil mahasiswa
         Route::get('profile', [ProfileUserController::class, 'index'])->name('profile.index');
         Route::post('profile', [ProfileUserController::class, 'update'])->name('profile.update');
@@ -714,6 +720,16 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
         Route::get('dashboard', [DashboardDosenController::class, 'index'])->name('dashboard');
         Route::get('/kalender-akademik/{calendar}/file', [CalendarAkademikFileController::class, 'show'])
             ->name('calendar-akademik.file');
+        Route::get('/berkas-program-studi', [DosenBerkasProgramStudiController::class, 'index'])
+            ->name('berkas-program-studi.index');
+        Route::post('/berkas-program-studi', [DosenBerkasProgramStudiController::class, 'store'])
+            ->name('berkas-program-studi.store');
+        Route::patch('/berkas-program-studi/{berkas}/status', [DosenBerkasProgramStudiController::class, 'toggle'])
+            ->name('berkas-program-studi.toggle');
+        Route::delete('/berkas-program-studi/{berkas}', [DosenBerkasProgramStudiController::class, 'destroy'])
+            ->name('berkas-program-studi.destroy');
+        Route::get('/berkas-program-studi/{berkas}/download', [DosenBerkasProgramStudiController::class, 'download'])
+            ->name('berkas-program-studi.download');
         // Profil mahasiswa
         Route::middleware(['auth:dosen'])->group(function () {
             // ===== Perkuliahan =====
