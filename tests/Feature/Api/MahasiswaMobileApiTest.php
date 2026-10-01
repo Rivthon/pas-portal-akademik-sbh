@@ -3,12 +3,15 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Jadwal;
+use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
 use App\Models\PengajuanTranskrip;
+use App\Models\Setting;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -122,6 +125,17 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertJsonStructure(['riwayat']);
 
         $this->withToken($token)
+            ->getJson('/api/v1/mahasiswa/edom')
+            ->assertOk()
+            ->assertJsonStructure([
+                'tahun_akademik',
+                'diaktifkan',
+                'dikonfirmasi',
+                'progres' => ['required', 'filled', 'remaining', 'complete'],
+                'mata_kuliah',
+            ]);
+
+        $this->withToken($token)
             ->getJson('/api/v1/mahasiswa/nilai')
             ->assertOk()
             ->assertJsonStructure([
@@ -161,6 +175,108 @@ class MahasiswaMobileApiTest extends TestCase
 
         $this->assertNotNull($tokenId);
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $tokenId]);
+    }
+
+    public function test_student_can_submit_edom_once_through_mobile_api(): void
+    {
+        Setting::query()->firstOrFail()->update(['edom_enabled' => true]);
+        $activeTa = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
+        $students = Mahasiswa::query()
+            ->whereHas('krs', fn ($query) => $query
+                ->where('ta_id', $activeTa->ta_id)
+                ->whereNotNull('disetujui_pada'))
+            ->get();
+
+        $selected = null;
+        $assignment = null;
+        foreach ($students as $student) {
+            Sanctum::actingAs($student);
+            $payload = $this->getJson('/api/v1/mahasiswa/edom')->assertOk()->json();
+            foreach ($payload['mata_kuliah'] ?? [] as $course) {
+                if (! empty($course['dosen'])) {
+                    $selected = $student;
+                    $assignment = [$course, $course['dosen'][0]];
+                    break 2;
+                }
+            }
+        }
+
+        if (! $selected || ! $assignment) {
+            $this->markTestSkipped('Tidak ada penugasan dosen pada KRS aktif untuk pengujian EDOM.');
+        }
+
+        [$course, $lecturer] = $assignment;
+        DB::table('penilaian')
+            ->where('mahasiswa_id', $selected->mahasiswa_id)
+            ->where('krs_id', $course['krs_id'])
+            ->where('dosen_id', $lecturer['id'])
+            ->where('jenis_dosen', $lecturer['jenis_dosen'])
+            ->where('jenis_kelas', $lecturer['jenis_kelas'])
+            ->delete();
+        DB::table('saran')
+            ->where('mahasiswa_id', $selected->mahasiswa_id)
+            ->where('krs_id', $course['krs_id'])
+            ->where('dosen_id', $lecturer['id'])
+            ->where('jenis_dosen', $lecturer['jenis_dosen'])
+            ->where('jenis_kelas', $lecturer['jenis_kelas'])
+            ->delete();
+
+        Sanctum::actingAs($selected);
+        $form = $this->getJson(
+            '/api/v1/mahasiswa/edom/'.$course['krs_id'].'/'.$lecturer['id']
+            .'?jenis_dosen='.$lecturer['jenis_dosen']
+        )->assertOk()->assertJsonStructure(['pertanyaan' => [['id', 'pertanyaan']]])->json();
+        $responses = collect($form['pertanyaan'])->mapWithKeys(
+            fn (array $question) => [(string) $question['id'] => 5]
+        )->all();
+
+        $endpoint = '/api/v1/mahasiswa/edom/'.$course['krs_id'].'/'.$lecturer['id'];
+        $body = [
+            'jenis_dosen' => $lecturer['jenis_dosen'],
+            'responses' => $responses,
+            'suggestion' => 'Pengajaran sudah baik dan semoga terus dipertahankan.',
+        ];
+        $this->postJson($endpoint, $body)
+            ->assertOk()
+            ->assertJsonPath('message', 'EDOM berhasil disimpan. Jawaban tidak dapat diubah setelah dikirim.');
+
+        $this->postJson($endpoint, $body)
+            ->assertUnprocessable();
+    }
+
+    public function test_student_can_open_edom_for_the_selected_khs_history_period(): void
+    {
+        $activeTaId = TahunAkademik::query()->where('status_ta', 1)->value('ta_id');
+        $historicalKrs = Krs::query()
+            ->with('mahasiswa')
+            ->where('ta_id', '!=', $activeTaId)
+            ->whereNotNull('disetujui_pada')
+            ->whereHas('mahasiswa', fn ($query) => $query->whereNotNull('jurusan_id'))
+            ->first();
+
+        if (! $historicalKrs || ! $historicalKrs->mahasiswa) {
+            $this->markTestSkipped('Tidak ada KRS riwayat yang disetujui untuk pengujian EDOM.');
+        }
+
+        KhsPublication::query()->updateOrCreate([
+            'ta_id' => $historicalKrs->ta_id,
+            'program_studi_id' => $historicalKrs->mahasiswa->jurusan_id,
+            'scope_key' => 'all',
+        ], [
+            'scope_type' => 'all',
+            'semester' => null,
+            'jadwal_id' => null,
+            'published_by_user_id' => null,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($historicalKrs->mahasiswa);
+
+        $this->getJson('/api/v1/mahasiswa/edom?ta_id='.$historicalKrs->ta_id)
+            ->assertOk()
+            ->assertJsonPath('tahun_akademik.id', (int) $historicalKrs->ta_id)
+            ->assertJsonPath('riwayat', true)
+            ->assertJsonPath('diaktifkan', true);
     }
 
     public function test_student_only_receives_lms_class_from_approved_matching_krs(): void

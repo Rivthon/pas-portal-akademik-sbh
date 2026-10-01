@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Mahasiswa\AcademicController;
 use App\Http\Controllers\Api\V1\Mahasiswa\AttendanceController;
 use App\Http\Controllers\Api\V1\Mahasiswa\AuthController;
 use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
+use App\Http\Controllers\Api\V1\Mahasiswa\EdomController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudyController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/krs', [AcademicController::class, 'krs']);
             Route::get('/khs', [AcademicController::class, 'khs']);
             Route::get('/khs/riwayat', [AcademicController::class, 'khsHistory']);
+            Route::get('/edom', [EdomController::class, 'index']);
+            Route::get('/edom/{krs}/{dosenId}', [EdomController::class, 'form']);
+            Route::post('/edom/{krs}/{dosenId}', [EdomController::class, 'submit'])
+                ->middleware('throttle:10,1');
+            Route::post('/edom/konfirmasi', [EdomController::class, 'confirm'])
+                ->middleware('throttle:5,1');
             Route::get('/nilai', [AcademicController::class, 'grades']);
             Route::post('/nilai/pengajuan-transkrip', [AcademicController::class, 'submitTranscriptRequest'])
                 ->middleware('throttle:5,1');
