@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Mahasiswa\AuthController;
 use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
 use App\Http\Controllers\Api\V1\Mahasiswa\EdomController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
+use App\Http\Controllers\Api\V1\Mahasiswa\SkpiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudyController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,14 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:10,1');
             Route::post('/edom/konfirmasi', [EdomController::class, 'confirm'])
                 ->middleware('throttle:5,1');
+            Route::get('/skpi', [SkpiController::class, 'index']);
+            Route::get('/skpi/{category}', [SkpiController::class, 'records']);
+            Route::post('/skpi/{category}', [SkpiController::class, 'store'])
+                ->middleware('throttle:10,1');
+            Route::put('/skpi/{category}/{record}', [SkpiController::class, 'update'])
+                ->middleware('throttle:10,1');
+            Route::delete('/skpi/{category}/{record}', [SkpiController::class, 'destroy'])
+                ->middleware('throttle:10,1');
             Route::get('/nilai', [AcademicController::class, 'grades']);
             Route::post('/nilai/pengajuan-transkrip', [AcademicController::class, 'submitTranscriptRequest'])
                 ->middleware('throttle:5,1');

@@ -279,6 +279,59 @@ class MahasiswaMobileApiTest extends TestCase
             ->assertJsonPath('diaktifkan', true);
     }
 
+    public function test_student_can_manage_only_their_own_skpi_records_through_mobile_api(): void
+    {
+        $students = Mahasiswa::query()->limit(2)->get();
+        if ($students->count() < 2) {
+            $this->markTestSkipped('Dibutuhkan dua mahasiswa untuk pengujian kepemilikan SKPI.');
+        }
+
+        $owner = $students->first();
+        $otherStudent = $students->last();
+        Sanctum::actingAs($owner);
+
+        $this->getJson('/api/v1/mahasiswa/skpi')
+            ->assertOk()
+            ->assertJsonStructure([
+                'mahasiswa',
+                'tahun_akademik',
+                'total_pengajuan',
+                'total_disetujui',
+                'total_bobot',
+                'kategori' => [['key', 'title', 'total', 'menunggu', 'disetujui', 'bobot']],
+            ]);
+
+        $payload = [
+            'nama_kegiatan' => 'Uji Kompetensi Mobile',
+            'penyelenggara' => 'STIKes Bakti Husada',
+            'tingkat_kegiatan' => 'Nasional',
+            'prestasi' => 'Peserta',
+            'tanggal' => '2026-09-30',
+            'jenis_sertifikat' => 'Kompetensi',
+            'file_sertifikat' => 'https://example.com/sertifikat.pdf',
+            'dokumen_pendukung' => 'https://example.com/pendukung.pdf',
+        ];
+
+        $created = $this->postJson('/api/v1/mahasiswa/skpi/sertifikasi', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.status', 'Menunggu')
+            ->json('data');
+
+        $recordId = $created['id'];
+        $payload['nama_kegiatan'] = 'Uji Kompetensi Mobile Diperbarui';
+        $this->putJson('/api/v1/mahasiswa/skpi/sertifikasi/'.$recordId, $payload)
+            ->assertOk()
+            ->assertJsonPath('data.data.nama_kegiatan', $payload['nama_kegiatan']);
+
+        Sanctum::actingAs($otherStudent);
+        $this->deleteJson('/api/v1/mahasiswa/skpi/sertifikasi/'.$recordId)
+            ->assertNotFound();
+
+        Sanctum::actingAs($owner);
+        $this->deleteJson('/api/v1/mahasiswa/skpi/sertifikasi/'.$recordId)
+            ->assertOk();
+    }
+
     public function test_student_only_receives_lms_class_from_approved_matching_krs(): void
     {
         $tahunAkademik = TahunAkademik::query()->where('status_ta', 1)->firstOrFail();
