@@ -6,12 +6,14 @@ use App\Models\Jadwal;
 use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
+use App\Models\PedomanAkademik;
 use App\Models\PengajuanTranskrip;
 use App\Models\Setting;
 use App\Models\TahunAkademik;
 use App\Support\KrsClassResolver;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -330,6 +332,45 @@ class MahasiswaMobileApiTest extends TestCase
         Sanctum::actingAs($owner);
         $this->deleteJson('/api/v1/mahasiswa/skpi/sertifikasi/'.$recordId)
             ->assertOk();
+    }
+
+    public function test_student_mobile_api_only_exposes_active_academic_guides(): void
+    {
+        Storage::fake('private');
+        Storage::disk('private')->put('pedoman-akademik/aktif.pdf', '%PDF-1.4 test');
+        Storage::disk('private')->put('pedoman-akademik/nonaktif.pdf', '%PDF-1.4 test');
+        $active = PedomanAkademik::query()->create([
+            'judul' => 'Pedoman Akademik Aktif',
+            'tahun_berlaku' => '2026/2027',
+            'nama_file' => 'Pedoman Akademik Aktif.pdf',
+            'path' => 'pedoman-akademik/aktif.pdf',
+            'status' => true,
+        ]);
+        $inactive = PedomanAkademik::query()->create([
+            'judul' => 'Pedoman Akademik Nonaktif',
+            'tahun_berlaku' => '2025/2026',
+            'nama_file' => 'Pedoman Akademik Nonaktif.pdf',
+            'path' => 'pedoman-akademik/nonaktif.pdf',
+            'status' => false,
+        ]);
+        Sanctum::actingAs(Mahasiswa::query()->firstOrFail());
+
+        $response = $this->getJson('/api/v1/mahasiswa/pedoman-akademik')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $active->id,
+                'judul' => 'Pedoman Akademik Aktif',
+                'tersedia' => true,
+            ]);
+        $this->assertFalse(
+            collect($response->json('pedoman'))->contains('id', $inactive->id)
+        );
+
+        $this->get('/api/v1/mahasiswa/pedoman-akademik/'.$active->id.'/file')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+        $this->get('/api/v1/mahasiswa/pedoman-akademik/'.$inactive->id.'/file')
+            ->assertNotFound();
     }
 
     public function test_student_only_receives_lms_class_from_approved_matching_krs(): void

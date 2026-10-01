@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Mahasiswa\AuthController;
 use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
 use App\Http\Controllers\Api\V1\Mahasiswa\EdomController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
+use App\Http\Controllers\Api\V1\Mahasiswa\PedomanAkademikController;
 use App\Http\Controllers\Api\V1\Mahasiswa\SkpiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudyController;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,9 @@ Route::prefix('v1')->group(function () {
                 ->middleware('throttle:10,1');
             Route::delete('/skpi/{category}/{record}', [SkpiController::class, 'destroy'])
                 ->middleware('throttle:10,1');
+            Route::get('/pedoman-akademik', [PedomanAkademikController::class, 'index']);
+            Route::get('/pedoman-akademik/{pedoman}/file', [PedomanAkademikController::class, 'file'])
+                ->middleware('throttle:30,1');
             Route::get('/nilai', [AcademicController::class, 'grades']);
             Route::post('/nilai/pengajuan-transkrip', [AcademicController::class, 'submitTranscriptRequest'])
                 ->middleware('throttle:5,1');
