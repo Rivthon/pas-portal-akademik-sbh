@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
 use App\Http\Controllers\Api\V1\Mahasiswa\EdomController;
 use App\Http\Controllers\Api\V1\Mahasiswa\LmsController;
 use App\Http\Controllers\Api\V1\Mahasiswa\PedomanAkademikController;
+use App\Http\Controllers\Api\V1\Mahasiswa\ProgramStudyFileController;
 use App\Http\Controllers\Api\V1\Mahasiswa\SkpiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudentServiceController;
 use App\Http\Controllers\Api\V1\Mahasiswa\StudyController;
@@ -52,6 +53,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/pedoman-akademik', [PedomanAkademikController::class, 'index']);
             Route::get('/pedoman-akademik/{pedoman}/file', [PedomanAkademikController::class, 'file'])
                 ->middleware('throttle:30,1');
+            Route::get('/berkas-program-studi', [ProgramStudyFileController::class, 'index']);
+            Route::get('/berkas-program-studi/{berkas}/file', [ProgramStudyFileController::class, 'file'])
+                ->middleware('throttle:30,1');
             Route::get('/pelayanan/helpdesk', [StudentServiceController::class, 'helpdesk']);
             Route::post('/pelayanan/helpdesk', [StudentServiceController::class, 'storeHelpdesk'])
                 ->middleware('throttle:10,1');
@@ -78,6 +82,12 @@ Route::prefix('v1')->group(function () {
             Route::get('/rps/{rps}/file', [StudyController::class, 'rpsFile']);
             Route::get('/lms', [LmsController::class, 'index']);
             Route::get('/lms/materi/{materi}/file', [LmsController::class, 'materialFile']);
+            Route::get('/lms/tugas/{tugas}', [LmsController::class, 'assignment']);
+            Route::get('/lms/tugas/{tugas}/lampiran', [LmsController::class, 'assignmentAttachment']);
+            Route::post('/lms/tugas/{tugas}/kumpulkan', [LmsController::class, 'submitAssignment'])
+                ->middleware('throttle:20,1');
+            Route::get('/lms/pengumpulan/{pengumpulan}/file', [LmsController::class, 'submissionFile'])
+                ->middleware('throttle:30,1');
             Route::get('/lms/{jadwal}', [LmsController::class, 'show']);
         });
     });

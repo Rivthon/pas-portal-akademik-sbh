@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class BerkasProgramStudiTest extends TestCase
@@ -78,6 +79,22 @@ class BerkasProgramStudiTest extends TestCase
             ->assertOk()
             ->assertDontSee('Form Daftar Sidang Prodi');
         $this->get(route('mahasiswa.berkas-program-studi.download', $berkas))->assertForbidden();
+
+        Sanctum::actingAs($student, ['mahasiswa']);
+        $this->getJson('/api/v1/mahasiswa/berkas-program-studi')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $berkas->id,
+                'judul' => 'Form Daftar Sidang Prodi',
+                'tersedia' => true,
+            ]);
+        $this->get('/api/v1/mahasiswa/berkas-program-studi/'.$berkas->id.'/file')->assertOk();
+
+        Sanctum::actingAs($otherStudent, ['mahasiswa']);
+        $this->getJson('/api/v1/mahasiswa/berkas-program-studi')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $berkas->id]);
+        $this->get('/api/v1/mahasiswa/berkas-program-studi/'.$berkas->id.'/file')->assertForbidden();
     }
 
     public function test_admin_program_form_contains_sekprodi_selection(): void

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\LmsMateri;
 use App\Models\LmsPengumpulanTugas;
+use App\Models\LmsTugas;
 use App\Models\Mahasiswa;
 use App\Models\Pertemuan;
 use App\Models\TahunAkademik;
@@ -13,6 +14,9 @@ use App\Support\KrsClassResolver;
 use App\Support\StoredUpload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LmsController extends Controller
@@ -139,6 +143,8 @@ class LmsController extends Controller
                             'judul' => $tugas->judul,
                             'deskripsi' => $tugas->deskripsi,
                             'tipe' => $tugas->tipe,
+                            'cakupan' => $tugas->cakupan,
+                            'tugas_individu' => $tugas->cakupan === 'individu',
                             'deadline' => $tugas->deadline?->toIso8601String(),
                             'nilai_maksimal' => (float) $tugas->nilai_maksimal,
                             'status_pengumpulan' => $submission
@@ -188,6 +194,281 @@ class LmsController extends Controller
             $materi->file,
             basename($materi->file)
         );
+    }
+
+    public function assignment(Request $request, LmsTugas $tugas): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $this->authorizeAssignment($tugas, $mahasiswa);
+        $tugas->loadMissing(['soal', 'jadwal.kurikulum.mataKuliah']);
+
+        $submission = LmsPengumpulanTugas::query()
+            ->where('tugas_id', $tugas->tugas_id)
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->first();
+        $deadlinePassed = $tugas->deadline && now()->greaterThan($tugas->deadline);
+        $graded = $this->isManuallyGraded($submission);
+        $canSubmit = ! $submission
+            ? (! $deadlinePassed || $tugas->izinkan_terlambat)
+            : (! $deadlinePassed && ! $graded && $tugas->izinkan_upload_ulang);
+
+        return response()->json([
+            'tugas' => [
+                'id' => (int) $tugas->tugas_id,
+                'judul' => $tugas->judul,
+                'deskripsi' => $tugas->deskripsi,
+                'tipe' => $tugas->tipe,
+                'cakupan' => $tugas->cakupan,
+                'deadline' => $tugas->deadline?->toIso8601String(),
+                'nilai_maksimal' => (float) $tugas->nilai_maksimal,
+                'izinkan_terlambat' => (bool) $tugas->izinkan_terlambat,
+                'izinkan_upload_ulang' => (bool) $tugas->izinkan_upload_ulang,
+                'punya_lampiran' => StoredUpload::exists($tugas->lampiran),
+                'nama_lampiran' => $tugas->lampiran ? basename($tugas->lampiran) : null,
+                'mata_kuliah' => $tugas->jadwal?->kurikulum?->mataKuliah?->nama,
+            ],
+            'soal' => $tugas->tipe === 'pilihan_ganda'
+                ? $tugas->soal->map(fn ($soal) => [
+                    'id' => (int) $soal->soal_id,
+                    'pertanyaan' => $soal->pertanyaan,
+                    'opsi' => array_values($soal->opsi ?? []),
+                    'bobot' => (float) $soal->bobot,
+                ])->values()
+                : [],
+            'pengumpulan' => $submission ? [
+                'id' => (int) $submission->pengumpulan_id,
+                'catatan' => $submission->catatan,
+                'jawaban_teks' => $submission->jawaban_teks,
+                'jawaban_pg' => $submission->jawaban_pg ?? new \stdClass,
+                'punya_file' => StoredUpload::exists($submission->file),
+                'nama_file' => $submission->file ? basename($submission->file) : null,
+                'waktu_upload' => $submission->waktu_upload?->toIso8601String(),
+                'nilai' => $submission->nilai !== null ? (float) $submission->nilai : null,
+                'dinilai_otomatis' => (bool) $submission->dinilai_otomatis,
+                'feedback' => $submission->feedback,
+            ] : null,
+            'aturan' => [
+                'deadline_terlewat' => (bool) $deadlinePassed,
+                'sudah_dinilai' => $graded,
+                'boleh_mengumpulkan' => $canSubmit,
+                'alasan_terkunci' => $this->lockedReason($tugas, $submission, (bool) $deadlinePassed, $graded),
+                'maksimal_upload_kb' => (int) config('lms.temporary_task_upload.max_kilobytes', 10240),
+            ],
+        ]);
+    }
+
+    public function assignmentAttachment(Request $request, LmsTugas $tugas): StreamedResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $this->authorizeAssignment($tugas, $mahasiswa);
+        abort_unless(StoredUpload::exists($tugas->lampiran), 404, 'Lampiran tugas tidak ditemukan.');
+
+        return StoredUpload::disk($tugas->lampiran)->download(
+            $tugas->lampiran,
+            basename($tugas->lampiran)
+        );
+    }
+
+    public function submissionFile(Request $request, LmsPengumpulanTugas $pengumpulan): StreamedResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        abort_unless((int) $pengumpulan->mahasiswa_id === (int) $mahasiswa->mahasiswa_id, 403);
+        abort_unless(StoredUpload::exists($pengumpulan->file), 404, 'File jawaban tidak ditemukan.');
+
+        return StoredUpload::disk($pengumpulan->file)->download(
+            $pengumpulan->file,
+            basename($pengumpulan->file)
+        );
+    }
+
+    public function submitAssignment(Request $request, LmsTugas $tugas): JsonResponse
+    {
+        /** @var Mahasiswa $mahasiswa */
+        $mahasiswa = $request->user();
+        $this->authorizeAssignment($tugas, $mahasiswa);
+
+        $submission = LmsPengumpulanTugas::query()
+            ->where('tugas_id', $tugas->tugas_id)
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->first();
+        $deadlinePassed = $tugas->deadline && now()->greaterThan($tugas->deadline);
+        $graded = $this->isManuallyGraded($submission);
+
+        abort_if($submission && $deadlinePassed, 422, 'Batas waktu pengumpulan telah berakhir. Jawaban tidak dapat diubah atau diunggah ulang.');
+        abort_if($graded, 422, 'Jawaban tidak dapat diubah karena tugas sudah dinilai oleh dosen.');
+        abort_if($deadlinePassed && ! $tugas->izinkan_terlambat, 422, 'Deadline pengumpulan telah berakhir.');
+        abort_if($submission && ! $tugas->izinkan_upload_ulang, 422, 'Jawaban sudah dikumpulkan dan tidak dapat diganti.');
+
+        $wasSubmitted = $submission !== null;
+        if ($tugas->tipe === 'pilihan_ganda') {
+            $this->submitMultipleChoice($request, $tugas, $mahasiswa, $submission);
+        } elseif ($tugas->tipe === 'teks') {
+            $this->submitText($request, $tugas, $mahasiswa, $submission);
+        } else {
+            $this->submitFile($request, $tugas, $mahasiswa, $submission);
+        }
+
+        return response()->json([
+            'message' => $wasSubmitted
+                ? 'Jawaban tugas berhasil diperbarui.'
+                : 'Tugas berhasil dikumpulkan.',
+        ]);
+    }
+
+    private function submitText(Request $request, LmsTugas $tugas, Mahasiswa $mahasiswa, ?LmsPengumpulanTugas $submission): void
+    {
+        $validated = $request->validate([
+            'jawaban_teks' => ['required', 'string', 'max:50000'],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        LmsPengumpulanTugas::updateOrCreate([
+            'tugas_id' => $tugas->tugas_id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+        ], [
+            'file' => null,
+            'catatan' => $validated['catatan'] ?? null,
+            'jawaban_pg' => null,
+            'jawaban_teks' => $validated['jawaban_teks'],
+            'waktu_upload' => now(),
+            'nilai' => null,
+            'dinilai_otomatis' => false,
+            'feedback' => null,
+            'dinilai_pada' => null,
+            'dinilai_oleh' => null,
+        ]);
+
+        if ($submission?->file && StoredUpload::exists($submission->file)) {
+            StoredUpload::delete($submission->file);
+        }
+    }
+
+    private function submitMultipleChoice(Request $request, LmsTugas $tugas, Mahasiswa $mahasiswa, ?LmsPengumpulanTugas $submission): void
+    {
+        $tugas->loadMissing('soal');
+        abort_if($tugas->soal->isEmpty(), 422, 'Tugas pilihan ganda belum memiliki soal.');
+        $request->validate([
+            'jawaban_pg' => ['required', 'array'],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $answers = [];
+        $correctWeight = 0;
+        $totalWeight = (float) $tugas->soal->sum('bobot');
+        foreach ($tugas->soal as $question) {
+            $choice = $request->input('jawaban_pg.'.$question->soal_id);
+            if ($choice === null || ! array_key_exists((int) $choice, $question->opsi ?? [])) {
+                throw ValidationException::withMessages([
+                    'jawaban_pg.'.$question->soal_id => 'Semua soal pilihan ganda wajib dijawab.',
+                ]);
+            }
+            $answers[(string) $question->soal_id] = (int) $choice;
+            if ((int) $choice === (int) $question->kunci_jawaban) {
+                $correctWeight += (float) $question->bobot;
+            }
+        }
+
+        $score = $totalWeight > 0
+            ? round(($correctWeight / $totalWeight) * (float) $tugas->nilai_maksimal, 0)
+            : 0;
+
+        LmsPengumpulanTugas::updateOrCreate([
+            'tugas_id' => $tugas->tugas_id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+        ], [
+            'file' => null,
+            'catatan' => $request->input('catatan'),
+            'jawaban_pg' => $answers,
+            'jawaban_teks' => null,
+            'waktu_upload' => now(),
+            'nilai' => $score,
+            'dinilai_otomatis' => true,
+            'feedback' => null,
+            'dinilai_pada' => now(),
+            'dinilai_oleh' => null,
+        ]);
+
+        if ($submission?->file && StoredUpload::exists($submission->file)) {
+            StoredUpload::delete($submission->file);
+        }
+    }
+
+    private function submitFile(Request $request, LmsTugas $tugas, Mahasiswa $mahasiswa, ?LmsPengumpulanTugas $submission): void
+    {
+        $maxKb = (int) config('lms.temporary_task_upload.max_kilobytes', 10240);
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'max:'.$maxKb, 'mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,zip,rar,jpg,jpeg,png'],
+            'catatan' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $file = $request->file('file');
+        $original = preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+        $original = ltrim((string) $original, '.');
+        $name = now()->format('YmdHis').'_'.$mahasiswa->mahasiswa_id.'_'.Str::lower(Str::random(8)).'_'.($original ?: 'jawaban');
+        $path = $file->storeAs('lms/pengumpulan/'.$tugas->tugas_id, $name, 'private');
+        abort_unless($path !== false, 500, 'File jawaban gagal disimpan.');
+
+        try {
+            LmsPengumpulanTugas::updateOrCreate([
+                'tugas_id' => $tugas->tugas_id,
+                'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            ], [
+                'file' => $path,
+                'catatan' => $validated['catatan'] ?? null,
+                'jawaban_pg' => null,
+                'jawaban_teks' => null,
+                'waktu_upload' => now(),
+                'nilai' => null,
+                'dinilai_otomatis' => false,
+                'feedback' => null,
+                'dinilai_pada' => null,
+                'dinilai_oleh' => null,
+            ]);
+        } catch (\Throwable $exception) {
+            Storage::disk('private')->delete($path);
+            throw $exception;
+        }
+
+        if ($submission?->file && $submission->file !== $path && StoredUpload::exists($submission->file)) {
+            StoredUpload::delete($submission->file);
+        }
+    }
+
+    private function authorizeAssignment(LmsTugas $tugas, Mahasiswa $mahasiswa): void
+    {
+        abort_unless($tugas->aktif, 404);
+        $tugas->loadMissing('jadwal');
+        abort_unless($tugas->jadwal, 404);
+        $this->authorizeSchedule($tugas->jadwal, $mahasiswa);
+        abort_unless($tugas->ditujukanKepada((int) $mahasiswa->mahasiswa_id), 403, 'Tugas ini tidak ditujukan kepada Anda.');
+    }
+
+    private function isManuallyGraded(?LmsPengumpulanTugas $submission): bool
+    {
+        return $submission !== null
+            && ! $submission->dinilai_otomatis
+            && ($submission->nilai !== null || $submission->dinilai_pada !== null);
+    }
+
+    private function lockedReason(LmsTugas $tugas, ?LmsPengumpulanTugas $submission, bool $deadlinePassed, bool $graded): ?string
+    {
+        if ($graded) {
+            return 'Tugas sudah dinilai oleh dosen dan tidak dapat diubah.';
+        }
+        if ($submission && $deadlinePassed) {
+            return 'Deadline telah berakhir. Jawaban tidak dapat diubah.';
+        }
+        if ($deadlinePassed && ! $tugas->izinkan_terlambat) {
+            return 'Deadline pengumpulan telah berakhir.';
+        }
+        if ($submission && ! $tugas->izinkan_upload_ulang) {
+            return 'Dosen tidak mengizinkan penggantian jawaban.';
+        }
+
+        return null;
     }
 
     private function authorizeSchedule(Jadwal $jadwal, Mahasiswa $mahasiswa): void
