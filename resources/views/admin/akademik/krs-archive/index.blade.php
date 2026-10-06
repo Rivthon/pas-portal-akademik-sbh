@@ -134,6 +134,7 @@
                         <th>Mahasiswa</th>
                         <th>Prodi / Kelas</th>
                         <th class="text-center">Angkatan</th>
+                        <th class="text-center">Total SKS Diambil</th>
                         <th>Tahun Akademik</th>
                         <th class="text-center">Semester</th>
                         <th class="text-center">Isi KRS</th>
@@ -153,6 +154,10 @@
                                 <small class="text-muted">{{ jenis_kelas_label($archive->kelas) }}</small>
                             </td>
                             <td class="text-center">{{ $archive->tahun_masuk ?: '-' }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-label-info fs-6">{{ number_format((int) $archive->total_sks_diambil) }} SKS</span>
+                                <small class="d-block text-muted mt-1">KRS sudah ACC</small>
+                            </td>
                             <td>
                                 <div class="fw-medium">{{ $archive->tahun_akademik }}</div>
                                 <small class="text-muted">{{ $archive->periode_akademik ?: '-' }}</small>
@@ -182,7 +187,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center py-5">
+                            <td colspan="9" class="text-center py-5">
                                 <i class="bx bx-folder-open display-5 text-muted"></i>
                                 <h6 class="mt-2 mb-1">Arsip KRS tidak ditemukan</h6>
                                 <p class="text-muted mb-0">Ubah filter atau pastikan mahasiswa sudah mengambil KRS.</p>

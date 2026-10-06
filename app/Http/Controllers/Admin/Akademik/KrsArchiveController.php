@@ -140,12 +140,47 @@ class KrsArchiveController extends Controller
 
     private function archiveQuery(array $filters): QueryBuilder
     {
+        $uniqueApprovedCourses = DB::table('krs as cumulative_krs')
+            ->join(
+                'kurikulum as cumulative_kurikulum',
+                'cumulative_kurikulum.kurikulum_id',
+                '=',
+                'cumulative_krs.kurikulum_id'
+            )
+            ->join(
+                'matakuliah as cumulative_matakuliah',
+                'cumulative_matakuliah.matakuliah_id',
+                '=',
+                'cumulative_kurikulum.matakuliah_id'
+            )
+            ->whereNotNull('cumulative_krs.disetujui_pada')
+            ->select([
+                'cumulative_krs.mahasiswa_id',
+                'cumulative_kurikulum.matakuliah_id',
+                DB::raw('MAX(cumulative_matakuliah.sks) as sks'),
+            ])
+            ->groupBy([
+                'cumulative_krs.mahasiswa_id',
+                'cumulative_kurikulum.matakuliah_id',
+            ]);
+
+        $cumulativeCredits = DB::query()
+            ->fromSub($uniqueApprovedCourses, 'unique_approved_courses')
+            ->select([
+                'mahasiswa_id',
+                DB::raw('SUM(sks) as total_sks_diambil'),
+            ])
+            ->groupBy('mahasiswa_id');
+
         return DB::table('krs')
             ->join('mahasiswa', 'mahasiswa.mahasiswa_id', '=', 'krs.mahasiswa_id')
             ->join('kurikulum', 'kurikulum.kurikulum_id', '=', 'krs.kurikulum_id')
             ->join('matakuliah', 'matakuliah.matakuliah_id', '=', 'kurikulum.matakuliah_id')
             ->join('tahun_ajaran', 'tahun_ajaran.ta_id', '=', 'krs.ta_id')
             ->leftJoin('program_studi', 'program_studi.jurusan_id', '=', 'mahasiswa.jurusan_id')
+            ->leftJoinSub($cumulativeCredits, 'krs_cumulative', function ($join) {
+                $join->on('krs_cumulative.mahasiswa_id', '=', 'mahasiswa.mahasiswa_id');
+            })
             ->select([
                 'mahasiswa.mahasiswa_id',
                 'mahasiswa.nama',
@@ -160,6 +195,7 @@ class KrsArchiveController extends Controller
                 'matakuliah.smt as semester_krs',
                 DB::raw('COUNT(krs.krs_id) as total_mk'),
                 DB::raw('COALESCE(SUM(matakuliah.sks), 0) as total_sks'),
+                DB::raw('COALESCE(MAX(krs_cumulative.total_sks_diambil), 0) as total_sks_diambil'),
                 DB::raw('SUM(CASE WHEN krs.disetujui_pada IS NULL THEN 1 ELSE 0 END) as menunggu_acc'),
             ])
             ->when($filters['search'] !== '', function (QueryBuilder $query) use ($filters) {

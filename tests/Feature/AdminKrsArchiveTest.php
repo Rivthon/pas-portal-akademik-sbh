@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Krs;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -15,6 +16,14 @@ class AdminKrsArchiveTest extends TestCase
     public function test_admin_can_view_and_download_historical_krs_pdf(): void
     {
         [$admin, $krs, $semester] = $this->archiveContext();
+        $expectedCumulativeCredits = (int) DB::table('krs')
+            ->join('kurikulum', 'kurikulum.kurikulum_id', '=', 'krs.kurikulum_id')
+            ->join('matakuliah', 'matakuliah.matakuliah_id', '=', 'kurikulum.matakuliah_id')
+            ->where('krs.mahasiswa_id', $krs->mahasiswa_id)
+            ->whereNotNull('krs.disetujui_pada')
+            ->get(['matakuliah.matakuliah_id', 'matakuliah.sks'])
+            ->unique('matakuliah_id')
+            ->sum('sks');
 
         $this->actingAs($admin)
             ->get(route('admin.krs-archive.index', [
@@ -25,7 +34,9 @@ class AdminKrsArchiveTest extends TestCase
             ->assertOk()
             ->assertSee('Arsip KRS')
             ->assertSee($krs->mahasiswa->nim)
-            ->assertSee('Semester '.$semester);
+            ->assertSee('Semester '.$semester)
+            ->assertSee('Total SKS Diambil')
+            ->assertSee(number_format($expectedCumulativeCredits).' SKS');
 
         $response = $this->get(route('admin.krs-archive.download', [
             $krs->mahasiswa,
