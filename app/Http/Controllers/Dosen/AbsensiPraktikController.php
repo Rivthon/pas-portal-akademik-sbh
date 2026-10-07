@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
 use App\Models\AbsensiPraktik;
+use App\Models\AsprakAssignment;
+use App\Models\AsprakAttendance;
 use App\Models\JadwalPraktik;
 use App\Models\Krs;
 use App\Models\Mahasiswa;
@@ -13,6 +15,7 @@ use App\Services\JadwalPraktikAssignmentService;
 use App\Support\KrsClassResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class AbsensiPraktikController extends Controller
@@ -30,8 +33,10 @@ class AbsensiPraktikController extends Controller
                 ->where('ta_id', $activeTa->ta_id)
                 ->with([
                     'kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'programStudi', 'ruangan',
+                    'asprakAssignments' => fn ($query) => $query->where('aktif', true)->with('mahasiswa')->orderBy('id'),
                     'pertemuan' => fn ($query) => $query
                         ->where('dosen_id', $dosen->dosen_id)
+                        ->with('asprakAttendances.assignment.mahasiswa')
                         ->withCount('absensi')
                         ->orderByDesc('tanggal_pertemuan'),
                 ])
@@ -75,17 +80,21 @@ class AbsensiPraktikController extends Controller
             'metode_pbm' => ['required', 'in:online,offline'],
             'topik' => ['required', 'string', 'max:255'],
             'sub_topik' => ['nullable', 'string', 'max:255'],
+            'asprak_ids' => ['nullable', 'array'],
+            'asprak_ids.*' => ['integer', 'distinct'],
         ]);
 
         $jadwal = $this->findJadwalDosenOrFail((int) $validated['jadwal_praktik_id']);
-        $pertemuan = DB::transaction(function () use ($validated, $jadwal) {
-            $pertemuan = PertemuanPraktik::create([...$validated, 'dosen_id' => auth('dosen')->id()]);
+        $asprakIds = $this->validatedAsprakAssignmentIds($jadwal, $validated['asprak_ids'] ?? [], true);
+        $meetingData = collect($validated)->except('asprak_ids')->all();
+        $pertemuan = DB::transaction(function () use ($meetingData, $jadwal, $asprakIds) {
+            $pertemuan = PertemuanPraktik::create([...$meetingData, 'dosen_id' => auth('dosen')->id()]);
             $now = now();
             $rows = $this->pesertaDisetujuiIds($jadwal)->map(fn ($mahasiswaId) => [
                 'jadwal_praktik_id' => $jadwal->id,
                 'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
                 'mahasiswa_id' => $mahasiswaId,
-                'tanggal' => $validated['tanggal_pertemuan'],
+                'tanggal' => $meetingData['tanggal_pertemuan'],
                 'status' => 'belum diabsen',
                 'keterangan' => null,
                 'created_at' => $now,
@@ -93,6 +102,13 @@ class AbsensiPraktikController extends Controller
             ]);
             if ($rows->isNotEmpty()) {
                 AbsensiPraktik::insert($rows->all());
+            }
+            foreach ($asprakIds as $asprakAssignmentId) {
+                AsprakAttendance::create([
+                    'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
+                    'asprak_penugasan_id' => $asprakAssignmentId,
+                    'status' => 'belum diabsen',
+                ]);
             }
 
             return $pertemuan;
@@ -106,7 +122,11 @@ class AbsensiPraktikController extends Controller
 
     public function show(PertemuanPraktik $pertemuan)
     {
-        $pertemuan->load(['jadwal.kurikulum.mataKuliah', 'jadwal.ruangan']);
+        $pertemuan->load([
+            'jadwal.kurikulum.mataKuliah',
+            'jadwal.ruangan',
+            'asprakAttendances.assignment.mahasiswa',
+        ]);
         $this->ensurePertemuanMilikDosen($pertemuan);
         $this->syncPesertaDisetujui($pertemuan);
 
@@ -119,6 +139,54 @@ class AbsensiPraktikController extends Controller
             });
 
         return view('dosen.absensi-praktik.show', compact('pertemuan', 'daftarPeserta'));
+    }
+
+    public function manageAsprak(JadwalPraktik $jadwal)
+    {
+        $jadwal = $this->findJadwalDosenOrFail((int) $jadwal->id);
+        $jadwal->load(['kurikulum.mataKuliah', 'programStudi', 'tahunAjaran', 'asprakAssignments.mahasiswa']);
+        $jurusanId = $jadwal->jurusan_id ?: $jadwal->kurikulum?->jurusan_id;
+        $candidates = Mahasiswa::query()
+            ->where('jurusan_id', $jurusanId)
+            ->whereRaw('LOWER(status_mhs) = ?', ['aktif'])
+            ->orderBy('nama')
+            ->get(['mahasiswa_id', 'nim', 'nama', 'semester', 'kelas']);
+        $activeIds = $jadwal->asprakAssignments->where('aktif', true)
+            ->pluck('mahasiswa_id')->map(fn ($id) => (int) $id)->all();
+
+        return view('dosen.absensi-praktik.asprak', compact('jadwal', 'candidates', 'activeIds'));
+    }
+
+    public function updateAsprak(Request $request, JadwalPraktik $jadwal)
+    {
+        $jadwal = $this->findJadwalDosenOrFail((int) $jadwal->id);
+        $this->ensureJadwalAktif($jadwal);
+        $validated = $request->validate([
+            'mahasiswa_ids' => ['nullable', 'array'],
+            'mahasiswa_ids.*' => ['integer', 'distinct', 'exists:mahasiswa,mahasiswa_id'],
+        ]);
+        $selectedIds = collect($validated['mahasiswa_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
+        $jurusanId = (string) ($jadwal->jurusan_id ?: $jadwal->kurikulum?->jurusan_id);
+        $validIds = Mahasiswa::query()
+            ->whereIn('mahasiswa_id', $selectedIds)
+            ->where('jurusan_id', $jurusanId)
+            ->whereRaw('LOWER(status_mhs) = ?', ['aktif'])
+            ->pluck('mahasiswa_id')->map(fn ($id) => (int) $id);
+        abort_unless($validIds->count() === $selectedIds->count(), 422, 'Asprak harus merupakan mahasiswa aktif dari program studi mata kuliah ini.');
+
+        DB::transaction(function () use ($jadwal, $selectedIds) {
+            $jadwal->asprakAssignments()->whereNotIn('mahasiswa_id', $selectedIds)->update(['aktif' => false]);
+            foreach ($selectedIds as $mahasiswaId) {
+                AsprakAssignment::updateOrCreate(
+                    ['jadwal_praktik_id' => $jadwal->id, 'mahasiswa_id' => $mahasiswaId],
+                    ['ditugaskan_oleh_dosen_id' => auth('dosen')->id(), 'aktif' => true]
+                );
+            }
+        });
+
+        activity_log('kelola_asprak', 'Dosen memperbarui Asprak jadwal praktik ID: '.$jadwal->id);
+
+        return redirect()->route('dosen.absensi-praktik.index')->with('success', 'Daftar Asprak berhasil diperbarui.');
     }
 
     public function update(Request $request, PertemuanPraktik $pertemuan)
@@ -155,6 +223,35 @@ class AbsensiPraktikController extends Controller
         return back()->with('success', 'Absensi praktik berhasil disimpan.');
     }
 
+    public function updateAsprakAttendance(Request $request, PertemuanPraktik $pertemuan)
+    {
+        $pertemuan->load('jadwal');
+        $this->ensurePertemuanMilikDosen($pertemuan);
+        $validated = $request->validate([
+            'status_asprak' => ['required', 'array', 'min:1'],
+            'status_asprak.*' => ['required', 'in:hadir,izin,sakit,tidak hadir'],
+            'keterangan_asprak' => ['nullable', 'array'],
+            'keterangan_asprak.*' => ['nullable', 'string', 'max:500'],
+        ]);
+        $attendanceIds = collect(array_keys($validated['status_asprak']))->map(fn ($id) => (int) $id)->unique();
+        $attendances = $pertemuan->asprakAttendances()->whereIn('id', $attendanceIds)->get()->keyBy('id');
+        abort_unless($attendances->count() === $attendanceIds->count(), 403, 'Terdapat data Asprak yang tidak sesuai dengan pertemuan ini.');
+
+        DB::transaction(function () use ($attendanceIds, $attendances, $validated) {
+            foreach ($attendanceIds as $attendanceId) {
+                $attendances[$attendanceId]->update([
+                    'status' => $validated['status_asprak'][$attendanceId],
+                    'keterangan' => $validated['keterangan_asprak'][$attendanceId] ?? null,
+                    'diabsen_oleh_dosen_id' => auth('dosen')->id(),
+                ]);
+            }
+        });
+
+        activity_log('simpan_absensi_asprak', 'Dosen menyimpan absensi Asprak pertemuan ID: '.$pertemuan->pertemuan_praktik_id);
+
+        return back()->with('success', 'Absensi Asprak berhasil disimpan untuk rekap kehadiran.');
+    }
+
     public function updatePertemuan(Request $request, PertemuanPraktik $pertemuan)
     {
         $pertemuan->load('jadwal');
@@ -167,11 +264,22 @@ class AbsensiPraktikController extends Controller
             'metode_pbm' => ['required', 'in:online,offline'],
             'topik' => ['required', 'string', 'max:255'],
             'sub_topik' => ['nullable', 'string', 'max:255'],
+            'asprak_selection_present' => ['nullable', 'boolean'],
+            'asprak_ids' => ['nullable', 'array'],
+            'asprak_ids.*' => ['integer', 'distinct'],
         ]);
 
-        DB::transaction(function () use ($pertemuan, $validated) {
-            $pertemuan->update($validated);
-            $pertemuan->absensi()->update(['tanggal' => $validated['tanggal_pertemuan']]);
+        $shouldSyncAsprak = $request->boolean('asprak_selection_present');
+        $asprakIds = $shouldSyncAsprak
+            ? $this->validatedAsprakAssignmentIds($pertemuan->jadwal, $validated['asprak_ids'] ?? [], false)
+            : collect();
+        $meetingData = collect($validated)->except(['asprak_ids', 'asprak_selection_present'])->all();
+        DB::transaction(function () use ($pertemuan, $meetingData, $asprakIds, $shouldSyncAsprak) {
+            $pertemuan->update($meetingData);
+            $pertemuan->absensi()->update(['tanggal' => $meetingData['tanggal_pertemuan']]);
+            if ($shouldSyncAsprak) {
+                $this->syncAsprakMeeting($pertemuan, $asprakIds);
+            }
         });
 
         activity_log('ubah_pertemuan_praktik', 'Dosen mengubah pertemuan praktik: '.$pertemuan->topik);
@@ -223,6 +331,45 @@ class AbsensiPraktikController extends Controller
     private function findJadwalDosenOrFail(int $jadwalId): JadwalPraktik
     {
         return $this->jadwalDosenQuery()->findOrFail($jadwalId);
+    }
+
+    private function ensureJadwalAktif(JadwalPraktik $jadwal): void
+    {
+        $activeTaId = (int) TahunAkademik::where('status_ta', 1)->value('ta_id');
+        abort_unless($activeTaId > 0 && (int) $jadwal->ta_id === $activeTaId, 403, 'Asprak hanya dapat diatur pada tahun akademik aktif.');
+    }
+
+    private function validatedAsprakAssignmentIds(JadwalPraktik $jadwal, array $ids, bool $onlyActive): Collection
+    {
+        $requested = collect($ids)->map(fn ($id) => (int) $id)->unique()->values();
+        $query = $jadwal->asprakAssignments()->whereIn('id', $requested);
+        if ($onlyActive) {
+            $query->where('aktif', true);
+        }
+        $valid = $query->pluck('id')->map(fn ($id) => (int) $id);
+        abort_unless($valid->count() === $requested->count(), 422, 'Pilihan Asprak tidak valid atau tidak aktif pada mata kuliah ini.');
+
+        return $valid;
+    }
+
+    private function syncAsprakMeeting(PertemuanPraktik $pertemuan, Collection $assignmentIds): void
+    {
+        $existing = $pertemuan->asprakAttendances()->get();
+        $removed = $existing->whereNotIn('asprak_penugasan_id', $assignmentIds);
+        abort_if(
+            $removed->contains(fn (AsprakAttendance $attendance) => $attendance->status !== 'belum diabsen'),
+            422,
+            'Asprak yang sudah diabsen tidak dapat dilepas dari pertemuan. Ubah hanya Asprak yang belum diabsen.'
+        );
+        $pertemuan->asprakAttendances()
+            ->whereIn('id', $removed->pluck('id'))
+            ->delete();
+        foreach ($assignmentIds as $assignmentId) {
+            $pertemuan->asprakAttendances()->firstOrCreate(
+                ['asprak_penugasan_id' => $assignmentId],
+                ['status' => 'belum diabsen']
+            );
+        }
     }
 
     private function ensurePertemuanMilikDosen(PertemuanPraktik $pertemuan): void

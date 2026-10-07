@@ -131,6 +131,11 @@ class Mahasiswa extends Authenticatable
         return $this->hasMany(AbsensiPraktik::class, 'mahasiswa_id', 'mahasiswa_id');
     }
 
+    public function asprakAssignments()
+    {
+        return $this->hasMany(AsprakAssignment::class, 'mahasiswa_id', 'mahasiswa_id');
+    }
+
     public function tagihanMahasiswa()
     {
         return $this->hasMany(TagihanMahasiswa::class, 'mahasiswa_id', 'mahasiswa_id');

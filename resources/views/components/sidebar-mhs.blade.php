@@ -2,6 +2,7 @@
 use Illuminate\Support\Facades\Auth;
 $user = Auth::guard('mahasiswa')->user();
 $isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
+$isAsprak = $user?->asprakAssignments()->exists() ?? false;
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme shadow-sm">
     <div class="app-brand demo justify-content-center py-3">
@@ -78,6 +79,14 @@ $isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
                 <div class="fw-medium">Riwayat Praktik</div>
             </a>
         </li>
+        @if($isAsprak)
+        <li class="menu-item @if(Route::is('mahasiswa.asprak.*')) active @endif">
+            <a href="{{ route('mahasiswa.asprak.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-user-check text-success"></i>
+                <div class="fw-medium">Rekap Absensi Asprak</div>
+            </a>
+        </li>
+        @endif
 
         @unless($isCuti)
         <li class="menu-item @if(Route::is('mahasiswa.jadwal*')) active open @endif">

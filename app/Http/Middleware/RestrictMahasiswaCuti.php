@@ -33,6 +33,7 @@ class RestrictMahasiswaCuti
         'mahasiswa.rekap.absensi',
         'mahasiswa.rekap.absensi.detail',
         'mahasiswa.absensi-praktik.*',
+        'mahasiswa.asprak.*',
         'mahasiswa.skpi.index',
         'mahasiswa.skpi.cetak',
         'mahasiswa.skpi.download',

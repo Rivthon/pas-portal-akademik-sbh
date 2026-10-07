@@ -52,6 +52,11 @@ class PertemuanPraktik extends Model
         return $this->hasMany(AbsensiPraktik::class, 'pertemuan_praktik_id', 'pertemuan_praktik_id');
     }
 
+    public function asprakAttendances()
+    {
+        return $this->hasMany(AsprakAttendance::class, 'pertemuan_praktik_id', 'pertemuan_praktik_id');
+    }
+
     public function dosen()
     {
         return $this->belongsTo(Dosen::class, 'dosen_id', 'dosen_id');

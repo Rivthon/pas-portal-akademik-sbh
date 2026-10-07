@@ -29,6 +29,36 @@
         </div>
     </div>
 
+    <form method="POST" action="{{ route('dosen.absensi-praktik.asprak-attendance.update', $pertemuan) }}" class="mb-4">
+        @csrf @method('PUT')
+        <div class="card border-0 shadow-sm border-start border-4 border-success">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div><h6 class="fw-bold mb-1"><i class="bx bx-user-check text-success me-2"></i>Kehadiran Asprak</h6><small class="text-muted">Digunakan sebagai rekap kehadiran Asisten Praktikum.</small></div>
+                @if($pertemuan->asprakAttendances->isNotEmpty())<button type="button" id="hadirSemuaAsprak" class="btn btn-sm btn-outline-success"><i class="bx bx-check-double me-1"></i>Hadir Semua</button>@endif
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Asprak</th><th class="text-center">Hadir</th><th class="text-center">Izin</th><th class="text-center">Sakit</th><th class="text-center">Alpha</th><th>Keterangan</th></tr></thead>
+                    <tbody>
+                        @forelse($pertemuan->asprakAttendances as $asprakAttendance)
+                            @php($asprak = $asprakAttendance->assignment?->mahasiswa)
+                            <tr>
+                                <td><strong>{{ $asprak?->nama ?? '-' }}</strong><small class="d-block text-muted">{{ $asprak?->nim ?? '-' }}</small>@if($asprakAttendance->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
+                                @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
+                                    <td class="text-center"><input class="form-check-input status-asprak" type="radio" name="status_asprak[{{ $asprakAttendance->id }}]" value="{{ $status }}" @checked(old('status_asprak.'.$asprakAttendance->id, $asprakAttendance->status) === $status) required></td>
+                                @endforeach
+                                <td><input class="form-control form-control-sm" name="keterangan_asprak[{{ $asprakAttendance->id }}]" value="{{ old('keterangan_asprak.'.$asprakAttendance->id, $asprakAttendance->keterangan) }}" maxlength="500" placeholder="Opsional"></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="text-center text-muted py-4">Belum ada Asprak yang ditugaskan pada pertemuan ini. Pilih melalui Edit Pertemuan.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if($pertemuan->asprakAttendances->isNotEmpty())<div class="card-footer bg-white text-end"><button class="btn btn-success px-4"><i class="bx bx-save me-1"></i>Simpan Absensi Asprak</button></div>@endif
+        </div>
+    </form>
+
     <form method="POST" action="{{ route('dosen.absensi-praktik.update', $pertemuan) }}">
         @csrf @method('PUT')
         <div class="card border-0 shadow-sm">
@@ -82,6 +112,9 @@
 <script>
 document.getElementById('hadirSemua')?.addEventListener('click', function () {
     document.querySelectorAll('.status-praktik[value="hadir"]:not(:disabled)').forEach(function (radio) { radio.checked = true; });
+});
+document.getElementById('hadirSemuaAsprak')?.addEventListener('click', function () {
+    document.querySelectorAll('.status-asprak[value="hadir"]').forEach(function (radio) { radio.checked = true; });
 });
 </script>
 @endpush

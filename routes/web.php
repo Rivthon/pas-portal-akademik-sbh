@@ -74,6 +74,7 @@ use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
 use App\Http\Controllers\Mahasiswa\AkademikController;
+use App\Http\Controllers\Mahasiswa\AsprakController as MahasiswaAsprakController;
 use App\Http\Controllers\Mahasiswa\BerkasProgramStudiController as MahasiswaBerkasProgramStudiController;
 use App\Http\Controllers\Mahasiswa\CutiController as MahasiswaCutiController;
 use App\Http\Controllers\Mahasiswa\DashboardController;
@@ -259,6 +260,7 @@ Route::prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::get('/rekap-absensi/{jadwalId}', [RekapAbsensiController::class, 'detail'])->name('rekap.absensi.detail');
         Route::get('/riwayat-absensi-praktik', [MahasiswaAbsensiPraktikController::class, 'index'])->name('absensi-praktik.index');
         Route::get('/riwayat-absensi-praktik/{jadwal}', [MahasiswaAbsensiPraktikController::class, 'show'])->name('absensi-praktik.show');
+        Route::get('/rekap-absensi-asprak', [MahasiswaAsprakController::class, 'index'])->name('asprak.index');
 
         Route::prefix('rps')->name('rps.')->group(function () {
 
@@ -758,9 +760,12 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
 
             // Praktik Absensi
             Route::get('/absensi-praktik', [DosenAbsensiPraktikController::class, 'index'])->name('absensi-praktik.index');
+            Route::get('/absensi-praktik/{jadwal}/asprak', [DosenAbsensiPraktikController::class, 'manageAsprak'])->name('absensi-praktik.asprak.manage');
+            Route::put('/absensi-praktik/{jadwal}/asprak', [DosenAbsensiPraktikController::class, 'updateAsprak'])->name('absensi-praktik.asprak.update');
             Route::post('/absensi-praktik/pertemuan-baru', [DosenAbsensiPraktikController::class, 'storePertemuan'])->name('absensi-praktik.pertemuan.store');
             Route::get('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'show'])->name('absensi-praktik.show');
             Route::put('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'update'])->name('absensi-praktik.update');
+            Route::put('/absensi-praktik/pertemuan/{pertemuan}/asprak', [DosenAbsensiPraktikController::class, 'updateAsprakAttendance'])->name('absensi-praktik.asprak-attendance.update');
             Route::put('/absensi-praktik/pertemuan/{pertemuan}/informasi', [DosenAbsensiPraktikController::class, 'updatePertemuan'])->name('absensi-praktik.pertemuan.update');
             Route::delete('/absensi-praktik/pertemuan/{pertemuan}', [DosenAbsensiPraktikController::class, 'destroyPertemuan'])->name('absensi-praktik.pertemuan.destroy');
             Route::post('/absensi-praktik/pertemuan', [PerkuliahanDosenController::class, 'storePertemuanPraktik'])->name('absensi-praktik.store');

@@ -106,6 +106,7 @@
                     ?->filter(fn ($assignment) => strtolower((string) $assignment->jenis_dosen) === 'praktik'
                         && App\Support\KrsClassResolver::normalize($assignment->jenis_kelas) === App\Support\KrsClassResolver::normalize($item->jenis_kelas))
                     ->pluck('dosen.nama')->filter()->unique()->values() ?? collect();
+                $activeAsprak = $item->asprakAssignments ?? collect();
             @endphp
             <div class="col-12 col-md-6 col-xl-4">
                 <div class="card practice-course-card border-0 shadow-sm h-100">
@@ -155,11 +156,22 @@
                                 @endforelse
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Asisten Praktikum</small>
+                            <div class="d-flex flex-wrap gap-1">
+                                @forelse($activeAsprak as $assignment)
+                                    <span class="badge bg-label-success"><i class="bx bx-user-check me-1"></i>{{ $assignment->mahasiswa?->nama ?? '-' }}</span>
+                                @empty
+                                    <span class="small text-muted">Belum ada Asprak yang dipilih.</span>
+                                @endforelse
+                            </div>
+                        </div>
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <small class="fw-semibold">Progres Pertemuan</small>
                             <small class="text-muted">{{ $jumlahPertemuan }} / 14</small>
                         </div>
                         <div class="progress mb-3" style="height:6px"><div class="progress-bar {{ $jumlahPertemuan >= 14 ? 'bg-success' : 'bg-primary' }}" style="width:{{ $persentasePertemuan }}%" role="progressbar" aria-valuenow="{{ $persentasePertemuan }}" aria-valuemin="0" aria-valuemax="100"></div></div>
+                        <a href="{{ route('dosen.absensi-praktik.asprak.manage', $item) }}" class="btn btn-outline-success w-100 rounded-pill mb-2"><i class="bx bx-group me-1"></i>Kelola Asprak</a>
                         <button class="btn btn-primary w-100 rounded-pill mb-2" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}"><i class="bx bx-calendar-plus me-1"></i>Kelola Pertemuan &amp; Absensi</button>
                         <button class="btn btn-outline-secondary w-100 rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $historyCollapseId }}" aria-expanded="false" aria-controls="{{ $historyCollapseId }}"><i class="bx bx-history me-1"></i>Riwayat Pertemuan ({{ $item->pertemuan->count() }})</button>
                         <div class="collapse mt-3" id="{{ $historyCollapseId }}">
@@ -196,12 +208,23 @@
                                         <div class="modal-body">
                                             <p class="fw-bold mb-3">{{ $item->kurikulum?->mataKuliah?->nama ?? '-' }}</p>
                                             <div class="row g-3">
+                                                <input type="hidden" name="asprak_selection_present" value="1">
                                                 <div class="col-md-4"><label class="form-label">Tanggal</label><input type="date" name="tanggal_pertemuan" class="form-control" value="{{ $pertemuan->tanggal_pertemuan->format('Y-m-d') }}" required></div>
                                                 <div class="col-md-4"><label class="form-label">Jam mulai</label><input type="time" name="jam_mulai" class="form-control" value="{{ substr($pertemuan->jam_mulai,0,5) }}" required></div>
                                                 <div class="col-md-4"><label class="form-label">Jam selesai</label><input type="time" name="jam_selesai" class="form-control" value="{{ substr($pertemuan->jam_selesai,0,5) }}" required></div>
                                                 <div class="col-md-4"><label class="form-label">Metode PBM</label><select name="metode_pbm" class="form-select" required><option value="offline" @selected(strtolower($pertemuan->metode_pbm ?: 'offline') === 'offline')>Offline / Tatap Muka</option><option value="online" @selected(strtolower($pertemuan->metode_pbm ?: '') === 'online')>Online / Daring</option></select></div>
                                                 <div class="col-12"><label class="form-label">Topik</label><input name="topik" class="form-control" value="{{ $pertemuan->topik }}" maxlength="255" required></div>
                                                 <div class="col-12"><label class="form-label">Subtopik / keterangan</label><textarea name="sub_topik" class="form-control" maxlength="255" rows="2">{{ $pertemuan->sub_topik }}</textarea></div>
+                                                 <div class="col-12">
+                                                     <label class="form-label fw-semibold">Asprak Bertugas</label>
+                                                     <div class="border rounded p-3">
+                                                         @forelse($activeAsprak->concat($pertemuan->asprakAttendances->pluck('assignment')->filter())->unique('id') as $assignment)
+                                                             <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="asprak_ids[]" value="{{ $assignment->id }}" id="edit-asprak-{{ $pertemuan->pertemuan_praktik_id }}-{{ $assignment->id }}" @checked($pertemuan->asprakAttendances->contains('asprak_penugasan_id', $assignment->id))><label class="form-check-label" for="edit-asprak-{{ $pertemuan->pertemuan_praktik_id }}-{{ $assignment->id }}">{{ $assignment->mahasiswa?->nama }} <small class="text-muted">({{ $assignment->mahasiswa?->nim }})</small></label></div>
+                                                         @empty
+                                                             <span class="text-muted small">Atur Asprak pada tombol Kelola Asprak terlebih dahulu.</span>
+                                                         @endforelse
+                                                     </div>
+                                                 </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary"><i class="bx bx-save me-1"></i>Simpan Perubahan</button></div>
@@ -268,6 +291,18 @@
                                     <label class="form-label fw-semibold">Sub Topik</label>
                                     <textarea name="sub_topik" class="form-control" maxlength="255" rows="2" placeholder="Detail bahasan...">{{ old('sub_topik') }}</textarea>
                                 </div>
+
+                                 <div class="mb-3">
+                                     <label class="form-label fw-semibold">Asprak Bertugas</label>
+                                     <div class="border rounded p-3">
+                                         @forelse($activeAsprak as $assignment)
+                                             <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="asprak_ids[]" value="{{ $assignment->id }}" id="new-asprak-{{ $item->id }}-{{ $assignment->id }}"><label class="form-check-label" for="new-asprak-{{ $item->id }}-{{ $assignment->id }}">{{ $assignment->mahasiswa?->nama }} <small class="text-muted">({{ $assignment->mahasiswa?->nim }})</small></label></div>
+                                         @empty
+                                             <span class="text-muted small">Belum ada Asprak. Gunakan tombol Kelola Asprak pada kartu mata kuliah.</span>
+                                         @endforelse
+                                     </div>
+                                     <small class="text-muted">Pilih sesuai giliran Asprak pada pertemuan ini.</small>
+                                 </div>
 
                                 <div class="d-flex flex-column flex-sm-row gap-2 mt-4">
                                     <button type="submit" class="btn btn-primary rounded-pill flex-grow-1">
