@@ -177,8 +177,10 @@
                         <div class="collapse mt-3" id="{{ $historyCollapseId }}">
                         <h6 class="fw-bold border-bottom pb-2">Riwayat Pertemuan</h6>
                         @forelse($item->pertemuan as $pertemuan)
-                            @php($editModalId = 'edit-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id)
-                            @php($deleteFormId = 'hapus-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id)
+                            @php
+                                $editModalId = 'edit-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id;
+                                $deleteFormId = 'hapus-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id;
+                            @endphp
                             <div class="d-flex align-items-center gap-2 border rounded p-2 mb-2">
                             <a href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}" class="d-flex justify-content-between align-items-center text-decoration-none flex-grow-1 p-1">
                                 <span><strong>{{ $pertemuan->topik ?: 'Tanpa topik' }}</strong><small class="d-block text-muted">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d M Y') }} · {{ substr($pertemuan->jam_mulai,0,5) }} · {{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</small></span>

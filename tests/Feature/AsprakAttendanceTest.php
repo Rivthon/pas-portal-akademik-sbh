@@ -56,6 +56,11 @@ class AsprakAttendanceTest extends TestCase
             ->firstOrFail();
         $this->assertSame('belum diabsen', $attendance->status);
 
+        $this->get(route('dosen.absensi-praktik.show', $meeting))
+            ->assertOk()
+            ->assertSee($mahasiswa->nama)
+            ->assertSee('Kehadiran Asprak');
+
         $this->put(route('dosen.absensi-praktik.asprak-attendance.update', $meeting), [
             'status_asprak' => [$attendance->id => 'hadir'],
             'keterangan_asprak' => [$attendance->id => 'Mendampingi praktikum'],

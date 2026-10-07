@@ -41,7 +41,9 @@
                     <thead class="table-light"><tr><th>Asprak</th><th class="text-center">Hadir</th><th class="text-center">Izin</th><th class="text-center">Sakit</th><th class="text-center">Alpha</th><th>Keterangan</th></tr></thead>
                     <tbody>
                         @forelse($pertemuan->asprakAttendances as $asprakAttendance)
-                            @php($asprak = $asprakAttendance->assignment?->mahasiswa)
+                            @php
+                                $asprak = $asprakAttendance->assignment?->mahasiswa;
+                            @endphp
                             <tr>
                                 <td><strong>{{ $asprak?->nama ?? '-' }}</strong><small class="d-block text-muted">{{ $asprak?->nim ?? '-' }}</small>@if($asprakAttendance->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
