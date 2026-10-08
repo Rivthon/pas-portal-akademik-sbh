@@ -784,7 +784,8 @@ class ModulAkademikController extends Controller
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->whereNotNull('khs')
             ->whereRaw("TRIM(krs.khs) != ''")
-            ->get()
+            ->get();
+        $transkrip = KhsPublication::filterPublishedKrs($transkrip, $mahasiswa)
             ->sortBy('kurikulum.mataKuliah.smt'); // Urutkan berdasarkan semester
 
         // --- Kalkulasi IPK (Disesuaikan dengan struktur data baru) ---

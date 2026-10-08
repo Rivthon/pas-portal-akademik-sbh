@@ -1034,15 +1034,17 @@ class AkademikController extends Controller
         $taId = $ta->ta_id;
 
         try {
-            // Ambil Data KRS beserta Mata Kuliah
-            $khs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
+            // Transkrip hanya memuat nilai yang sudah diterbitkan oleh BAAK.
+            // Nilai komponen semester berjalan tidak boleh dianggap nilai resmi.
+            $khs = Krs::with(['kurikulum.mataKuliah', 'tahunAjaran'])
                 ->where('krs.mahasiswa_id', $mahasiswaId)
-                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
+                ->whereNotNull('krs.khs')
+                ->whereRaw("TRIM(krs.khs) != ''")
                 ->get();
+            $khs = KhsPublication::filterPublishedKrs($khs, $mahasiswa);
 
             if ($khs->isEmpty()) {
-                return redirect()->back()->with('error', 'Data KHS tidak ditemukan.');
+                return redirect()->back()->with('error', 'Belum ada nilai yang diterbitkan BAAK untuk transkrip.');
             }
 
             // Perhitungan IPS
@@ -1050,15 +1052,8 @@ class AkademikController extends Controller
             $totalBobot = $khs->sum(fn ($item) => optional($item->kurikulum->mataKuliah)->sks * $this->calculateWeight($item->khs));
             $ips = $totalSks > 0 ? $totalBobot / $totalSks : 0;
 
-            // Perhitungan IPK (Dari Semua Semester)
-            $allKhs = Krs::join('kurikulum', 'krs.kurikulum_id', '=', 'kurikulum.kurikulum_id')
-                ->join('matakuliah', 'kurikulum.matakuliah_id', '=', 'matakuliah.matakuliah_id')
-                ->where('krs.mahasiswa_id', $mahasiswaId)
-                ->select('krs.*', 'matakuliah.nama as nama', 'matakuliah.sks')
-                ->get();
-
-            // Filter data agar hanya yang memiliki nilai 'khs' yang tidak null
-            $filteredAllKhs = $allKhs->filter(fn ($item) => ! is_null($item->khs));
+            // Perhitungan IPK hanya menggunakan nilai resmi yang sudah diterbitkan.
+            $filteredAllKhs = $khs;
             $totalSksAll = $filteredAllKhs->sum(fn ($item) => optional($item->kurikulum->mataKuliah)->sks ?? 0);
             $totalBobotAll = $filteredAllKhs->sum(fn ($item) => optional($item->kurikulum->mataKuliah)->sks * $this->calculateWeight($item->khs));
             $ipk = $totalSksAll > 0 ? $totalBobotAll / $totalSksAll : 0;

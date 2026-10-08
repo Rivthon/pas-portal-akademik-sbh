@@ -14,8 +14,8 @@
             <form action="{{ route('dosen.lms.gradebook.sync-khs', $jadwal) }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-primary"
-                        onclick="return confirm('Sinkronkan persentase Gradebook ke komponen Tugas pada nilai KHS?')">
-                    <i class="bx bx-sync me-1"></i>Sinkronkan ke KHS
+                        onclick="return confirm('Sinkronkan persentase Gradebook hanya ke komponen Tugas pada Input Nilai? Nilai akhir dan huruf mutu tidak akan dihitung.')">
+                    <i class="bx bx-sync me-1"></i>Sinkronkan Nilai Tugas
                 </button>
             </form>
             <a href="{{ route('dosen.lms.gradebook.excel', $jadwal) }}" class="btn btn-sm btn-success"><i class="bx bx-spreadsheet me-1"></i>Excel</a>

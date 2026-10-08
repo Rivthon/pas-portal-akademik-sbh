@@ -8,7 +8,6 @@ use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\LmsQuiz;
 use App\Models\LmsTugas;
-use App\Models\NilaiSubmission;
 use App\Support\KrsClassResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -58,10 +57,8 @@ class GradebookKhsSyncService
             ->keyBy(fn ($item) => $item->mahasiswa_id.'-'.$item->tugas_id);
         $attemptQuiz = $quizList->flatMap->attempts
             ->keyBy(fn ($item) => $item->mahasiswa_id.'-'.$item->quiz_id);
-        $weights = $this->weights($jadwal);
-
         DB::transaction(function () use (
-            $pesertaKrs, $tugasList, $quizList, $pengumpulan, $attemptQuiz, $weights
+            $pesertaKrs, $tugasList, $quizList, $pengumpulan, $attemptQuiz
         ) {
             foreach ($pesertaKrs as $krs) {
                 $nilaiDiperoleh = 0;
@@ -86,26 +83,15 @@ class GradebookKhsSyncService
                 $totalMaksimalMahasiswa = (float) $tugasMahasiswa->sum('nilai_maksimal')
                     + (float) $quizList->sum(fn ($quiz) => $quiz->soal->sum('bobot'));
                 $nilaiTugas = $this->normalizedScore($nilaiDiperoleh, $totalMaksimalMahasiswa);
-                $nilaiAkhir = $this->finalScore([
-                    'uts' => $krs->uts,
-                    'uas' => $krs->uas,
-                    'tugas' => $nilaiTugas,
-                    'absensi' => $krs->absen,
-                    'praktik' => $krs->praktik,
-                ], $weights);
 
+                // Gradebook LMS hanya merupakan sumber komponen Tugas. Nilai akhir
+                // dan huruf mutu dihitung ketika dosen menyimpan/mengajukan nilai
+                // lengkap melalui modul Input Nilai, bukan setiap tugas dinilai.
                 $krs->update([
                     'tugas' => $nilaiTugas,
-                    'akhir' => $nilaiAkhir,
-                    'khs' => $this->letterGrade($nilaiAkhir),
                 ]);
             }
         });
-
-        $submission = NilaiSubmission::where('jadwal_id', $jadwal->id)->first();
-        if ($submission) {
-            $submission->update(['status' => 'submitted', 'submitted_at' => now(), 'reviewed_by_dosen_id' => null, 'reviewed_at' => null, 'review_note' => null]);
-        }
 
         return [
             'synced' => $pesertaKrs->count(),

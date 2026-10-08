@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Kemahasiswaan;
 
 use App\Http\Controllers\Controller;
+use App\Models\KhsPublication;
 use App\Models\Krs;
 use App\Models\PengajuanTranskrip;
 use App\Models\Setting;
@@ -211,16 +212,16 @@ class PengajuanTranskripController extends Controller
         };
 
         try {
-            // Ambil KHS Semester Ini
-            $khs = Krs::with(['kurikulum.mataKuliah'])
+            $khs = Krs::with(['kurikulum.mataKuliah', 'tahunAjaran'])
                 ->where('mahasiswa_id', $mahasiswaId)
+                ->whereNotNull('khs')
+                ->whereRaw("TRIM(khs) != ''")
                 ->get()
-                ->filter(fn ($item) => $item->khs !== null); // Filter hanya KHS yang tidak kosong
+                ->values();
+            $khs = KhsPublication::filterPublishedKrs($khs, $mahasiswa);
 
-            // Cek apakah ada KHS yang belum diisi
-            if ($khs->isEmpty() || $khs->contains(fn ($item) => $item->khs === null)) {
-                // Jika ada KHS yang belum diisi, kembalikan respons atau lakukan tindakan lain
-                return response()->json(['message' => 'Ada KHS yang belum diisi.'], 400);
+            if ($khs->isEmpty()) {
+                return response()->json(['message' => 'Belum ada nilai yang diterbitkan BAAK untuk transkrip.'], 400);
             }
 
             // Generate PDF
