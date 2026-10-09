@@ -281,14 +281,14 @@
             <li>2.00 - 2.75 &nbsp; <strong>Kurang Memuaskan</strong> (<em>Less Satisfactory</em>)</li>
             <li>2.76 - 3.00 &nbsp; <strong>Memuaskan</strong> (<em>Satisfactory</em>)</li>
             <li>3.01 - 3.50 &nbsp; <strong>Sangat Memuaskan</strong> (<em>Very Satisfactory</em>)</li>
-            <li>3.51 - 4.00 &nbsp; <strong>Pujian</strong> (<em>Cum Laude</em>)</li>
+            <li>&gt; 3.50 - 4.00 &nbsp; <strong>Dengan Pujian</strong> (<em>Cum Laude</em>)</li>
         </ul>
     </div>
     @php
     function getPredikat($ipk) {
     return match (true) {
-    $ipk >= 3.51 => 'Pujian (Cum Laude)',
-    $ipk >= 3.01 => 'Sangat Memuaskan (Very Satisfactory)',
+    $ipk > 3.50 => 'Dengan Pujian (Cum Laude)',
+    $ipk > 3.00 => 'Sangat Memuaskan (Very Satisfactory)',
     $ipk >= 2.76 => 'Memuaskan (Satisfactory)',
     $ipk >= 2.00 => 'Kurang Memuaskan (Less Satisfactory)',
     default => 'Gagal (Fail)',

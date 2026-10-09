@@ -694,8 +694,8 @@ class AcademicController extends Controller
     private function transcriptPredicate(float $ipk): string
     {
         return match (true) {
-            $ipk >= 3.51 => 'Dengan Pujian',
-            $ipk >= 3.00 => 'Sangat Baik',
+            $ipk > 3.50 => 'Dengan Pujian',
+            $ipk > 3.00 => 'Sangat Memuaskan',
             $ipk >= 2.50 => 'Baik',
             $ipk >= 2.00 => 'Cukup',
             default => 'Kurang',

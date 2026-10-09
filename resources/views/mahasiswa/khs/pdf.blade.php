@@ -276,8 +276,8 @@
     @php
     function getPredikat($ipk) {
     return match (true) {
-    $ipk >= 3.51 => 'Cumlaude',
-    $ipk >= 3.01 => 'Sangat Memuaskan',
+    $ipk > 3.50 => 'Dengan Pujian',
+    $ipk > 3.00 => 'Sangat Memuaskan',
     $ipk >= 2.76 => 'Memuaskan',
     $ipk >= 2.00 => 'Cukup',
     default => 'Kurang',

@@ -289,9 +289,9 @@ const fetchKRS = async () => {
 
                 // Tentukan predikat
                 let predikat = '';
-                if (ipk >= 3.50) {
+                if (ipk > 3.50) {
                     predikat = 'Dengan Pujian';
-                } else if (ipk >= 3.00) {
+                } else if (ipk > 3.00) {
                     predikat = 'Sangat Memuaskan';
                 } else if (ipk >= 2.75) {
                     predikat = 'Memuaskan';

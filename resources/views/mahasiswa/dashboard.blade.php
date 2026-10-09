@@ -173,9 +173,9 @@
 
                             @elseif(optional($mahasiswa)->status_edom == 1)
 
-                            @if($ipk >= 3.51)
-                            Pujian (Cum Laude)
-                            @elseif($ipk >= 3.01)
+                            @if($ipk > 3.50)
+                            Dengan Pujian (Cum Laude)
+                            @elseif($ipk > 3.00)
                             Sangat Memuaskan (Very Satisfactory)
                             @elseif($ipk >= 2.76)
                             Memuaskan (Satisfactory)
