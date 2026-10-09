@@ -16,7 +16,10 @@ class AcademicPredicateBoundaryTest extends TestCase
         $method = new ReflectionMethod($controller, 'getPredikat');
 
         $this->assertSame('Sangat Memuaskan', $method->invoke($controller, 3.50));
-        $this->assertSame('Dengan Pujian', $method->invoke($controller, 3.51));
+        $this->assertSame('Pujian', $method->invoke($controller, 3.51));
+        $this->assertSame('Memuaskan', $method->invoke($controller, 3.00));
+        $this->assertSame('Kurang Memuaskan', $method->invoke($controller, 2.75));
+        $this->assertSame('Gagal', $method->invoke($controller, 1.99));
     }
 
     public function test_mobile_predicate_uses_the_same_boundary(): void
@@ -25,6 +28,9 @@ class AcademicPredicateBoundaryTest extends TestCase
         $method = new ReflectionMethod($controller, 'transcriptPredicate');
 
         $this->assertSame('Sangat Memuaskan', $method->invoke($controller, 3.50));
-        $this->assertSame('Dengan Pujian', $method->invoke($controller, 3.51));
+        $this->assertSame('Pujian', $method->invoke($controller, 3.51));
+        $this->assertSame('Memuaskan', $method->invoke($controller, 3.00));
+        $this->assertSame('Kurang Memuaskan', $method->invoke($controller, 2.75));
+        $this->assertSame('Gagal', $method->invoke($controller, 1.99));
     }
 }
