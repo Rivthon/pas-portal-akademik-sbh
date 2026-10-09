@@ -19,6 +19,7 @@ class MahasiswaLulusAccessRestrictionTest extends TestCase
             ->get(route('mahasiswa.dashboard'))
             ->assertOk()
             ->assertSee('Status Akademik: Lulus')
+            ->assertSee('LULUS')
             ->assertDontSee('semesterModal')
             ->assertDontSee('Materi baru:');
 

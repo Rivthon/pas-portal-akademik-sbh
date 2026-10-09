@@ -70,8 +70,8 @@
                         <div class="mb-3">
                             <p class="mb-1 d-flex align-items-center flex-wrap gap-2">
                                 <strong>Semester:</strong>
-                                <span class="{{ $semesterTidakSesuai ? 'badge bg-danger semester-mismatch-badge' : '' }}">
-                                    {{ $semesterMahasiswa ?: '-' }}
+                                <span class="{{ $sudahLulus ? 'badge bg-success' : ($semesterTidakSesuai ? 'badge bg-danger semester-mismatch-badge' : '') }}">
+                                    {{ $sudahLulus ? 'LULUS' : ($semesterMahasiswa ?: '-') }}
                                 </span>
                                 @if($semesterTidakSesuai)
                                     <span class="badge bg-label-danger">Tidak sesuai periode {{ ucfirst($periodeAkademik) }}</span>
