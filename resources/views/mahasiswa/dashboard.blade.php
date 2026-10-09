@@ -286,6 +286,7 @@
         <!-- AJAX Script untuk Memuat Berita -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     </div>
+    @unless($sudahLulus)
     <div id="semesterModal" class="modal fade" tabindex="-1" aria-labelledby="semesterModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -371,6 +372,7 @@
             </div>
         </div>
     </div>
+    @endunless
     <style>
         .carousel-control-prev,
         .carousel-control-next {
@@ -397,9 +399,11 @@
         const now = new Date();
         currentTimeElement.textContent = now.toLocaleTimeString();
         }, 1000);
+        @unless($sudahLulus)
         window.onload = function() {
-        $('#semesterModal').modal('show');
+            $('#semesterModal').modal('show');
         };
+        @endunless
    $(document).ready(function () {
             const escapeHtml = (value) => $('<div>').text(String(value ?? '')).html();
             const safeUrl = (value, fallback = '#') => {
