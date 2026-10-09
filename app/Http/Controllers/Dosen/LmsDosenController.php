@@ -110,6 +110,8 @@ class LmsDosenController extends Controller
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
             ->whereNotNull('disetujui_pada')
+            ->whereHas('mahasiswa', fn ($query) => $query
+                ->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'"))
             ->get()
             ->filter(fn (Krs $krs) => $krs->mahasiswa
                 && KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa))
@@ -573,6 +575,8 @@ class LmsDosenController extends Controller
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
             ->whereNotNull('disetujui_pada')
+            ->whereHas('mahasiswa', fn ($query) => $query
+                ->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'"))
             ->get()
             ->filter(fn (Krs $krs) => $krs->mahasiswa
                 && KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa))

@@ -306,6 +306,7 @@ class ModulAkademikController extends Controller
                     ->where('ta_id', $jadwal->ta_id)
                     ->where('kurikulum_id', $jadwal->kurikulum_id)
                     ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
+                        $query->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'");
                         if ($kelasJadwal === 'karyawan') {
                             $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
                         } else {

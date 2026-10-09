@@ -77,7 +77,10 @@ class DashboardController extends Controller
         // Berita dimuat dari endpoint aplikasi yang memakai API resmi sbh.ac.id.
         $berita = collect([]);
 
-        $lmsAnnouncements = $this->lmsAnnouncements($mahasiswa, $ta);
+        $isActiveStudent = strtolower(trim((string) $mahasiswa->status_mhs)) === 'aktif';
+        $lmsAnnouncements = $isActiveStudent
+            ? $this->lmsAnnouncements($mahasiswa, $ta)
+            : collect();
 
         activity_log('akses_dashboard', 'Mahasiswa mengakses dashboard');
 

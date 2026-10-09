@@ -2,6 +2,8 @@
 use Illuminate\Support\Facades\Auth;
 $user = Auth::guard('mahasiswa')->user();
 $isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
+$isLulus = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'lulus';
+$isAcademicInactive = $isCuti || $isLulus;
 $isAsprak = $user?->asprakAssignments()->exists() ?? false;
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme shadow-sm">
@@ -40,11 +42,20 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
             </li>
         @endif
 
+        @if($isLulus)
+            <li class="px-3 mb-2">
+                <div class="alert alert-success py-2 px-3 mb-0 small">
+                    <i class="bx bx-graduation me-1"></i><strong>Status Lulus</strong><br>
+                    <span class="opacity-75">Akun tersedia dalam mode arsip.</span>
+                </div>
+            </li>
+        @endif
+
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Perkuliahan</span>
         </li>
 
-        @unless($isCuti)
+        @unless($isAcademicInactive)
         <li class="menu-item @if(Route::is('mahasiswa.rps*')) active @endif">
             <a href="{{ route('mahasiswa.rps.index') }}" class="menu-link">
                 <i class="menu-icon bx bx-file text-primary"></i>
@@ -73,12 +84,14 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
                 <div class="fw-medium">Rekap Absensi</div>
             </a>
         </li>
+        @unless($isLulus)
         <li class="menu-item @if(Route::is('mahasiswa.absensi-praktik.*')) active @endif">
             <a href="{{ route('mahasiswa.absensi-praktik.index') }}" class="menu-link">
                 <i class="menu-icon bx bx-test-tube text-success"></i>
                 <div class="fw-medium">Riwayat Praktik</div>
             </a>
         </li>
+        @endunless
         @if($isAsprak)
         <li class="menu-item @if(Route::is('mahasiswa.asprak.*')) active @endif">
             <a href="{{ route('mahasiswa.asprak.index') }}" class="menu-link">
@@ -88,7 +101,7 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
         </li>
         @endif
 
-        @unless($isCuti)
+        @unless($isAcademicInactive)
         <li class="menu-item @if(Route::is('mahasiswa.jadwal*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-calendar-event text-warning"></i>
@@ -135,6 +148,7 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
         <li class="menu-header small text-uppercase mt-3">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Modul Akademik</span>
         </li>
+        @unless($isLulus)
         <li class="menu-item @if(Route::is('mahasiswa.krs.*') || Route::is('mahasiswa.status.krs.*')) active open @endif">
             <a href="javascript:void(0);" class="menu-link menu-toggle">
                 <i class="menu-icon bx bxs-book-bookmark text-success"></i>
@@ -158,9 +172,10 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
                 </li>
             </ul>
         </li>
+        @endunless
 
         @php($edomEnabled = (bool) ($settings?->edom_enabled ?? true))
-        @unless($isCuti)
+        @unless($isAcademicInactive)
         <li class="menu-item {{ Route::is('mahasiswa.edom.*') ? 'active' : '' }}">
             <a href="{{ $edomEnabled ? route('mahasiswa.edom.index') : '#' }}"
                 class="menu-link {{ $edomEnabled ? '' : 'disabled opacity-50' }}"
@@ -189,6 +204,15 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
         </li>
         @endunless
 
+        @if($isLulus)
+        <li class="menu-item {{ Route::is('mahasiswa.kartu-hasil.index') ? 'active' : '' }}">
+            <a href="{{ route('mahasiswa.kartu-hasil.index') }}" class="menu-link">
+                <i class="menu-icon bx bxs-certification text-danger"></i>
+                <span class="menu-text fw-medium">KHS Terakhir</span>
+            </a>
+        </li>
+        @endif
+
         <li class="menu-item {{ Route::is('mahasiswa.khs.riwayat') ? 'active' : '' }}">
             <a href="{{ route('mahasiswa.khs.riwayat') }}" class="menu-link">
                 <i class="menu-icon bx bx-archive text-secondary"></i>
@@ -202,7 +226,7 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
                 <div class="fw-medium">Manajemen Nilai</div>
             </a>
             <ul class="menu-sub">
-                @unless($isCuti)
+                @unless($isAcademicInactive)
                 <li class="menu-item @if(Route::is('mahasiswa.nilai-uts.index')) active @endif">
                     <a href="{{ route('mahasiswa.nilai-uts.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-chart"></i>
@@ -225,7 +249,7 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
                     </a>
                 </li>
 
-                @if (! $isCuti && $user && $user->jurusan_id == 15401 && $user->semester == 6)
+                @if (! $isAcademicInactive && $user && $user->jurusan_id == 15401 && $user->semester == 6)
                 <li class="menu-item @if(Route::is('mahasiswa.uap.index')) active @endif">
                     <a href="{{ route('mahasiswa.uap.index') }}" class="menu-link">
                         <i class="menu-icon bx bx-scatter-chart"></i>

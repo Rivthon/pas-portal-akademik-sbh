@@ -23,12 +23,13 @@ class DashboardController extends Controller
         $tahunAkademik = TahunAkademik::query()
             ->where('status_ta', 1)
             ->first(['ta_id', 'nama', 'semester']);
+        $isActiveStudent = strtolower(trim((string) $mahasiswa->status_mhs)) === 'aktif';
 
-        $jadwalIds = $tahunAkademik
+        $jadwalIds = $isActiveStudent && $tahunAkademik
             ? KrsClassResolver::jadwalIdsForMahasiswa($mahasiswa, (int) $tahunAkademik->ta_id)
             : collect();
 
-        $jumlahKrs = $tahunAkademik
+        $jumlahKrs = $isActiveStudent && $tahunAkademik
             ? Krs::query()
                 ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
                 ->where('ta_id', $tahunAkademik->ta_id)

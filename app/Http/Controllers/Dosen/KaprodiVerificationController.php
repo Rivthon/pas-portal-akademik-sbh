@@ -373,6 +373,7 @@ class KaprodiVerificationController extends Controller
         $kelas = strtolower((string) $submission->jadwal->jenis_kelas);
         $nilai = Krs::with('mahasiswa')->where('kurikulum_id', $submission->jadwal->kurikulum_id)
             ->where('ta_id', $submission->jadwal->ta_id)->whereHas('mahasiswa', function ($query) use ($kelas) {
+                $query->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'");
                 if ($kelas === 'karyawan') {
                     $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
                 } else {

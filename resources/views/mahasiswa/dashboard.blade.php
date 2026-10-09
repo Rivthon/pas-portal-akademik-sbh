@@ -3,9 +3,10 @@
 @section('content')
 @php
     $sedangCuti = strtolower(trim((string) auth('mahasiswa')->user()->status_mhs)) === 'cuti';
+    $sudahLulus = strtolower(trim((string) auth('mahasiswa')->user()->status_mhs)) === 'lulus';
     $semesterMahasiswa = (int) auth('mahasiswa')->user()->semester;
     $periodeAkademik = strtolower(trim((string) optional($ta)->semester));
-    $semesterTidakSesuai = ! $sedangCuti && $semesterMahasiswa > 0 && (
+    $semesterTidakSesuai = ! $sedangCuti && ! $sudahLulus && $semesterMahasiswa > 0 && (
         ($periodeAkademik === 'ganjil' && $semesterMahasiswa % 2 === 0) ||
         ($periodeAkademik === 'genap' && $semesterMahasiswa % 2 === 1)
     );
@@ -25,6 +26,25 @@
                 </a>
             </div>
         </div>
+    </div>
+@endif
+@if($sudahLulus)
+    <div class="alert alert-success border-success shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-25 flex-shrink-0" style="width:48px;height:48px">
+                <i class="bx bx-graduation fs-3 text-success"></i>
+            </span>
+            <div>
+                <h5 class="alert-heading mb-1">Status Akademik: Lulus</h5>
+                <div>Akun Anda berada dalam mode arsip. Anda tetap dapat melihat riwayat KHS, nilai, absensi, transkrip, SKPI, pedoman, dan dokumen akademik. KRS, LMS, EDOM, jadwal, serta kegiatan semester berjalan sudah dinonaktifkan.</div>
+            </div>
+        </div>
+    </div>
+@endif
+@if(session('graduate_notice'))
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bx bx-lock-alt me-1"></i>{{ session('graduate_notice') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 @if(session('cuti_notice'))

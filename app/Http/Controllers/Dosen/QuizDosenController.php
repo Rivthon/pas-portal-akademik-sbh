@@ -220,7 +220,9 @@ class QuizDosenController extends Controller
         $peserta = Krs::with('mahasiswa')
             ->where('kurikulum_id', $quiz->jadwal->kurikulum_id)
             ->where('ta_id', $quiz->jadwal->ta_id)
+            ->whereNotNull('disetujui_pada')
             ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
+                $query->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'");
                 $kelasJadwal === 'karyawan'
                     ? $query->whereRaw('LOWER(kelas) = ?', ['karyawan'])
                     : $query->where(fn ($kelas) => $kelas->whereNull('kelas')

@@ -39,19 +39,71 @@ class RestrictMahasiswaCuti
         'mahasiswa.skpi.download',
     ];
 
+    /**
+     * Alumni tetap dapat masuk untuk membaca arsip akademiknya, tetapi tidak
+     * boleh kembali mengikuti proses akademik semester berjalan.
+     */
+    private const GRADUATE_READ_ROUTES = [
+        'mahasiswa.dashboard',
+        'mahasiswa.profile.index',
+        'mahasiswa.calendar-akademik.file',
+        'mahasiswa.pedoman-akademik.*',
+        'mahasiswa.berkas-program-studi.*',
+        'mahasiswa.administrasi.index',
+        'mahasiswa.getBerita',
+        'mahasiswa.index.berita',
+        'mahasiswa.getBeritaKampus',
+        'mahasiswa.berita.detail',
+        'mahasiswa.permintaan.index',
+        'mahasiswa.pengajuan.index',
+        'mahasiswa.pengajuan.show',
+        'mahasiswa.pengajuan.cetak',
+        'mahasiswa.cetak-transkrip',
+        'mahasiswa.kartu-hasil.index',
+        'mahasiswa.khs.cetak',
+        'mahasiswa.khs.riwayat',
+        'mahasiswa.nilai-ujian.riwayat',
+        'mahasiswa.rekap.absensi',
+        'mahasiswa.rekap.absensi.detail',
+        'mahasiswa.asprak.*',
+        'mahasiswa.skpi.*',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
-        $mahasiswa = $request->user('mahasiswa');
+        $mahasiswa = $request->user('mahasiswa') ?? $request->user();
+        $status = strtolower(trim((string) ($mahasiswa?->status_mhs ?? '')));
 
-        if (! $mahasiswa || strtolower(trim((string) $mahasiswa->status_mhs)) !== 'cuti') {
+        if (! $mahasiswa || ! in_array($status, ['cuti', 'lulus'], true)) {
             return $next($request);
         }
 
         $routeName = (string) $request->route()?->getName();
 
+        if ($status === 'lulus') {
+            $allowed = ($request->isMethodSafe() && Str::is(self::GRADUATE_READ_ROUTES, $routeName))
+                || $this->isHistoricalKhsDownload($request, $routeName)
+                || ($request->isMethodSafe()
+                    && $this->isHistoricalEdom($request, $routeName, (int) $mahasiswa->mahasiswa_id))
+                || $this->isAllowedGraduateApiRequest($request);
+
+            if ($allowed) {
+                return $next($request);
+            }
+
+            $message = 'Status Anda sudah Lulus. Akun tetap dapat digunakan untuk melihat arsip akademik, tetapi fitur kegiatan semester berjalan telah dinonaktifkan.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'status' => 'lulus'], 403);
+            }
+
+            return redirect()->route('mahasiswa.dashboard')->with('graduate_notice', $message);
+        }
+
         if (Str::is(self::ALLOWED_ROUTES, $routeName)
             || $this->isHistoricalKhsDownload($request, $routeName)
-            || $this->isHistoricalEdom($request, $routeName, (int) $mahasiswa->mahasiswa_id)) {
+            || $this->isHistoricalEdom($request, $routeName, (int) $mahasiswa->mahasiswa_id)
+            || $this->isAllowedCutiApiRequest($request)) {
             return $next($request);
         }
 
@@ -65,6 +117,66 @@ class RestrictMahasiswaCuti
         }
 
         return redirect()->route('mahasiswa.dashboard')->with('cuti_notice', $message);
+    }
+
+    private function isAllowedGraduateApiRequest(Request $request): bool
+    {
+        if (! $request->is('api/v1/mahasiswa/*')) {
+            return false;
+        }
+
+        if ($request->isMethod('POST') && $request->is('api/v1/mahasiswa/logout')) {
+            return true;
+        }
+
+        if (! $request->isMethodSafe()) {
+            return false;
+        }
+
+        return $request->is(
+            'api/v1/mahasiswa/me',
+            'api/v1/mahasiswa/dashboard',
+            'api/v1/mahasiswa/khs',
+            'api/v1/mahasiswa/khs/riwayat',
+            'api/v1/mahasiswa/nilai',
+            'api/v1/mahasiswa/absensi',
+            'api/v1/mahasiswa/skpi',
+            'api/v1/mahasiswa/skpi/*',
+            'api/v1/mahasiswa/pedoman-akademik',
+            'api/v1/mahasiswa/pedoman-akademik/*',
+            'api/v1/mahasiswa/berkas-program-studi',
+            'api/v1/mahasiswa/berkas-program-studi/*',
+            'api/v1/mahasiswa/pelayanan/helpdesk',
+            'api/v1/mahasiswa/pelayanan/helpdesk/*',
+            'api/v1/mahasiswa/pelayanan/administrasi',
+            'api/v1/mahasiswa/pelayanan/profil'
+        );
+    }
+
+    private function isAllowedCutiApiRequest(Request $request): bool
+    {
+        if (! $request->is('api/v1/mahasiswa/*')) {
+            return false;
+        }
+
+        if ($request->isMethod('POST') && $request->is('api/v1/mahasiswa/logout')) {
+            return true;
+        }
+
+        return $request->isMethodSafe() && $request->is(
+            'api/v1/mahasiswa/me',
+            'api/v1/mahasiswa/dashboard',
+            'api/v1/mahasiswa/khs/riwayat',
+            'api/v1/mahasiswa/nilai',
+            'api/v1/mahasiswa/absensi',
+            'api/v1/mahasiswa/skpi',
+            'api/v1/mahasiswa/skpi/*',
+            'api/v1/mahasiswa/pedoman-akademik',
+            'api/v1/mahasiswa/pedoman-akademik/*',
+            'api/v1/mahasiswa/berkas-program-studi',
+            'api/v1/mahasiswa/berkas-program-studi/*',
+            'api/v1/mahasiswa/pelayanan/*'
+        );
     }
 
     private function isHistoricalKhsDownload(Request $request, string $routeName): bool
