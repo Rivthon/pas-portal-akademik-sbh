@@ -1,5 +1,9 @@
 <?php
 
+use App\Models\Jadwal;
+use App\Models\LmsQuizAttempt;
+use App\Services\GradebookKhsSyncService;
+use App\Services\QuizAttemptFinalizationService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -36,3 +40,42 @@ Schedule::call(function () {
         }
     }
 })->name('lms-temporary-task-upload-prune')->hourly()->withoutOverlapping();
+
+Schedule::call(function () {
+    $finalizer = app(QuizAttemptFinalizationService::class);
+    $jadwalUntukSinkronisasi = collect();
+
+    LmsQuizAttempt::query()
+        ->with('quiz')
+        ->where(function ($query) {
+            $query->where('status', 'draft')->orWhere('izinkan_ulang', true);
+        })
+        ->chunkById(100, function ($attempts) use ($finalizer, $jadwalUntukSinkronisasi) {
+            foreach ($attempts as $attempt) {
+                if (! $finalizer->isExpired($attempt)) {
+                    continue;
+                }
+
+                try {
+                    $finalized = $finalizer->finalize($attempt);
+                    if ($finalized->status === 'graded' && $finalized->quiz?->jadwal_id) {
+                        $jadwalUntukSinkronisasi->push((int) $finalized->quiz->jadwal_id);
+                    }
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            }
+        }, 'attempt_id');
+
+    $syncService = app(GradebookKhsSyncService::class);
+    foreach ($jadwalUntukSinkronisasi->unique() as $jadwalId) {
+        try {
+            $jadwal = Jadwal::find($jadwalId);
+            if ($jadwal) {
+                $syncService->sync($jadwal);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+})->name('lms-quiz-expired-attempt-finalize')->everyMinute()->withoutOverlapping();

@@ -9,6 +9,7 @@ use App\Models\LmsQuiz;
 use App\Models\LmsQuizAttempt;
 use App\Models\LmsQuizJawaban;
 use App\Services\GradebookKhsSyncService;
+use App\Services\QuizAttemptFinalizationService;
 use App\Support\KrsClassResolver;
 use App\Support\StoredUpload;
 use Illuminate\Http\Request;
@@ -32,8 +33,11 @@ class QuizMahasiswaController extends Controller
         return view('mahasiswa.lms.quiz.index', compact('jadwal', 'quizList'));
     }
 
-    public function show(LmsQuiz $quiz)
-    {
+    public function show(
+        LmsQuiz $quiz,
+        QuizAttemptFinalizationService $finalizer,
+        GradebookKhsSyncService $syncService
+    ) {
         $mahasiswa = Auth::guard('mahasiswa')->user();
         $quiz->load(['jadwal.kurikulum.mataKuliah', 'soal']);
         abort_unless($quiz->aktif && $this->terdaftar($quiz->jadwal, $mahasiswa), 403);
@@ -50,6 +54,17 @@ class QuizMahasiswaController extends Controller
                 'started_at' => now(),
             ]);
         }
+        if ($attempt && $finalizer->canBeAutomaticallyFinalized($attempt) && $finalizer->isExpired($attempt)) {
+            $attempt = $finalizer->finalize($attempt);
+            if ($attempt->status === 'graded') {
+                try {
+                    $syncService->sync($quiz->jadwal);
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
+            session()->flash('success', 'Waktu quiz telah habis. Jawaban terakhir otomatis dikirim dan dikunci.');
+        }
         if ($attempt) {
             $quiz->setRelation('soal', $this->soalUntukAttempt($quiz, $attempt));
         }
@@ -59,17 +74,19 @@ class QuizMahasiswaController extends Controller
         $bolehEdit = ! $tidakAdaSoal && ! $belumMulai && ! $durasiBerakhir
             && (! $lewatDeadline || $attempt?->izinkan_ulang)
             && (! $attempt || $attempt->status === 'draft' || $attempt->izinkan_ulang);
+        $waktuBerakhir = $attempt && $bolehEdit ? $finalizer->expiresAt($attempt) : null;
 
         return view('mahasiswa.lms.quiz.show', compact(
             'quiz', 'attempt', 'jawabanBySoal', 'tidakAdaSoal', 'belumMulai',
-            'lewatDeadline', 'durasiBerakhir', 'bolehEdit'
+            'lewatDeadline', 'durasiBerakhir', 'bolehEdit', 'waktuBerakhir'
         ));
     }
 
     public function submit(
         Request $request,
         LmsQuiz $quiz,
-        GradebookKhsSyncService $syncService
+        GradebookKhsSyncService $syncService,
+        QuizAttemptFinalizationService $finalizer
     ) {
         $mahasiswa = Auth::guard('mahasiswa')->user();
         $quiz->load(['jadwal', 'soal']);
@@ -80,9 +97,10 @@ class QuizMahasiswaController extends Controller
         $attempt = LmsQuizAttempt::firstOrNew([
             'quiz_id' => $quiz->quiz_id, 'mahasiswa_id' => $mahasiswa->mahasiswa_id,
         ]);
+        $autoSubmit = $request->boolean('auto_submit');
         $bolehUlang = $attempt->exists && $attempt->izinkan_ulang;
-        abort_if($quiz->deadline && now()->gt($quiz->deadline) && ! $bolehUlang, 422, 'Deadline quiz telah berakhir.');
-        abort_if($attempt->exists && $quiz->durasi_menit && $attempt->started_at
+        abort_if(! $autoSubmit && $quiz->deadline && now()->gt($quiz->deadline) && ! $bolehUlang, 422, 'Deadline quiz telah berakhir.');
+        abort_if(! $autoSubmit && $attempt->exists && $quiz->durasi_menit && $attempt->started_at
             && now()->gt($attempt->started_at->copy()->addMinutes($quiz->durasi_menit)),
             422, 'Durasi pengerjaan quiz telah berakhir.');
         abort_if($attempt->exists && $attempt->status !== 'draft' && ! $bolehUlang, 422,
@@ -98,7 +116,7 @@ class QuizMahasiswaController extends Controller
         $existingBySoal = $attempt->exists
             ? $attempt->jawaban()->get()->keyBy('soal_id')
             : collect();
-        foreach ($quiz->soal as $soal) {
+        foreach ($autoSubmit ? collect() : $quiz->soal as $soal) {
             if ($soal->tipe === 'pilihan_ganda') {
                 $pilihan = $request->input('pilihan.'.$soal->soal_id);
                 if ($pilihan === null || ! array_key_exists((int) $pilihan, $soal->opsi ?? [])) {
@@ -118,15 +136,12 @@ class QuizMahasiswaController extends Controller
         }
 
         DB::transaction(function () use (
-            $request, $quiz, $mahasiswa, $attempt, $existingBySoal
+            $request, $quiz, $mahasiswa, $attempt, $existingBySoal, $autoSubmit
         ) {
             if (! $attempt->exists) {
                 $attempt->fill(['status' => 'draft', 'started_at' => now()]);
                 $attempt->save();
             }
-            $nilaiPg = 0;
-            $adaEssay = false;
-
             foreach ($quiz->soal as $soal) {
                 $existing = $existingBySoal->get($soal->soal_id);
                 $payload = ['attempt_id' => $attempt->attempt_id, 'soal_id' => $soal->soal_id];
@@ -134,18 +149,22 @@ class QuizMahasiswaController extends Controller
                 if ($soal->tipe === 'pilihan_ganda') {
                     $pilihan = $request->input('pilihan.'.$soal->soal_id);
                     if ($pilihan === null || ! array_key_exists((int) $pilihan, $soal->opsi ?? [])) {
+                        if ($autoSubmit) {
+                            continue;
+                        }
                         throw ValidationException::withMessages([
                             'pilihan.'.$soal->soal_id => 'Semua soal pilihan ganda wajib dijawab.',
                         ]);
                     }
                     $nilai = (string) $pilihan === (string) $soal->kunci_jawaban ? (float) $soal->bobot : 0;
-                    $nilaiPg += $nilai;
                     $payload += ['pilihan_jawaban' => (string) $pilihan, 'jawaban_text' => null, 'nilai' => $nilai, 'feedback' => null];
                 } else {
-                    $adaEssay = true;
                     $text = trim((string) $request->input('jawaban_text.'.$soal->soal_id, ''));
                     $file = $request->file('jawaban_file.'.$soal->soal_id);
                     if ($text === '' && ! $file && ! $existing?->file) {
+                        if ($autoSubmit) {
+                            continue;
+                        }
                         throw ValidationException::withMessages([
                             'jawaban_text.'.$soal->soal_id => 'Jawaban essay wajib ditulis atau diunggah.',
                         ]);
@@ -166,24 +185,22 @@ class QuizMahasiswaController extends Controller
                     $payload
                 );
             }
-
-            $attempt->update([
-                'status' => $adaEssay ? 'submitted' : 'graded',
-                'submitted_at' => now(), 'nilai_pg' => $nilaiPg,
-                'nilai_essay' => $adaEssay ? null : 0,
-                'nilai_total' => $adaEssay ? null : $nilaiPg,
-                'feedback' => null,
-                'dinilai_at' => $adaEssay ? null : now(),
-                'dinilai_oleh' => null, 'izinkan_ulang' => false,
-            ]);
         });
 
-        if ($attempt->fresh()?->status === 'graded') {
-            $syncService->sync($quiz->jadwal);
+        $attempt = $finalizer->finalize($attempt);
+
+        if ($attempt->status === 'graded') {
+            try {
+                $syncService->sync($quiz->jadwal);
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
         }
 
         return redirect()->route('mahasiswa.lms.quiz.show', $quiz)
-            ->with('success', 'Jawaban quiz berhasil dikirim dan sekarang terkunci.');
+            ->with('success', $autoSubmit
+                ? 'Waktu quiz telah habis. Jawaban terakhir otomatis dikirim dan dikunci.'
+                : 'Jawaban quiz berhasil dikirim dan sekarang terkunci.');
     }
 
     public function downloadJawaban(LmsQuizJawaban $jawaban)

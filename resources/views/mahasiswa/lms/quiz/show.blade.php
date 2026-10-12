@@ -8,19 +8,22 @@
     <div class="mb-3"><a href="{{ route('mahasiswa.lms.quiz.index',$quiz->jadwal) }}" class="btn btn-sm btn-label-secondary"><i class="bx bx-arrow-back me-1"></i>Daftar Quiz</a></div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger"><strong>Jawaban belum dapat dikirim:</strong><ul class="mb-0 mt-1">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
-    <div class="card border-0 shadow-sm mb-4"><div class="card-body p-4"><div class="d-flex flex-wrap justify-content-between gap-3"><div><span class="badge bg-label-primary mb-2">QUIZ</span><h3 class="fw-bold mb-1">{{ $quiz->judul }}</h3><p class="text-muted mb-0">{{ $quiz->jadwal?->kurikulum?->mataKuliah?->nama }}</p></div><div class="text-end"><span class="badge bg-label-info">{{ $quiz->soal->count() }} Soal</span><span class="badge bg-label-secondary">Bobot {{ number_format($totalBobot,2) }}</span><small class="d-block text-muted mt-2">Deadline {{ $quiz->deadline?->translatedFormat('d M Y H:i') ?? '-' }}</small></div></div>@if($quiz->deskripsi)<hr><div>{!! nl2br(e($quiz->deskripsi)) !!}</div>@endif</div></div>
+    <div class="card border-0 shadow-sm mb-4"><div class="card-body p-4"><div class="d-flex flex-wrap justify-content-between gap-3"><div><span class="badge bg-label-primary mb-2">QUIZ</span><h3 class="fw-bold mb-1">{{ $quiz->judul }}</h3><p class="text-muted mb-0">{{ $quiz->jadwal?->kurikulum?->mataKuliah?->nama }}</p></div><div class="text-end"><span class="badge bg-label-info">{{ $quiz->soal->count() }} Soal</span><span class="badge bg-label-secondary">Bobot {{ number_format($totalBobot,2) }}</span>@if($waktuBerakhir)<span class="badge bg-label-danger" id="quiz-countdown">--:--</span>@endif<small class="d-block text-muted mt-2">Deadline {{ $quiz->deadline?->translatedFormat('d M Y H:i') ?? '-' }}</small></div></div>@if($quiz->deskripsi)<hr><div>{!! nl2br(e($quiz->deskripsi)) !!}</div>@endif</div></div>
 
     @if($tidakAdaSoal)<div class="alert alert-warning"><i class="bx bx-info-circle me-2"></i>Quiz belum memiliki soal. Silakan hubungi dosen.</div>
     @elseif($belumMulai)<div class="alert alert-info"><i class="bx bx-time me-2"></i>Quiz dimulai {{ $quiz->mulai_at->translatedFormat('d M Y H:i') }}.</div>
-    @elseif($durasiBerakhir)<div class="alert alert-danger"><i class="bx bx-time-five me-2"></i>Durasi pengerjaan quiz telah berakhir.</div>
-    @elseif(!$bolehEdit)
+    @elseif(!$bolehEdit && in_array($attempt?->status, ['submitted', 'graded']))
         <div class="alert alert-{{ $attempt?->status==='graded'?'success':'warning' }}"><i class="bx bx-lock me-2"></i>Jawaban telah dikirim dan terkunci. @if($attempt?->status==='submitted')Menunggu penilaian dosen.@else Quiz sudah dinilai.@endif</div>
         @if($attempt?->izinkan_ulang)<div class="alert alert-primary">Dosen telah memberikan izin ulang. Muat ulang halaman untuk mengedit.</div>@endif
+    @elseif($durasiBerakhir)<div class="alert alert-danger"><i class="bx bx-time-five me-2"></i>Durasi pengerjaan quiz telah berakhir.</div>
+    @elseif(!$bolehEdit)
+        <div class="alert alert-warning"><i class="bx bx-lock me-2"></i>Quiz sudah ditutup.</div>
     @elseif($attempt?->izinkan_ulang)<div class="alert alert-warning"><i class="bx bx-lock-open me-2"></i>Izin ulang aktif. Setelah dikirim, jawaban akan terkunci kembali dan nilai essay sebelumnya dihapus.</div>
     @endif
 
     @if($bolehEdit)
-    <form action="{{ route('mahasiswa.lms.quiz.submit',$quiz) }}" method="POST" enctype="multipart/form-data" onsubmit="return confirm('Kirim jawaban? Setelah dikirim jawaban akan terkunci.')">@csrf
+    <form id="quiz-answer-form" action="{{ route('mahasiswa.lms.quiz.submit',$quiz) }}" method="POST" enctype="multipart/form-data">@csrf
+        <input type="hidden" name="auto_submit" id="quiz-auto-submit" value="0">
     @endif
     @if($attempt && !$belumMulai)
         @foreach($quiz->soal as $soal)
@@ -54,4 +57,53 @@
     @endif
 </div>
 <style>.quiz-option{cursor:pointer;transition:.15s}.quiz-option:hover{border-color:#696cff!important;background:rgba(105,108,255,.04)}.grade-result{border-top:4px solid #696cff!important}</style>
+@if($bolehEdit)
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('quiz-answer-form');
+    const autoSubmit = document.getElementById('quiz-auto-submit');
+    if (!form || !autoSubmit) return;
+
+    let isAutomatic = false;
+    form.addEventListener('submit', function (event) {
+        if (!isAutomatic && !confirm('Kirim jawaban? Setelah dikirim jawaban akan terkunci.')) {
+            event.preventDefault();
+        }
+    });
+
+    @if($waktuBerakhir)
+    const countdown = document.getElementById('quiz-countdown');
+    const expiresAt = {{ $waktuBerakhir->getTimestamp() * 1000 }};
+    const serverStartedAt = {{ now()->getTimestamp() * 1000 }};
+    const browserStartedAt = Date.now();
+
+    const tick = function () {
+        const serverNow = serverStartedAt + (Date.now() - browserStartedAt);
+        const remaining = Math.max(0, expiresAt - serverNow);
+        const totalSeconds = Math.ceil(remaining / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        countdown.textContent = hours > 0
+            ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+            : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        if (remaining <= 0 && !isAutomatic) {
+            isAutomatic = true;
+            autoSubmit.value = '1';
+            form.querySelectorAll('[required]').forEach(element => element.removeAttribute('required'));
+            form.querySelectorAll('button[type="submit"]').forEach(button => {
+                button.disabled = true;
+                button.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i>Mengirim otomatis...';
+            });
+            form.requestSubmit();
+        }
+    };
+
+    tick();
+    window.setInterval(tick, 1000);
+    @endif
+});
+</script>
+@endif
 @endsection
