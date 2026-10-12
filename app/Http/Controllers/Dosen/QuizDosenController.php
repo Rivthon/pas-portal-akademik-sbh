@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class QuizDosenController extends Controller
 {
@@ -268,7 +269,16 @@ class QuizDosenController extends Controller
             'izinkan_ulang' => false,
         ]);
 
-        $syncService->sync($attempt->quiz->jadwal);
+        try {
+            $syncService->sync($attempt->quiz->jadwal);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with(
+                'warning',
+                'Nilai quiz berhasil disimpan, tetapi sinkronisasi ke gradebook belum berhasil. Silakan coba sinkronkan gradebook kembali.'
+            );
+        }
 
         return back()->with('success', 'Nilai quiz berhasil disimpan dan jawaban mahasiswa dikunci.');
     }

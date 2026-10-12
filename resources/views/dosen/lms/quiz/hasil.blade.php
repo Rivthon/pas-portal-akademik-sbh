@@ -10,6 +10,7 @@
         <a href="{{ route('dosen.lms.quiz.index', $quiz->jadwal) }}" class="btn btn-sm btn-outline-primary">Daftar Quiz</a>
     </div>
     @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
+    @if(session('warning')) <div class="alert alert-warning">{{ session('warning') }}</div> @endif
     @if($errors->any()) <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div> @endif
 
     <div class="card border-0 shadow-sm overflow-hidden mb-4 result-hero"><div class="card-body p-4 text-white">

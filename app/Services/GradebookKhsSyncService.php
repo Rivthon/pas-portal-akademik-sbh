@@ -21,8 +21,10 @@ class GradebookKhsSyncService
     public function sync(Jadwal $jadwal): array
     {
         $jadwal->loadMissing(['kurikulum.mataKuliah', 'kurikulum.programStudi']);
+        $weights = $this->weights($jadwal);
+
         if (KhsPublication::coversJadwal($jadwal)) {
-            return ['synced' => 0, 'total_maksimal' => 0, 'bobot_tugas' => 0, 'reason' => 'KHS sudah diterbitkan BAAK. Batalkan penerbitan sebelum menyinkronkan ulang nilai.'];
+            return ['synced' => 0, 'total_maksimal' => 0, 'bobot_tugas' => $weights['tugas'], 'reason' => 'KHS sudah diterbitkan BAAK. Batalkan penerbitan sebelum menyinkronkan ulang nilai.'];
         }
 
         $tugasList = LmsTugas::where('jadwal_id', $jadwal->id)
@@ -42,7 +44,7 @@ class GradebookKhsSyncService
             return [
                 'synced' => 0,
                 'total_maksimal' => $totalMaksimal,
-                'bobot_tugas' => $this->weights($jadwal)['tugas'],
+                'bobot_tugas' => $weights['tugas'],
                 'reason' => 'Belum ada nilai tugas atau quiz yang dapat disinkronkan.',
             ];
         }
@@ -50,6 +52,9 @@ class GradebookKhsSyncService
         $pesertaKrs = Krs::with('mahasiswa')
             ->where('kurikulum_id', $jadwal->kurikulum_id)
             ->where('ta_id', $jadwal->ta_id)
+            ->whereNotNull('disetujui_pada')
+            ->whereHas('mahasiswa', fn ($query) => $query
+                ->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'"))
             ->get()
             ->filter(fn (Krs $krs) => KrsClassResolver::matches($krs, $jadwal, $krs->mahasiswa));
 
