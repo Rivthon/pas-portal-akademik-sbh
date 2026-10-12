@@ -34,13 +34,20 @@
                         @elseif($attempt->status==='graded')<span class="badge bg-label-success">Sudah Dinilai</span>
                         @elseif($attempt->status==='submitted')<span class="badge bg-label-warning">Menunggu Penilaian</span>
                         @else<span class="badge bg-label-info">Draft</span>@endif
-                        @if($attempt?->izinkan_ulang)<span class="badge bg-label-primary">Izin Ulang Aktif</span>@endif
+                        @if($attempt?->izinkan_ulang)
+                            <span class="badge bg-label-primary">Waktu Tambahan Aktif</span>
+                            @if($attempt->waktu_tambahan_sampai)
+                                <small class="d-block text-primary mt-1">s.d. {{ $attempt->waktu_tambahan_sampai->translatedFormat('d M Y H:i') }}</small>
+                            @endif
+                        @endif
                     </td>
                     <td>{{ $attempt?->submitted_at?->translatedFormat('d M Y H:i') ?? '-' }}</td>
                     <td class="text-center">{{ $attempt?->nilai_total !== null ? number_format($attempt->nilai_total,2).' / '.number_format($totalBobot,2) : '-' }}</td>
                     <td class="text-center">
                         @if($attempt && in_array($attempt->status,['submitted','graded']))
                             <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#grade{{ $attempt->attempt_id }}"><i class="bx bx-search-alt me-1"></i>Periksa</button>
+                        @elseif($attempt && $attempt->status === 'draft')
+                            <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#extend{{ $attempt->attempt_id }}"><i class="bx bx-time-five me-1"></i>Atur Waktu</button>
                         @else <span class="text-muted">-</span> @endif
                     </td>
                 </tr>
@@ -71,13 +78,56 @@
                         <label class="form-label">Feedback Umum</label><textarea name="feedback" class="form-control" rows="3" {{ $attempt->status==='graded'?'disabled':'' }}>{{ $attempt->feedback }}</textarea>
                     </div>
                     <div class="modal-footer">
-                        @if(!$attempt->izinkan_ulang)
-                            <!-- <button type="submit" form="retryForm{{ $attempt->attempt_id }}" class="btn btn-outline-warning"><i class="bx bx-lock-open me-1"></i>Izinkan Ulang</button> -->
-                        @endif
                         @if($attempt->status==='submitted')<button class="btn btn-primary"><i class="bx bx-check me-1"></i>Simpan Nilai & Kunci</button>@endif
                     </div>
                     </form>
-                    <form id="retryForm{{ $attempt->attempt_id }}" action="{{ route('dosen.lms.quiz.attempt.izinkan-ulang',$attempt) }}" method="POST">@csrf @method('PUT')</form>
+                    <div class="border-top bg-light p-3">
+                        @if($attempt->izinkan_ulang && $attempt->waktu_tambahan_sampai)
+                            <div class="alert alert-primary mb-0 py-2">
+                                <i class="bx bx-time-five me-1"></i>Waktu tambahan aktif sampai
+                                <strong>{{ $attempt->waktu_tambahan_sampai->translatedFormat('d M Y H:i') }}</strong>.
+                            </div>
+                        @else
+                            <form action="{{ route('dosen.lms.quiz.attempt.izinkan-ulang',$attempt) }}" method="POST" class="row g-2 align-items-end">
+                                @csrf @method('PUT')
+                                <div class="col-sm-7 col-md-5">
+                                    <label class="form-label mb-1">Waktu tambahan mahasiswa</label>
+                                    <div class="input-group">
+                                        <input type="number" name="menit_tambahan" class="form-control" min="1" max="1440" value="30" required>
+                                        <span class="input-group-text">menit</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-auto">
+                                    <button class="btn btn-outline-warning"><i class="bx bx-time-five me-1"></i>Beri Waktu Tambahan</button>
+                                </div>
+                                <div class="col-12"><small class="text-muted">Jawaban yang sudah tersimpan tidak akan dihapus.</small></div>
+                            </form>
+                        @endif
+                    </div>
+                </div></div></div>
+                @endif
+
+                @if($attempt && $attempt->status === 'draft')
+                <div class="modal fade" id="extend{{ $attempt->attempt_id }}" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                    <div class="modal-header"><div><h5 class="modal-title">Atur Waktu {{ $mahasiswa->nama }}</h5><small class="text-muted">{{ $mahasiswa->nim }}</small></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        @if($attempt->izinkan_ulang && $attempt->waktu_tambahan_sampai)
+                            <div class="alert alert-primary mb-0">Waktu tambahan aktif sampai <strong>{{ $attempt->waktu_tambahan_sampai->translatedFormat('d M Y H:i') }}</strong>.</div>
+                        @else
+                            <form id="extendForm{{ $attempt->attempt_id }}" action="{{ route('dosen.lms.quiz.attempt.izinkan-ulang',$attempt) }}" method="POST">
+                                @csrf @method('PUT')
+                                <label class="form-label">Waktu tambahan</label>
+                                <div class="input-group"><input type="number" name="menit_tambahan" class="form-control" min="1" max="1440" value="30" required><span class="input-group-text">menit</span></div>
+                                <small class="text-muted">Dihitung sejak tombol diberikan. Jawaban sementara mahasiswa tetap tersimpan.</small>
+                            </form>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Tutup</button>
+                        @unless($attempt->izinkan_ulang && $attempt->waktu_tambahan_sampai)
+                            <button type="submit" form="extendForm{{ $attempt->attempt_id }}" class="btn btn-warning"><i class="bx bx-time-five me-1"></i>Berikan</button>
+                        @endunless
+                    </div>
                 </div></div></div>
                 @endif
             @empty

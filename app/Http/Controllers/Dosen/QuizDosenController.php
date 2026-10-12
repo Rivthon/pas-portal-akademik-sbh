@@ -267,6 +267,7 @@ class QuizDosenController extends Controller
             'dinilai_at' => now(),
             'dinilai_oleh' => Auth::guard('dosen')->id(),
             'izinkan_ulang' => false,
+            'waktu_tambahan_sampai' => null,
         ]);
 
         try {
@@ -283,14 +284,26 @@ class QuizDosenController extends Controller
         return back()->with('success', 'Nilai quiz berhasil disimpan dan jawaban mahasiswa dikunci.');
     }
 
-    public function izinkanUlang(LmsQuizAttempt $attempt)
+    public function izinkanUlang(Request $request, LmsQuizAttempt $attempt)
     {
         $attempt->load('quiz');
         $this->quizMilikDosen($attempt->quiz);
-        abort_unless(in_array($attempt->status, ['submitted', 'graded']), 422);
-        $attempt->update(['izinkan_ulang' => true, 'started_at' => now()]);
+        abort_unless(in_array($attempt->status, ['draft', 'submitted', 'graded']), 422);
 
-        return back()->with('success', 'Mahasiswa diizinkan memperbarui dan mengirim ulang jawaban.');
+        $data = $request->validate([
+            'menit_tambahan' => ['required', 'integer', 'min:1', 'max:1440'],
+        ]);
+        $batasWaktu = now()->addMinutes((int) $data['menit_tambahan']);
+        $attempt->update([
+            'izinkan_ulang' => true,
+            'started_at' => now(),
+            'waktu_tambahan_sampai' => $batasWaktu,
+        ]);
+
+        return back()->with(
+            'success',
+            'Waktu tambahan '.$data['menit_tambahan'].' menit diberikan sampai '.$batasWaktu->format('d-m-Y H:i').'. Jawaban sebelumnya tetap tersimpan.'
+        );
     }
 
     public function downloadJawaban(LmsQuizJawaban $jawaban)

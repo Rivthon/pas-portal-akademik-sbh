@@ -13,12 +13,13 @@ class LmsQuizAttempt extends Model
     protected $fillable = [
         'quiz_id', 'mahasiswa_id', 'status', 'started_at', 'urutan_soal', 'submitted_at',
         'nilai_pg', 'nilai_essay', 'nilai_total', 'feedback', 'dinilai_at',
-        'dinilai_oleh', 'izinkan_ulang',
+        'dinilai_oleh', 'izinkan_ulang', 'waktu_tambahan_sampai',
     ];
 
     protected $casts = [
         'started_at' => 'datetime', 'urutan_soal' => 'array', 'submitted_at' => 'datetime',
         'dinilai_at' => 'datetime', 'izinkan_ulang' => 'boolean',
+        'waktu_tambahan_sampai' => 'datetime',
         'nilai_pg' => 'decimal:2', 'nilai_essay' => 'decimal:2', 'nilai_total' => 'decimal:2',
     ];
 

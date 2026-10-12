@@ -50,4 +50,25 @@ class QuizAttemptFinalizationServiceTest extends TestCase
         $this->assertTrue($service->canBeAutomaticallyFinalized($attempt));
         Carbon::setTestNow();
     }
+
+    public function test_lecturer_extension_overrides_old_deadline_and_original_duration(): void
+    {
+        Carbon::setTestNow('2026-10-12 10:00:00');
+        $quiz = new LmsQuiz([
+            'deadline' => now()->subHour(),
+            'durasi_menit' => 20,
+        ]);
+        $attempt = new LmsQuizAttempt([
+            'status' => 'graded',
+            'started_at' => now(),
+            'izinkan_ulang' => true,
+            'waktu_tambahan_sampai' => now()->addMinutes(90),
+        ]);
+        $attempt->setRelation('quiz', $quiz);
+
+        $expiresAt = (new QuizAttemptFinalizationService)->expiresAt($attempt);
+
+        $this->assertSame('2026-10-12 11:30:00', $expiresAt?->format('Y-m-d H:i:s'));
+        Carbon::setTestNow();
+    }
 }

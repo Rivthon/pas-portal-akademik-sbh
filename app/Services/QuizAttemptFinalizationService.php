@@ -16,6 +16,11 @@ class QuizAttemptFinalizationService
             return null;
         }
 
+        // Waktu khusus dari dosen menggantikan deadline dan durasi lama.
+        if ($attempt->izinkan_ulang && $attempt->waktu_tambahan_sampai) {
+            return $attempt->waktu_tambahan_sampai->copy();
+        }
+
         $candidates = collect();
 
         // Izin ulang dari dosen boleh melewati deadline lama, tetapi durasi
@@ -89,6 +94,7 @@ class QuizAttemptFinalizationService
                 'dinilai_at' => $adaEssay ? null : now(),
                 'dinilai_oleh' => null,
                 'izinkan_ulang' => false,
+                'waktu_tambahan_sampai' => null,
             ]);
 
             return $lockedAttempt->fresh(['quiz.jadwal']);

@@ -69,12 +69,12 @@ class QuizMahasiswaController extends Controller
             $quiz->setRelation('soal', $this->soalUntukAttempt($quiz, $attempt));
         }
         $jawabanBySoal = $attempt?->jawaban?->keyBy('soal_id') ?? collect();
-        $durasiBerakhir = $attempt && $quiz->durasi_menit && $attempt->started_at
-            && now()->gt($attempt->started_at->copy()->addMinutes($quiz->durasi_menit));
+        $batasPengerjaan = $attempt ? $finalizer->expiresAt($attempt) : null;
+        $durasiBerakhir = $batasPengerjaan && now()->greaterThanOrEqualTo($batasPengerjaan);
         $bolehEdit = ! $tidakAdaSoal && ! $belumMulai && ! $durasiBerakhir
             && (! $lewatDeadline || $attempt?->izinkan_ulang)
             && (! $attempt || $attempt->status === 'draft' || $attempt->izinkan_ulang);
-        $waktuBerakhir = $attempt && $bolehEdit ? $finalizer->expiresAt($attempt) : null;
+        $waktuBerakhir = $attempt && $bolehEdit ? $batasPengerjaan : null;
 
         return view('mahasiswa.lms.quiz.show', compact(
             'quiz', 'attempt', 'jawabanBySoal', 'tidakAdaSoal', 'belumMulai',
@@ -99,10 +99,13 @@ class QuizMahasiswaController extends Controller
         ]);
         $autoSubmit = $request->boolean('auto_submit');
         $bolehUlang = $attempt->exists && $attempt->izinkan_ulang;
-        abort_if(! $autoSubmit && $quiz->deadline && now()->gt($quiz->deadline) && ! $bolehUlang, 422, 'Deadline quiz telah berakhir.');
-        abort_if(! $autoSubmit && $attempt->exists && $quiz->durasi_menit && $attempt->started_at
-            && now()->gt($attempt->started_at->copy()->addMinutes($quiz->durasi_menit)),
-            422, 'Durasi pengerjaan quiz telah berakhir.');
+        if (! $autoSubmit) {
+            abort_if(
+                $attempt->exists ? $finalizer->isExpired($attempt) : ($quiz->deadline && now()->gt($quiz->deadline)),
+                422,
+                'Waktu pengerjaan quiz telah berakhir.'
+            );
+        }
         abort_if($attempt->exists && $attempt->status !== 'draft' && ! $bolehUlang, 422,
             'Jawaban sudah dikirim dan terkunci. Hubungi dosen untuk izin pengerjaan ulang.');
 
