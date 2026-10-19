@@ -657,7 +657,11 @@ class PerkuliahanDosenController extends Controller
         $identitasPertemuan = $pertemuan->tanggal_pertemuan.' - '.$pertemuan->topik;
         $jumlahAbsensi = $pertemuan->absensi()->count();
 
-        DB::transaction(fn () => $pertemuan->delete());
+        DB::transaction(function () use ($pertemuan) {
+            // Database hasil impor lama belum tentu memiliki ON DELETE CASCADE.
+            $pertemuan->absensi()->delete();
+            $pertemuan->delete();
+        });
 
         activity_log(
             'hapus_pertemuan',

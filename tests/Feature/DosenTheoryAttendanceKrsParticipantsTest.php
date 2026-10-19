@@ -150,6 +150,48 @@ class DosenTheoryAttendanceKrsParticipantsTest extends TestCase
         ]);
     }
 
+    public function test_deleting_meeting_explicitly_deletes_its_attendance(): void
+    {
+        [$dosen, $jadwal, $pesertaKrs] = $this->scheduleWithApprovedParticipants(1);
+        $mahasiswa = $pesertaKrs->first();
+        $pertemuanId = (int) Pertemuan::max('pertemuan_id') + 1000;
+        $absensiId = (int) Absensi::max('absensi_id') + 1000;
+
+        DB::table('pertemuan')->insert([
+            'pertemuan_id' => $pertemuanId,
+            'jadwal_id' => $jadwal->id,
+            'tanggal_pertemuan' => now()->toDateString(),
+            'jam_mulai' => '08:00:00',
+            'jam_selesai' => '09:30:00',
+            'metode_pbm' => 'offline',
+            'topik' => 'Uji hapus pertemuan dan absensi',
+            'sub_topik' => 'Absensi tidak boleh menjadi data yatim',
+            'dosen_id' => $dosen->dosen_id,
+            'status' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $pertemuan = Pertemuan::findOrFail($pertemuanId);
+
+        DB::table('absensi')->insert([
+            'absensi_id' => $absensiId,
+            'jadwal_id' => $jadwal->id,
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'pertemuan_id' => $pertemuanId,
+            'tanggal' => now()->toDateString(),
+            'status' => 'hadir',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($dosen, 'dosen')
+            ->deleteJson(route('dosen.pertemuan.destroy', $pertemuan))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('pertemuan', ['pertemuan_id' => $pertemuanId]);
+        $this->assertDatabaseMissing('absensi', ['absensi_id' => $absensiId]);
+    }
+
     public function test_roster_shows_unapproved_and_missing_krs_but_keeps_them_locked(): void
     {
         [$dosen, $jadwal] = $this->scheduleWithApprovedParticipants(2);

@@ -85,6 +85,7 @@ class RekapAbsensiController extends Controller
             ->keyBy('kurikulum_id');
 
         $jadwalDenganAbsensi = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereHas('pertemuan')
             ->whereIn('jadwal_id', Jadwal::whereIn('kurikulum_id', $kurikulumIds)->select('id'))
             ->pluck('jadwal_id')
             ->unique();
@@ -103,6 +104,7 @@ class RekapAbsensiController extends Controller
             })
             ->groupBy('kurikulum_id');
         $absensiPerJadwal = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereHas('pertemuan')
             ->whereIn('jadwal_id', $jadwalPerKurikulum->flatten()->pluck('id'))
             ->get()
             ->groupBy('jadwal_id');
@@ -221,6 +223,7 @@ class RekapAbsensiController extends Controller
             ->where('ta_id', $selectedTaId)
             ->pluck('id');
         $jadwalDenganAbsensi = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereHas('pertemuan')
             ->whereIn('jadwal_id', $semuaJadwalIds)
             ->pluck('jadwal_id');
         $jadwalIds = Jadwal::where('kurikulum_id', $id)

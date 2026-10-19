@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\Pertemuan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PertemuanController extends Controller
 {
@@ -92,8 +93,12 @@ class PertemuanController extends Controller
     public function destroy($jadwal_id, $id)
     {
         $pertemuan = Pertemuan::findOrFail($id);
-        $pertemuan->delete();
+        DB::transaction(function () use ($pertemuan) {
+            $pertemuan->absensi()->delete();
+            $pertemuan->delete();
+        });
 
-        return redirect()->route('admin.pertemuan.index', $jadwal_id)->with('success', 'Pertemuan berhasil dihapus.');
+        return redirect()->route('admin.pertemuan.index', $jadwal_id)
+            ->with('success', 'Pertemuan dan data absensi terkait berhasil dihapus.');
     }
 }

@@ -52,6 +52,7 @@ class AbsensiController extends Controller
         // Riwayat absensi mahasiswa
         $riwayatAbsensi = Absensi::where('jadwal_id', $jadwalId)
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereHas('pertemuan')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -86,6 +87,7 @@ class AbsensiController extends Controller
 
         $riwayat = Absensi::where('jadwal_id', $jadwalId)
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->whereHas('pertemuan')
             ->orderBy('pertemuan_id')
             ->get();
         $hadir = $riwayat->where('status', 'hadir')->count();
