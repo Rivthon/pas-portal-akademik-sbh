@@ -84,20 +84,11 @@ class RekapAbsensiController extends Controller
             ->get()
             ->keyBy('kurikulum_id');
 
-        $jadwalDenganAbsensi = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->whereHas('pertemuan')
-            ->whereIn('jadwal_id', Jadwal::whereIn('kurikulum_id', $kurikulumIds)->select('id'))
-            ->pluck('jadwal_id')
-            ->unique();
         $jadwalPerKurikulum = Jadwal::where('ta_id', $selectedTaId)
             ->whereIn('kurikulum_id', $kurikulumIds)
             ->orderByDesc('ta_id')
             ->get()
-            ->filter(function (Jadwal $jadwal) use ($jadwalDenganAbsensi, $krs, $mahasiswa) {
-                if ($jadwalDenganAbsensi->contains($jadwal->id)) {
-                    return true;
-                }
-
+            ->filter(function (Jadwal $jadwal) use ($krs, $mahasiswa) {
                 $item = $krs->get($jadwal->kurikulum_id);
 
                 return $item && KrsClassResolver::matches($item, $jadwal, $mahasiswa);
@@ -218,19 +209,12 @@ class RekapAbsensiController extends Controller
             ->whereNotNull('disetujui_pada')
             ->first();
 
-        // 1) Anggap $id sebagai kurikulum_id
-        $semuaJadwalIds = Jadwal::where('kurikulum_id', $id)
-            ->where('ta_id', $selectedTaId)
-            ->pluck('id');
-        $jadwalDenganAbsensi = Absensi::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
-            ->whereHas('pertemuan')
-            ->whereIn('jadwal_id', $semuaJadwalIds)
-            ->pluck('jadwal_id');
+        // 1) Anggap $id sebagai kurikulum_id dan gunakan hanya kelas yang dipilih pada KRS.
         $jadwalIds = Jadwal::where('kurikulum_id', $id)
             ->where('ta_id', $selectedTaId)
             ->get(['id', 'kurikulum_id', 'ta_id', 'jenis_kelas'])
-            ->filter(fn (Jadwal $item) => $jadwalDenganAbsensi->contains($item->id)
-                || ($krs && KrsClassResolver::matches($krs, $item, $mahasiswa)))
+            ->filter(fn (Jadwal $item) => $krs
+                && KrsClassResolver::matches($krs, $item, $mahasiswa))
             ->pluck('id');
 
         // 2) Jika kosong, anggap $id sebagai jadwal_id
