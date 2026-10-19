@@ -123,7 +123,7 @@
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
-                                        name="status[{{ $item->mahasiswa_id }}]" value="hadir" {{ $item->status == 'hadir' ? 'checked' : '' }} required>
+                                        name="status[{{ $item->mahasiswa_id }}]" value="hadir" {{ $item->status == 'hadir' ? 'checked' : '' }}>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"

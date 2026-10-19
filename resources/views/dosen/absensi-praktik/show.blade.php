@@ -26,6 +26,7 @@
         <div>
             Seluruh mahasiswa kelas ditampilkan agar status pesertanya jelas.
             Hanya mahasiswa dengan KRS yang sudah disetujui dosen pembimbing yang dapat diabsen.
+            Anda boleh menyimpan sebagian; peserta yang belum dipilih akan tetap berstatus <strong>Belum Diabsen</strong>.
         </div>
     </div>
 
@@ -47,7 +48,7 @@
                             <tr>
                                 <td><strong>{{ $asprak?->nama ?? '-' }}</strong><small class="d-block text-muted">{{ $asprak?->nim ?? '-' }}</small>@if($asprakAttendance->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-asprak" type="radio" name="status_asprak[{{ $asprakAttendance->id }}]" value="{{ $status }}" @checked(old('status_asprak.'.$asprakAttendance->id, $asprakAttendance->status) === $status) required></td>
+                                    <td class="text-center"><input class="form-check-input status-asprak" type="radio" name="status_asprak[{{ $asprakAttendance->id }}]" value="{{ $status }}" @checked(old('status_asprak.'.$asprakAttendance->id, $asprakAttendance->status) === $status)></td>
                                 @endforeach
                                 <td><input class="form-control form-control-sm" name="keterangan_asprak[{{ $asprakAttendance->id }}]" value="{{ old('keterangan_asprak.'.$asprakAttendance->id, $asprakAttendance->keterangan) }}" maxlength="500" placeholder="Opsional"></td>
                             </tr>
@@ -92,7 +93,7 @@
                                     @endif
                                 </td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$mahasiswa->mahasiswa_id, $statusAbsensi) === $status) @required($peserta['boleh_diabsen']) @disabled(!$peserta['boleh_diabsen'])></td>
+                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$mahasiswa->mahasiswa_id, $statusAbsensi) === $status) @disabled(!$peserta['boleh_diabsen'])></td>
                                 @endforeach
                                 <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" value="{{ old('keterangan.'.$mahasiswa->mahasiswa_id, $item?->keterangan) }}" maxlength="500" placeholder="{{ $peserta['boleh_diabsen'] ? 'Opsional' : 'Tidak dapat diabsen' }}" @disabled(!$peserta['boleh_diabsen'])></td>
                             </tr>

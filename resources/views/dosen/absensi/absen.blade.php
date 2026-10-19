@@ -67,6 +67,7 @@
         <div>
             Seluruh mahasiswa kelas ditampilkan agar status pesertanya jelas.
             Hanya mahasiswa dengan KRS yang sudah disetujui dosen pembimbing yang dapat diabsen.
+            Anda boleh menyimpan sebagian; mahasiswa yang belum dipilih akan tetap berstatus <strong>Belum Diabsen</strong>.
         </div>
     </div>
 
@@ -132,7 +133,7 @@
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
                                         name="status[{{ $mahasiswa->mahasiswa_id }}]" value="hadir" {{ $statusAbsensi === 'hadir' ? 'checked' : '' }}
-                                        @required($bolehDiabsen) @disabled(!$bolehDiabsen)>
+                                        @disabled(!$bolehDiabsen)>
                                 </td>
                                 <td class="text-center">
                                     <input class="form-check-input status-absen cursor-pointer" type="radio" style="transform: scale(1.3);"
