@@ -4,11 +4,11 @@
 @section('content')
 <div class="mb-3">
     <div class="d-flex flex-wrap justify-content-between gap-2">
-        <a href="{{ route('admin.bap-pengajaran.index', ['ta_id' => $selectedTa?->ta_id]) }}"
+        <a href="{{ route('admin.bap-pengajaran.index', ['ta_id' => $selectedTa?->ta_id, 'period' => $period['key']]) }}"
             class="btn btn-sm btn-label-secondary">
             <i class="bx bx-arrow-back me-1"></i>Kembali
         </a>
-        <a href="{{ route('admin.bap-pengajaran.pdf', ['dosen' => $dosen, 'ta_id' => $selectedTa?->ta_id]) }}"
+        <a href="{{ route('admin.bap-pengajaran.pdf', ['dosen' => $dosen, 'ta_id' => $selectedTa?->ta_id, 'period' => $period['key']]) }}"
             class="btn btn-sm btn-danger">
             <i class="bx bxs-file-pdf me-1"></i>Download BAP PDF
         </a>
@@ -23,6 +23,7 @@
                 <h3 class="fw-bold mb-1">{{ $dosen->nama }}</h3>
                 <p class="text-muted mb-1">NIDN {{ $dosen->nidn ?: '-' }} &bull; {{ $dosen->kd_dosen ?: '-' }}</p>
                 <small>{{ $selectedTa?->nama ?? '-' }} - {{ ucfirst($selectedTa?->semester ?? '-') }}</small>
+                <div class="mt-2"><span class="badge bg-label-info">Cutoff {{ $period['label'] }}</span></div>
             </div>
             <div class="text-end">
                 <small class="text-muted d-block">Total Pengajaran Diakui</small>
@@ -32,6 +33,55 @@
         </div>
     </div>
 </div>
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <small class="text-muted d-block">Status pembayaran periode ini</small>
+            @if(($jumlahTeori + $jumlahPraktik) === 0)
+                <span class="badge bg-label-secondary fs-6">Tidak ada sesi yang dapat dibayar</span>
+            @elseif($jumlahBelumDibayar === 0)
+                <span class="badge bg-label-success fs-6">PAID &mdash; {{ $jumlahDibayar }} sesi</span>
+            @elseif($jumlahDibayar > 0)
+                <span class="badge bg-label-warning fs-6">Dibayar sebagian</span>
+                <span class="text-muted ms-2">{{ $jumlahBelumDibayar }} sesi susulan/belum dibayar</span>
+            @else
+                <span class="badge bg-label-danger fs-6">UNPAID &mdash; {{ $jumlahBelumDibayar }} sesi</span>
+            @endif
+        </div>
+        @can('bap-pengajaran-pay')
+            @if($jumlahBelumDibayar > 0)
+                <form method="POST" action="{{ route('admin.bap-pengajaran.mark-paid', $dosen) }}"
+                    onsubmit="return confirm('Tandai {{ $jumlahBelumDibayar }} sesi sebagai PAID? Tindakan ini dicatat atas nama akun Anda.')">
+                    @csrf
+                    <input type="hidden" name="ta_id" value="{{ $selectedTa?->ta_id }}">
+                    <input type="hidden" name="period" value="{{ $period['key'] }}">
+                    <button class="btn btn-success"><i class="bx bx-check-shield me-1"></i>Konfirmasi Paid</button>
+                </form>
+            @endif
+        @endcan
+    </div>
+</div>
+
+@if($paymentBatches->isNotEmpty())
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white"><h5 class="fw-bold mb-0">Riwayat Konfirmasi Pembayaran</h5></div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light"><tr><th>Waktu</th><th>Petugas</th><th>Teori</th><th>Praktik</th><th>Total</th></tr></thead>
+                <tbody>
+                    @foreach($paymentBatches as $batch)
+                        <tr>
+                            <td>{{ $batch->paid_at?->translatedFormat('d F Y H:i') }}</td>
+                            <td>{{ $batch->paid_by }}</td>
+                            <td>{{ $batch->teori }}</td><td>{{ $batch->praktik }}</td><td><strong>{{ $batch->total }}</strong></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 
 <div class="row g-3 mb-4">
     <div class="col-md-4">
@@ -128,6 +178,7 @@
                                                 <th>Durasi</th>
                                                 <th>Metode PBM</th>
                                                 <th>Topik</th>
+                                                <th>Status Honor</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -151,7 +202,7 @@
                                                 @endphp
                                                 <tr>
                                                     <td class="text-center">
-                                                        <span class="badge bg-label-{{ $loop->iteration <= $maksimalPertemuan ? 'success' : 'secondary' }}">
+                                                        <span class="badge bg-label-{{ $pertemuan->honor_recognized ? 'success' : 'secondary' }}">
                                                             {{ $loop->iteration }}
                                                         </span>
                                                     </td>
@@ -167,10 +218,20 @@
                                                         </span>
                                                     </td>
                                                     <td>{{ $pertemuan->topik ?: '-' }}</td>
+                                                    <td>
+                                                        @if(!$pertemuan->honor_recognized)
+                                                            <span class="badge bg-label-secondary">Di luar batas {{ $maksimalPertemuan }}</span>
+                                                        @elseif($pertemuan->honor_payment)
+                                                            <span class="badge bg-label-success">PAID</span>
+                                                            <small class="d-block text-muted">{{ $pertemuan->honor_payment->paid_at?->format('d/m/Y H:i') }}</small>
+                                                        @else
+                                                            <span class="badge bg-label-danger">UNPAID</span>
+                                                        @endif
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="8" class="text-center text-muted py-3">
+                                                    <td colspan="9" class="text-center text-muted py-3">
                                                         Belum ada sesi mengajar yang tercatat.
                                                     </td>
                                                 </tr>

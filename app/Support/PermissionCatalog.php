@@ -79,6 +79,7 @@ class PermissionCatalog
             'lms-list' => 'Buka LMS semua mata kuliah',
             'rps-list' => 'Buka RPS semua mata kuliah',
             'bap-pengajaran-list' => 'Buka BAP pengajaran dosen',
+            'bap-pengajaran-pay' => 'Konfirmasi pembayaran honor pengajaran',
             'pedoman-akademik-list' => 'Lihat Pedoman Akademik',
             'pedoman-akademik-create' => 'Upload Pedoman Akademik',
             'pedoman-akademik-edit' => 'Ubah Pedoman Akademik',

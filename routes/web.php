@@ -19,7 +19,6 @@ use App\Http\Controllers\Admin\Akademik\PertemuanController;
 use App\Http\Controllers\Admin\Akademik\RpsController as AdminRpsController;
 use App\Http\Controllers\Admin\Akademik\RuanganController;
 use App\Http\Controllers\Admin\Akademik\TahunAkademikController;
-use App\Http\Controllers\Admin\BapPengajaranController;
 use App\Http\Controllers\Admin\BeritaController;
 use App\Http\Controllers\Admin\DosenImpersonationController;
 use App\Http\Controllers\Admin\DosenKurikulumController;
@@ -51,6 +50,7 @@ use App\Http\Controllers\Admin\ProductionErrorController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemHealthController;
+use App\Http\Controllers\Admin\TeachingHonorController;
 use App\Http\Controllers\Admin\ValidatorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
@@ -331,9 +331,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->prefix('bap-pengajaran')
             ->name('bap-pengajaran.')
             ->group(function () {
-                Route::get('/', [BapPengajaranController::class, 'index'])->name('index');
-                Route::get('/dosen/{dosen}', [BapPengajaranController::class, 'show'])->name('show');
-                Route::get('/dosen/{dosen}/pdf', [BapPengajaranController::class, 'downloadPdf'])->name('pdf');
+                Route::get('/', [TeachingHonorController::class, 'index'])->name('index');
+                Route::get('/dosen/{dosen}', [TeachingHonorController::class, 'show'])->name('show');
+                Route::get('/dosen/{dosen}/pdf', [TeachingHonorController::class, 'downloadPdf'])->name('pdf');
+                Route::post('/bulk-download-pdf', [TeachingHonorController::class, 'bulkDownloadPdf'])->name('bulk-download-pdf');
+                Route::post('/dosen/{dosen}/mark-paid', [TeachingHonorController::class, 'markPaid'])
+                    ->middleware('permission:bap-pengajaran-pay')->name('mark-paid');
+                Route::post('/bulk-mark-paid', [TeachingHonorController::class, 'bulkMarkPaid'])
+                    ->middleware('permission:bap-pengajaran-pay')->name('bulk-mark-paid');
             });
 
         Route::middleware('permission:lms-list')->group(function () {

@@ -42,6 +42,11 @@
         </tr>
         <tr>
             <td class="label">Kode Dosen</td><td>: {{ $dosen->kd_dosen ?: '-' }}</td>
+            <td class="label">Periode Cutoff</td><td>: {{ $period['label'] }}</td>
+        </tr>
+        <tr>
+            <td class="label">Status</td>
+            <td>: <strong>{{ $jumlahBelumDibayar === 0 && ($jumlahTeori + $jumlahPraktik) > 0 ? 'PAID' : ($jumlahDibayar > 0 ? 'DIBAYAR SEBAGIAN' : 'UNPAID') }}</strong></td>
             <td class="label">Dicetak</td><td>: {{ now()->translatedFormat('d F Y H:i') }}</td>
         </tr>
     </table>
@@ -86,6 +91,7 @@
                     <th style="width:8%">Durasi</th>
                     <th style="width:8%">Metode</th>
                     <th>Topik</th>
+                    <th style="width:7%">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -99,7 +105,7 @@
                             </td>
                             <td class="center">{{ jenis_kelas_label($jadwal->jenis_kelas ?: '-') }}</td>
                             <td class="center">0 / {{ $maksimalPertemuan }}</td>
-                            <td colspan="7" class="center">Belum ada sesi mengajar yang tercatat.</td>
+                            <td colspan="8" class="center">Belum ada sesi mengajar yang tercatat.</td>
                         </tr>
                     @else
                         @foreach($jadwal->pertemuan as $pertemuan)
@@ -131,11 +137,14 @@
                                 <td class="center">{{ $durasi }}</td>
                                 <td class="center">{{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</td>
                                 <td>{{ $pertemuan->topik ?: '-' }}</td>
+                                <td class="center">
+                                    {{ ! $pertemuan->honor_recognized ? 'Di luar batas' : ($pertemuan->honor_payment ? 'PAID' : 'UNPAID') }}
+                                </td>
                             </tr>
                         @endforeach
                     @endif
                 @empty
-                    <tr><td colspan="11" class="center">Tidak ada kelas pada semester ini.</td></tr>
+                    <tr><td colspan="12" class="center">Tidak ada kelas pada semester ini.</td></tr>
                 @endforelse
             </tbody>
         </table>
