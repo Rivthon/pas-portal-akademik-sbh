@@ -5,6 +5,7 @@ return [
         'disk' => env('SYSTEM_BACKUP_DISK', 'private'),
         'directory' => env('SYSTEM_BACKUP_DIRECTORY', 'system-backups'),
         'retention_days' => (int) env('SYSTEM_BACKUP_RETENTION_DAYS', 14),
+        'max_files' => (int) env('SYSTEM_BACKUP_MAX_FILES', 5),
         'schedule' => env('SYSTEM_BACKUP_SCHEDULE', '01:30'),
         'mysqldump_path' => env('MYSQLDUMP_PATH', 'mysqldump'),
         'include_uploads' => env('SYSTEM_BACKUP_INCLUDE_UPLOADS', true),

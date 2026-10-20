@@ -11,7 +11,9 @@ use ZipArchive;
 
 class BackupSystemCommand extends Command
 {
-    protected $signature = 'system:backup {--database-only : Hanya backup database}';
+    protected $signature = 'system:backup
+        {--database-only : Hanya backup database}
+        {--prune-only : Hanya hapus backup lama tanpa membuat backup baru}';
 
     protected $description = 'Membuat backup privat database dan file upload PAS';
 
@@ -20,6 +22,13 @@ class BackupSystemCommand extends Command
         $disk = Storage::disk(config('system.backup.disk', 'private'));
         $directory = trim(config('system.backup.directory', 'system-backups'), '/');
         $disk->makeDirectory($directory);
+
+        if ($this->option('prune-only')) {
+            $deleted = $this->pruneBackups($disk, $directory);
+            $this->info('Pembersihan selesai. '.$deleted.' file backup lama dihapus.');
+
+            return self::SUCCESS;
+        }
 
         $timestamp = now()->format('Ymd_His');
         $filename = 'pas_backup_'.$timestamp.'.zip';
@@ -69,9 +78,12 @@ class BackupSystemCommand extends Command
                 'includes_uploads' => ! $this->option('database-only') && config('system.backup.include_uploads', true),
             ];
             $this->writeMetadata($disk, $directory, $metadata);
-            $this->removeExpiredBackups($disk, $directory);
+            $deleted = $this->pruneBackups($disk, $directory);
 
             $this->info('Backup berhasil dibuat: '.$filename);
+            if ($deleted > 0) {
+                $this->info($deleted.' file backup lama otomatis dihapus.');
+            }
 
             return self::SUCCESS;
         } catch (Throwable $e) {
@@ -169,15 +181,25 @@ class BackupSystemCommand extends Command
         }
     }
 
-    private function removeExpiredBackups($disk, string $directory): void
+    private function pruneBackups($disk, string $directory): int
     {
         $cutoff = now()->subDays(max(1, config('system.backup.retention_days', 14)))->timestamp;
+        $maxFiles = max(1, config('system.backup.max_files', 5));
+        $deleted = 0;
 
-        foreach ($disk->files($directory) as $path) {
-            if (str_ends_with(strtolower($path), '.zip') && $disk->lastModified($path) < $cutoff) {
+        $backups = collect($disk->files($directory))
+            ->filter(fn (string $path) => str_ends_with(strtolower($path), '.zip'))
+            ->sortByDesc(fn (string $path) => $disk->lastModified($path))
+            ->values();
+
+        foreach ($backups as $index => $path) {
+            if ($index >= $maxFiles || $disk->lastModified($path) < $cutoff) {
                 $disk->delete($path);
+                $deleted++;
             }
         }
+
+        return $deleted;
     }
 
     private function writeMetadata($disk, string $directory, array $metadata): void
