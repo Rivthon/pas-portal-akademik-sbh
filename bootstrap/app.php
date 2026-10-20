@@ -1,17 +1,20 @@
 <?php
 
 use App\Exceptions\InvalidOrderException;
+use App\Http\Middleware\CaptureProductionErrors;
 use App\Http\Middleware\CheckMahasiswaStatus;
 use App\Http\Middleware\EnsureEdomIsEnabled;
 use App\Http\Middleware\LogActivity;
 use App\Http\Middleware\ProgressiveLoginThrottle;
 use App\Http\Middleware\RestrictMahasiswaCuti;
 use App\Http\Middleware\SecurityHeaders;
+use App\Services\ProductionErrorReporter;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
@@ -27,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             SecurityHeaders::class,
+            CaptureProductionErrors::class,
+        ]);
+
+        $middleware->api(append: [
+            CaptureProductionErrors::class,
         ]);
 
         $middleware->alias([
@@ -41,6 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
+        $exceptions->report(function (Throwable $exception) {
+            app(ProductionErrorReporter::class)->captureException(
+                $exception,
+                app()->bound('request') ? request() : null
+            );
+        });
+
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->expectsJson()) {
                 return null;

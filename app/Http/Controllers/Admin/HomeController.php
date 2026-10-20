@@ -7,11 +7,13 @@ use App\Models\Dosen;
 use App\Models\Jadwal;
 use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
+use App\Models\ProductionError;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
 use Carbon\Carbon;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
 {
@@ -32,6 +34,19 @@ class HomeController extends Controller
      */
     public function index()
     {
+        $productionErrors = collect();
+        $productionErrorOccurrencesToday = 0;
+        if (auth()->user()->hasAnyRole(['Super Admin', 'super admin'])
+            && Schema::hasTable('production_errors')) {
+            $productionErrors = ProductionError::query()
+                ->latest('last_seen_at')
+                ->limit(6)
+                ->get();
+            $productionErrorOccurrencesToday = ProductionError::query()
+                ->where('last_seen_at', '>=', now()->subDay())
+                ->count();
+        }
+
         // Data mahasiswa per tahun masuk (bar chart)
         $dataMahasiswa = DB::table('mahasiswa')
             ->select(DB::raw('tahun_masuk, COUNT(*) as total'))
@@ -100,6 +115,8 @@ class HomeController extends Controller
             'labels' => $labels,
             'values' => $values,
             'jadwalHariIni' => $jadwalHariIni,
+            'productionErrors' => $productionErrors,
+            'productionErrorOccurrencesToday' => $productionErrorOccurrencesToday,
         ]);
     }
 }

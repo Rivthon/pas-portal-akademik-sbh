@@ -552,13 +552,10 @@ class PerkuliahanDosenController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Gagal menyimpan pertemuan dan absensi: '.$e->getMessage());
+            report($e);
 
             return response()->json([
                 'message' => 'Terjadi kesalahan saat menyimpan pertemuan dan absensi',
-                'error' => $e->getMessage(), // Tampilkan pesan error
-                'line' => $e->getLine(), // Tampilkan baris kode yang error
-                'file' => $e->getFile(), // Tampilkan file yang error
             ], 500);
         }
     }

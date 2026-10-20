@@ -14,5 +14,9 @@ return [
         'scheduler_stale_minutes' => (int) env('SYSTEM_SCHEDULER_STALE_MINUTES', 5),
         'backup_stale_hours' => (int) env('SYSTEM_BACKUP_STALE_HOURS', 36),
         'error_limit' => (int) env('SYSTEM_ERROR_LOG_LIMIT', 20),
+        'capture_production_errors' => (bool) env(
+            'SYSTEM_CAPTURE_PRODUCTION_ERRORS',
+            env('APP_ENV', 'production') === 'production'
+        ),
     ],
 ];

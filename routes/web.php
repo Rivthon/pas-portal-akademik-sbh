@@ -47,6 +47,7 @@ use App\Http\Controllers\Admin\Penilaian\NilaiController;
 use App\Http\Controllers\Admin\Penilaian\PenilaianController;
 use App\Http\Controllers\Admin\Penilaian\UapNilaiController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductionErrorController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemHealthController;
@@ -392,6 +393,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 ->middleware('permission:system-backup-download')
                 ->where('filename', '[A-Za-z0-9_.-]+')
                 ->name('backups.download');
+            Route::middleware('role:Super Admin|super admin')->group(function () {
+                Route::get('/errors', [ProductionErrorController::class, 'index'])
+                    ->name('errors.index');
+                Route::get('/errors/{productionError}', [ProductionErrorController::class, 'show'])
+                    ->name('errors.show');
+            });
         });
         Route::resource('roles', RoleController::class);
         Route::resource('users', UserController::class);

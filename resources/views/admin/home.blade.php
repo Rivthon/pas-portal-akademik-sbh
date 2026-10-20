@@ -380,6 +380,95 @@
             @endforeach
         </section>
 
+        @if(auth()->user()->hasAnyRole(['Super Admin', 'super admin']))
+            {{-- Ringkasan error hanya boleh dilihat oleh Super Admin. --}}
+            <section class="mb-4">
+                <div class="card border-0 shadow-sm overflow-hidden">
+                    <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
+                        <div>
+                            <h5 class="mb-1 fw-bold"><i class="bx bx-bug text-danger me-2"></i>Error Production Terbaru</h5>
+                            <small class="text-muted">Error 500 dikelompokkan otomatis agar kejadian yang sama tidak memenuhi database.</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-label-danger">{{ number_format($productionErrorOccurrencesToday) }} jenis error / 24 jam</span>
+                            <a href="{{ route('admin.system.errors.index') }}" class="btn btn-sm btn-outline-primary">
+                                Lihat Semua <i class="bx bx-right-arrow-alt ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Terakhir</th>
+                                    <th>Pengguna</th>
+                                    <th>Konteks Akademik</th>
+                                    <th>Error</th>
+                                    <th class="text-center">Terjadi</th>
+                                    <th class="text-end">Detail</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($productionErrors as $productionError)
+                                    @php
+                                        $academic = data_get($productionError->context, 'akademik', []);
+                                    @endphp
+                                    <tr>
+                                        <td class="text-nowrap">
+                                            <div class="fw-semibold">{{ $productionError->last_seen_at?->format('d M Y') }}</div>
+                                            <small class="text-muted">{{ $productionError->last_seen_at?->format('H:i:s') }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $productionError->actor_name ?: 'Tidak diketahui' }}</div>
+                                            <small class="text-muted">
+                                                {{ ucfirst($productionError->actor_guard ?: 'guest') }}
+                                                @if($productionError->actor_identifier)
+                                                    &bull; {{ $productionError->actor_identifier }}
+                                                @endif
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if($academic)
+                                                <div class="fw-semibold text-wrap">{{ data_get($academic, 'mata_kuliah', '-') }}</div>
+                                                <small class="text-muted">
+                                                    {{ data_get($academic, 'kode_mata_kuliah', '-') }}
+                                                    &bull; {{ data_get($academic, 'kelas', '-') }}
+                                                    &bull; {{ data_get($academic, 'program_studi', '-') }}
+                                                </small>
+                                            @else
+                                                <span class="text-muted">{{ $productionError->route_name ?: $productionError->path ?: '-' }}</span>
+                                            @endif
+                                        </td>
+                                        <td style="min-width:280px; max-width:440px;">
+                                            <div class="text-danger fw-semibold text-truncate">HTTP {{ $productionError->http_status }}</div>
+                                            <small class="text-muted d-block text-truncate">{{ $productionError->message }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-label-warning">{{ number_format($productionError->occurrences) }}x</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{{ route('admin.system.errors.show', $productionError) }}"
+                                                class="btn btn-sm btn-label-primary" title="Lihat detail error">
+                                                <i class="bx bx-show"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <i class="bx bx-check-shield fs-1 text-success d-block mb-2"></i>
+                                            <span class="fw-semibold">Belum ada error production yang tercatat.</span>
+                                            <small class="text-muted d-block">Pencatatan dimulai setelah fitur ini dideploy.</small>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         {{-- ===== Charts Row ===== --}}
         <section class="row g-4 mb-4">
             {{-- Bar Chart: Mahasiswa per Tahun Masuk (2/3) --}}
