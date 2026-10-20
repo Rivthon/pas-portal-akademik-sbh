@@ -103,7 +103,12 @@
                             @forelse ($backups as $backup)
                                 <tr>
                                     <td class="text-wrap"><code>{{ $backup['name'] }}</code></td>
-                                    <td>{{ \Carbon\Carbon::createFromTimestamp($backup['updated_at'])->format('d M Y H:i') }}</td>
+                                    <td>
+                                        {{ \Carbon\Carbon::createFromTimestamp($backup['updated_at'])
+                                            ->setTimezone(config('app.timezone'))
+                                            ->format('d M Y H:i') }}
+                                        <small class="d-block text-muted">WIB</small>
+                                    </td>
                                     <td>{{ number_format($backup['size'] / 1024 / 1024, 2) }} MB</td>
                                     <td class="text-end">
                                         @can('system-backup-download')
