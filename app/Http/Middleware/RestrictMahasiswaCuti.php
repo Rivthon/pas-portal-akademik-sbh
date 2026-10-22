@@ -74,11 +74,28 @@ class RestrictMahasiswaCuti
         $mahasiswa = $request->user('mahasiswa') ?? $request->user();
         $status = strtolower(trim((string) ($mahasiswa?->status_mhs ?? '')));
 
-        if (! $mahasiswa || ! in_array($status, ['cuti', 'lulus'], true)) {
+        if (! $mahasiswa || ! in_array($status, ['cuti', 'lulus', 'nonaktif'], true)) {
             return $next($request);
         }
 
         $routeName = (string) $request->route()?->getName();
+
+        if ($status === 'nonaktif') {
+            $allowed = Str::is(['mahasiswa.profile.index', 'mahasiswa.profile.update'], $routeName)
+                || $this->isAllowedInactiveApiRequest($request);
+
+            if ($allowed) {
+                return $next($request);
+            }
+
+            $message = 'Akun Anda berstatus Nonaktif. Seluruh fitur PAS dikunci dan hanya Edit Profil yang tetap tersedia. Hubungi BAAK untuk perubahan status.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'status' => 'nonaktif'], 423);
+            }
+
+            return redirect()->route('mahasiswa.profile.index')->with('inactive_notice', $message);
+        }
 
         if ($status === 'lulus') {
             $allowed = ($request->isMethodSafe() && Str::is(self::GRADUATE_READ_ROUTES, $routeName))
@@ -151,6 +168,24 @@ class RestrictMahasiswaCuti
             'api/v1/mahasiswa/pelayanan/administrasi',
             'api/v1/mahasiswa/pelayanan/profil'
         );
+    }
+
+    private function isAllowedInactiveApiRequest(Request $request): bool
+    {
+        if (! $request->is('api/v1/mahasiswa/*')) {
+            return false;
+        }
+
+        if ($request->isMethod('POST') && $request->is('api/v1/mahasiswa/logout')) {
+            return true;
+        }
+
+        if ($request->isMethod('GET') && $request->is('api/v1/mahasiswa/me')) {
+            return true;
+        }
+
+        return $request->is('api/v1/mahasiswa/pelayanan/profil')
+            && ($request->isMethod('GET') || $request->isMethod('POST'));
     }
 
     private function isAllowedCutiApiRequest(Request $request): bool

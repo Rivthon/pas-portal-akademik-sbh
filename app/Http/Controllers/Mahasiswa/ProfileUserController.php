@@ -28,8 +28,9 @@ class ProfileUserController extends Controller
     public function update(Request $request)
     {
         $user = Auth::guard('mahasiswa')->user(); // gunakan guard mahasiswa
+        $isNonaktif = strtolower(trim((string) $user->status_mhs)) === 'nonaktif';
 
-        $request->validate([
+        $rules = [
             'nama' => 'required|string|max:255',
             'email' => [
                 'required',
@@ -44,19 +45,26 @@ class ProfileUserController extends Controller
             'jenis_kelamin' => 'required|in:Laki-Laki,Perempuan',
             'tanggal_lahir' => 'required|date',
             'alamat' => 'required|string',
-            'jurusan_id' => 'required|integer',
-            'nim' => 'required|string|max:20',
-            'semester' => 'required|integer|min:1|max:8',
-            'tahun_masuk' => 'required|integer|min:2000|max:'.date('Y'),
-            'status_mhs' => 'required|in:aktif,nonaktif,lulus',
-            'kelas' => 'required|in:karyawan,pagi',
             // 'gelombang_id' => 'required|integer',
             'nama_ayah' => 'required|string|max:255',
             'nama_ibu' => 'required|string|max:255',
             'no_telp_ortu' => 'required|string|max:15',
             'pendapatan_ortu' => 'required|string|max:255',
             'alamat_ortu' => 'required|string',
-        ]);
+        ];
+
+        if (! $isNonaktif) {
+            $rules += [
+                'jurusan_id' => 'required|integer',
+                'nim' => 'required|string|max:20',
+                'semester' => 'required|integer|min:1|max:8',
+                'tahun_masuk' => 'required|integer|min:2000|max:'.date('Y'),
+                'status_mhs' => 'required|in:aktif,nonaktif,lulus',
+                'kelas' => 'required|in:karyawan,pagi',
+            ];
+        }
+
+        $request->validate($rules);
 
         try {
             // update field utama
@@ -81,12 +89,14 @@ class ProfileUserController extends Controller
             $user->jenis_kelamin = $request->jenis_kelamin;
             $user->tanggal_lahir = $request->tanggal_lahir;
             $user->alamat = $request->alamat;
-            $user->jurusan_id = $request->jurusan_id;
-            $user->nim = $request->nim;
-            $user->semester = $request->semester;
-            $user->tahun_masuk = $request->tahun_masuk;
-            $user->status_mhs = $request->status_mhs;
-            $user->kelas = $request->kelas;
+            if (! $isNonaktif) {
+                $user->jurusan_id = $request->jurusan_id;
+                $user->nim = $request->nim;
+                $user->semester = $request->semester;
+                $user->tahun_masuk = $request->tahun_masuk;
+                $user->status_mhs = $request->status_mhs;
+                $user->kelas = $request->kelas;
+            }
             // $user->gelombang_id = $request->gelombang_id;
             $user->nama_ayah = $request->nama_ayah;
             $user->nama_ibu = $request->nama_ibu;

@@ -1,6 +1,13 @@
 @extends('layouts.mahasiswa')
 
 @section('content')
+    @php($academicLocked = strtolower(trim((string) $mahasiswa->status_mhs)) === 'nonaktif')
+    @if(session('inactive_notice') || $academicLocked)
+        <div class="alert alert-danger border-0 shadow-sm mb-4">
+            <i class="bx bx-lock-alt me-2"></i>
+            {{ session('inactive_notice', 'Akun Anda berstatus Nonaktif. Hanya perubahan data profil yang diperbolehkan; data akademik hanya dapat diubah oleh BAAK.') }}
+        </div>
+    @endif
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- User Profile Header -->
     <div class="col-12">
@@ -168,8 +175,12 @@
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="card-title">Data Akademik</h5>
+                            @if($academicLocked)
+                                <small class="text-danger"><i class="bx bx-lock-alt me-1"></i>Data akademik hanya dapat diubah oleh BAAK.</small>
+                            @endif
                         </div>
                         <div class="card-body">
+                            <fieldset @disabled($academicLocked)>
                             <div class="row">
                                 <!-- Jurusan -->
                                 <div class="col-md-6 mb-3">
@@ -280,6 +291,7 @@
                                     </div>
                                 </div> --}}
                             </div>
+                            </fieldset>
                         </div>
                     </div>
                     <div class="card mb-4">

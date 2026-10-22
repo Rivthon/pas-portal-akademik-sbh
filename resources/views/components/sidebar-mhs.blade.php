@@ -3,8 +3,9 @@ use Illuminate\Support\Facades\Auth;
 $user = Auth::guard('mahasiswa')->user();
 $isCuti = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'cuti';
 $isLulus = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'lulus';
-$isAcademicInactive = $isCuti || $isLulus;
-$isAsprak = $user?->asprakAssignments()->exists() ?? false;
+$isNonaktif = strtolower(trim((string) ($user?->status_mhs ?? ''))) === 'nonaktif';
+$isAcademicInactive = $isCuti || $isLulus || $isNonaktif;
+$isAsprak = !$isNonaktif && ($user?->asprakAssignments()->exists() ?? false);
 @endphp
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme shadow-sm">
     <div class="app-brand demo justify-content-center py-3">
@@ -22,6 +23,33 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-2">
+        @if($isNonaktif)
+        <li class="px-3 mb-3">
+            <div class="alert alert-danger py-2 px-3 mb-0 small">
+                <i class="bx bx-lock-alt me-1"></i><strong>Status Nonaktif</strong><br>
+                <span class="opacity-75">Seluruh fitur PAS dikunci. Hubungi BAAK untuk perubahan status.</span>
+            </div>
+        </li>
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text fw-bold text-primary">Akun</span>
+        </li>
+        <li class="menu-item @if(Route::is('mahasiswa.profile.*')) active @endif">
+            <a href="{{ route('mahasiswa.profile.index') }}" class="menu-link">
+                <i class="menu-icon bx bx-user-circle text-primary"></i>
+                <div class="fw-medium">Edit Profil</div>
+            </a>
+        </li>
+        <li class="menu-item">
+            <a href="javascript:void(0);" class="menu-link"
+                onclick="event.preventDefault(); document.getElementById('logout-form-sidebar').submit();">
+                <i class="menu-icon bx bx-power-off text-danger"></i>
+                <span class="menu-text text-danger fw-bold">Keluar Sistem</span>
+            </a>
+            <form method="POST" action="{{ route('mahasiswa.logout') }}" id="logout-form-sidebar" class="d-none">
+                @csrf
+            </form>
+        </li>
+        @else
         <li class="menu-header small text-uppercase">
             <span class="menu-header-text fw-bold text-primary" style="letter-spacing: 0.5px;">Dashboard</span>
         </li>
@@ -331,6 +359,7 @@ $isAsprak = $user?->asprakAssignments()->exists() ?? false;
                 </li>
             </ul>
         </li>
+        @endif
     </ul>
 </aside>
 
