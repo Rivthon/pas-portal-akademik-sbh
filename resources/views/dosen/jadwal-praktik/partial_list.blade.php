@@ -6,16 +6,20 @@
     <div class="row">
         @foreach ($jadwalHari as $jadwal)
         @php
-        $dosenTersaring = collect($jadwal['dosen'])->filter(function ($dosen) use ($jadwal) {
-        return $dosen['jenis_kelas'] == $jadwal['jenis_kelas'];
-        });
-        $jadwalId = $jadwal['jadwal_praktik_id'];
-        $namaMatakuliah = $jadwal['nama_matakuliah'];
-        $kodeMatakuliah = $jadwal['kode_matakuliah'] ?? '-';
+            $dosenTersaring = collect($jadwal['dosen'])->filter(function ($dosen) use ($jadwal) {
+                return $dosen['jenis_kelas'] == $jadwal['jenis_kelas'];
+            });
+
+            $dosenNames = $dosenTersaring->pluck('nama')->implode(', ');
         @endphp
-        @if (!empty($dosenTersaring))
-        <div class="col-md-4 jadwal-card-item" data-nama="{{ $namaMatakuliah }}" data-dosen="{{ implode(', ', array_column($jadwal['dosen'], 'nama')) }}" data-jenis="{{ $jadwal['jenis_kelas'] }}">
-            <div class="card shadow-sm mb-3 bg-light text-dark" style="cursor: pointer;"
+
+        @if($dosenTersaring->isNotEmpty())
+            <div
+                class="col-md-4 jadwal-card-item"
+                data-nama="{{ $namaMatakuliah }}"
+                data-dosen="{{ $dosenNames }}"
+                data-jenis="{{ $jadwal['jenis_kelas'] }}"
+            >
                 onclick="openAbsensiPraktikModal('{{ $jadwalId }}', '{{ $namaMatakuliah }}', '{{ $kodeMatakuliah }}')">
                 <div class="card-body">
                     <h6 class="card-title fw-bold text-dark border-start border-3 ps-2">
