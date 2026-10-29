@@ -145,6 +145,27 @@
         <!-- Alert -->
         <div id="alert-container"></div>
 
+        <div id="mahasiswa-result-summary" class="card border border-primary shadow-none mb-3 d-none">
+            <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="avatar-initial rounded bg-label-primary p-3">
+                        <i class="bx bx-group fs-4"></i>
+                    </span>
+                    <div>
+                        <small class="text-muted d-block">Jumlah mahasiswa sesuai filter</small>
+                        <div class="d-flex align-items-baseline gap-2">
+                            <span id="mahasiswa-filtered-total" class="fs-3 fw-bold text-primary">0</span>
+                            <span class="fw-semibold text-dark">mahasiswa</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-md-end">
+                    <small class="text-muted d-block mb-1">Filter diterapkan</small>
+                    <span id="mahasiswa-filter-description" class="fw-semibold text-dark">Semua mahasiswa</span>
+                </div>
+            </div>
+        </div>
+
         @can('mahasiswa-edit')
         <div class="card border shadow-none mb-3 overflow-hidden">
             <button type="button"
@@ -265,11 +286,43 @@ $(document).ready(function () {
         };
     }
 
+    function filterDescription(filters) {
+        const labels = [];
+
+        if (filters.search) {
+            labels.push(`Pencarian: ${filters.search}`);
+        }
+        if (filters.nim_prefix) {
+            labels.push(`Awalan NIM ${filters.nim_prefix}`);
+        }
+        if (filters.jurusan_id) {
+            labels.push($('#program-studi option:selected').text().trim());
+        }
+        if (filters.tahun_masuk) {
+            labels.push(`Tahun masuk ${filters.tahun_masuk}`);
+        }
+        if (filters.kelas) {
+            labels.push($('#kelas option:selected').text().trim());
+        }
+        if (filters.status) {
+            labels.push(`Status ${$('#status option:selected').text().trim()}`);
+        }
+
+        return labels.length ? labels.join(' • ') : 'Semua mahasiswa';
+    }
+
+    function updateResultSummary(total, filters) {
+        $('#mahasiswa-filtered-total').text(total.toLocaleString('id-ID'));
+        $('#mahasiswa-filter-description').text(filterDescription(filters));
+        $('#mahasiswa-result-summary').removeClass('d-none');
+    }
+
     // Fungsi untuk Fetch Data Mahasiswa
     function fetchMahasiswa(url) {
         const filters = currentFilters();
         appliedFilters = null;
         filteredTotal = 0;
+        $('#mahasiswa-result-summary').addClass('d-none');
 
         // Menampilkan loading indicator
         $('#table-container').html('<div class="text-center my-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Memuat data...</div>');
@@ -284,6 +337,7 @@ $(document).ready(function () {
                 $('#pagination-container').html(response.pagination);
                 appliedFilters = filters;
                 filteredTotal = Number(response.total) || 0;
+                updateResultSummary(filteredTotal, filters);
                 $('#bulk-status-hint').text(`${filteredTotal} mahasiswa sesuai filter. Centang baris pada halaman ini, atau pilih “Semua hasil filter” untuk seluruh halaman.`);
             },
             error: function (xhr) {
@@ -384,6 +438,7 @@ $(document).ready(function () {
             success: function (response) {
                 selectElement.data('previous', response.kelas);
                 showStatusAlert('success', response.message);
+                fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
             },
             error: function (xhr) {
                 selectElement.val(previousValue);
@@ -483,6 +538,7 @@ $(document).ready(function () {
 
                 // Tampilkan alert sukses
                 showStatusAlert("success", response.message || "Status berhasil diperbarui!");
+                fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
             },
             error: function (xhr, status, error) {
                 let errorMsg = "Terjadi kesalahan saat memperbarui status.";
@@ -567,6 +623,9 @@ $(document).ready(function () {
 
         window.location.href = exportUrl;
     });
+
+    // Muat daftar dan jumlah seluruh mahasiswa saat halaman pertama dibuka.
+    fetchMahasiswa("{{ route('admin.mahasiswa.index') }}");
 });
 </script>
 @endpush
