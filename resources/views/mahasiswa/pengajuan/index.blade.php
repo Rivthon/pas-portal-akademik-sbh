@@ -32,33 +32,38 @@
                 @endphp
                 <!-- CTA Button -->
                 <div class="mb-3">
-                    @if (!$pengajuanTerakhir || $pengajuanTerakhir->status === 'ditolak')
-                    <div class="alert alert-danger mb-3">
-                        <strong>Pengajuan Ditolak!</strong> Pastikan Anda telah memenuhi syarat dan ketentuan atau cek
-                        ke
-                        <strong>BAUK/BAAK</strong> untuk informasi lebih lanjut.
-                        <a href="#" class="text-primary"
-                            onclick="this.parentElement.style.display='none'; return false;">[Tutup]</a>
-                    </div>
-                    <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus-circle"></i> Buat Pengajuan Baru
-                    </a>
-
-                    @elseif ($pengajuanTerakhir->status === 'disetujui')
-
-                    <a href="{{route('mahasiswa.cetak-transkrip')}}" class="btn btn-primary">
-                        Cetak Transkrip
-                    </a>
-
-                    @else
+                    @if ($pengajuanTerakhir?->isActive())
                     <div class="alert alert-warning">
-                        <strong>Pengajuan dalam proses!</strong> Anda hanya dapat membuat satu pengajuan dalam satu
-                        waktu.
-                        Status pengajuan terakhir Anda:
+                        <strong>Pengajuan dalam proses.</strong> Anda dapat membuat pengajuan baru setelah pengajuan
+                        aktif ini selesai diproses. Status:
                         <span class="badge bg-{{ getBadgeClass($pengajuanTerakhir->status) }}">
                             {{ ucfirst($pengajuanTerakhir->status) }}
                         </span>
                     </div>
+                    @else
+                    @if ($pengajuanTerakhir?->status === 'ditolak')
+                    <div class="alert alert-danger mb-3">
+                        <strong>Pengajuan Ditolak!</strong> Pastikan Anda telah memenuhi syarat dan ketentuan atau cek
+                        ke <strong>BAUK/BAAK</strong> untuk informasi lebih lanjut.
+                        <a href="#" class="text-primary"
+                            onclick="this.parentElement.style.display='none'; return false;">[Tutup]</a>
+                    </div>
+                    @elseif ($pengajuanTerakhir?->status === 'selesai')
+                    <div class="alert alert-success mb-3">
+                        Pengajuan sebelumnya telah selesai. Anda dapat mengajukan transkrip terbaru apabila ada nilai
+                        semester baru yang sudah diterbitkan.
+                    </div>
+                    @endif
+
+                    @if ($pengajuanTerakhir?->status === 'disetujui')
+                    <a href="{{route('mahasiswa.cetak-transkrip')}}" class="btn btn-success me-2">
+                        Cetak Transkrip
+                    </a>
+                    @endif
+
+                    <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Buat Pengajuan Baru
+                    </a>
                     @endif
                 </div>
 

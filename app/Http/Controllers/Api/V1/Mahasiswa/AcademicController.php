@@ -555,7 +555,7 @@ class AcademicController extends Controller
                 ->latest('id')
                 ->first();
 
-            if ($latest && $latest->status !== 'ditolak') {
+            if ($latest?->isActive()) {
                 return null;
             }
 
@@ -572,7 +572,7 @@ class AcademicController extends Controller
 
         if (! $result) {
             return response()->json([
-                'message' => 'Masih ada pengajuan transkrip yang sedang berjalan atau sudah disetujui.',
+                'message' => 'Masih ada pengajuan transkrip yang sedang diproses.',
             ], 422);
         }
 
@@ -705,7 +705,7 @@ class AcademicController extends Controller
     private function transcriptRequestPayload(?PengajuanTranskrip $request): array
     {
         return [
-            'dapat_mengajukan' => ! $request || $request->status === 'ditolak',
+            'dapat_mengajukan' => ! $request?->isActive(),
             'pengajuan_terakhir' => $request ? [
                 'id' => (int) $request->id,
                 'jenis' => $request->jenis,

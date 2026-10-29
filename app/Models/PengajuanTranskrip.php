@@ -9,6 +9,8 @@ class PengajuanTranskrip extends Model
 {
     use HasFactory;
 
+    public const ACTIVE_STATUSES = ['pending', 'diproses'];
+
     protected $table = 'pengajuan_transkrip';
 
     protected $fillable = [
@@ -30,6 +32,16 @@ class PengajuanTranskrip extends Model
     public function scopeStatus($query, $status)
     {
         return $query->where('status', $status);
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->whereIn('status', self::ACTIVE_STATUSES);
+    }
+
+    public function isActive(): bool
+    {
+        return in_array($this->status, self::ACTIVE_STATUSES, true);
     }
 
     // Helper untuk update status lebih mudah

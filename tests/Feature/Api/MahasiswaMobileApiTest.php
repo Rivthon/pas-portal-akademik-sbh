@@ -580,7 +580,9 @@ class MahasiswaMobileApiTest extends TestCase
 
     public function test_student_can_submit_only_one_active_transcript_request(): void
     {
-        $mahasiswa = Mahasiswa::query()->firstOrFail();
+        $mahasiswa = Mahasiswa::query()
+            ->whereRaw('LOWER(status_mhs) = ?', ['aktif'])
+            ->firstOrFail();
         PengajuanTranskrip::query()
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
             ->delete();
@@ -604,5 +606,40 @@ class MahasiswaMobileApiTest extends TestCase
 
         $this->postJson('/api/v1/mahasiswa/nilai/pengajuan-transkrip', $payload)
             ->assertUnprocessable();
+    }
+
+    public function test_student_can_submit_a_new_transcript_request_after_previous_one_is_approved(): void
+    {
+        $mahasiswa = Mahasiswa::query()
+            ->whereRaw('LOWER(status_mhs) = ?', ['aktif'])
+            ->firstOrFail();
+        PengajuanTranskrip::query()
+            ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->delete();
+        Sanctum::actingAs($mahasiswa, ['mahasiswa']);
+
+        PengajuanTranskrip::create([
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'jenis' => 'sementara',
+            'keperluan' => 'Keperluan semester 7',
+            'status' => 'disetujui',
+        ]);
+
+        $this->postJson('/api/v1/mahasiswa/nilai/pengajuan-transkrip', [
+            'jenis' => 'sementara',
+            'keperluan' => 'Keperluan setelah semester 8',
+        ])->assertCreated();
+
+        $this->assertSame(
+            2,
+            PengajuanTranskrip::query()
+                ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+                ->count()
+        );
+        $this->assertDatabaseHas('pengajuan_transkrip', [
+            'mahasiswa_id' => $mahasiswa->mahasiswa_id,
+            'keperluan' => 'Keperluan setelah semester 8',
+            'status' => 'pending',
+        ]);
     }
 }

@@ -11,6 +11,7 @@ use App\Models\TahunAkademik;
 use App\Support\StoredUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use PDF;
 use RealRashid\SweetAlert\Facades\Alert;
 
@@ -27,11 +28,15 @@ class PengajuanTranskripController extends Controller
     // Menampilkan daftar pengajuan (untuk admin & mahasiswa)
     public function index()
     {
-        $pengajuanTerakhir = PengajuanTranskrip::where('mahasiswa_id', auth()->id())
-            ->latest()
-            ->first();
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        if (! $mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
 
-        $pengajuan = PengajuanTranskrip::with('mahasiswa')->latest()->get();
+        $pengajuan = PengajuanTranskrip::where('mahasiswa_id', $mahasiswa->mahasiswa_id)
+            ->latest()
+            ->get();
+        $pengajuanTerakhir = $pengajuan->first();
 
         return view('mahasiswa.pengajuan.index', compact('pengajuan', 'pengajuanTerakhir'));
     }
@@ -63,6 +68,16 @@ class PengajuanTranskripController extends Controller
     // Menampilkan form pengajuan transkrip
     public function create()
     {
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+        if (! $mahasiswa) {
+            return redirect()->back()->with('error', 'Mahasiswa tidak ditemukan.');
+        }
+
+        if (PengajuanTranskrip::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->active()->exists()) {
+            return redirect()->route('mahasiswa.pengajuan.index')
+                ->with('error', 'Masih ada pengajuan transkrip yang sedang diproses.');
+        }
+
         return view('mahasiswa.pengajuan.form');
     }
 
@@ -91,7 +106,24 @@ class PengajuanTranskripController extends Controller
             $data['bukti'] = $request->file('bukti')->store('bukti_pengajuan', 'private');
         }
 
-        PengajuanTranskrip::create($data);
+        $created = DB::transaction(function () use ($mahasiswa, $data) {
+            $mahasiswa->newQuery()->whereKey($mahasiswa->mahasiswa_id)->lockForUpdate()->firstOrFail();
+
+            if (PengajuanTranskrip::where('mahasiswa_id', $mahasiswa->mahasiswa_id)->active()->exists()) {
+                return false;
+            }
+
+            PengajuanTranskrip::create($data);
+
+            return true;
+        });
+
+        if (! $created) {
+            StoredUpload::delete($data['bukti'] ?? null);
+
+            return redirect()->route('mahasiswa.pengajuan.index')
+                ->with('error', 'Masih ada pengajuan transkrip yang sedang diproses.');
+        }
 
         Alert::success('Pengajuan berhasil dikirim', 'Pengajuan Anda telah berhasil disimpan.');
 
