@@ -4,7 +4,7 @@
 @section('content')
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="fw-bold mb-0"><i class="bx bx-user-check text-primary me-2"></i>Isi Absensi Praktik</h4>
+        <h4 class="fw-bold mb-0"><i class="bx bx-user-check text-primary me-2"></i>{{ $canManagePertemuan ? 'Isi' : 'Lihat' }} Absensi Praktik</h4>
         <a href="{{ route('dosen.absensi-praktik.index') }}" class="btn btn-outline-secondary"><i class="bx bx-arrow-back me-1"></i>Kembali</a>
     </div>
 
@@ -14,19 +14,30 @@
     <div class="card border-0 shadow-sm mb-4" style="background:linear-gradient(135deg,#1e3c72,#2a5298)">
         <div class="card-body text-white p-4">
             <div class="row g-3">
-                <div class="col-md-4"><small class="text-white-50">Mata Kuliah</small><h5 class="text-white mb-0">{{ $pertemuan->jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</h5></div>
+                <div class="col-md-4"><small class="text-white-50">Mata Kuliah</small><h5 class="text-white mb-0">{{ $pertemuan->jadwal->kurikulum?->mataKuliah?->nama ?? '-' }}</h5><small class="text-white-50"><i class="bx bx-user me-1"></i>Dibuat oleh {{ $pertemuan->dosen?->nama ?: 'Dosen tidak diketahui' }}</small></div>
                 <div class="col-md-4"><small class="text-white-50">Topik</small><h6 class="text-white mb-0">{{ $pertemuan->topik ?: '-' }}</h6><span class="text-white-50">{{ $pertemuan->sub_topik }}</span></div>
                 <div class="col-md-4"><small class="text-white-50">Waktu</small><h6 class="text-white mb-1">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d F Y') }}, {{ substr($pertemuan->jam_mulai,0,5) }}–{{ substr($pertemuan->jam_selesai,0,5) }}</h6><span class="badge bg-white text-primary"><i class="bx {{ strtolower($pertemuan->metode_pbm ?: 'offline') === 'online' ? 'bx-wifi' : 'bx-building' }} me-1"></i>{{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</span></div>
             </div>
         </div>
     </div>
 
+    @unless($canManagePertemuan)
+    <div class="alert alert-info border-0 shadow-sm d-flex align-items-start gap-2">
+        <i class="bx bx-lock-alt fs-4"></i>
+        <div><strong>Mode hanya lihat.</strong> Anda merupakan tim pengajar kelas ini dan dapat melihat absensi, tetapi hanya {{ $pertemuan->dosen?->nama ?: 'dosen pembuat pertemuan' }} yang dapat mengubahnya.</div>
+    </div>
+    @endunless
+
     <div class="alert alert-light border shadow-sm d-flex align-items-start gap-2">
         <i class="bx bx-info-circle text-primary fs-4"></i>
         <div>
             Seluruh mahasiswa kelas ditampilkan agar status pesertanya jelas.
             Hanya mahasiswa dengan KRS yang sudah disetujui dosen pembimbing yang dapat diabsen.
-            Anda boleh menyimpan sebagian; peserta yang belum dipilih akan tetap berstatus <strong>Belum Diabsen</strong>.
+            @if($canManagePertemuan)
+                Anda boleh menyimpan sebagian; peserta yang belum dipilih akan tetap berstatus <strong>Belum Diabsen</strong>.
+            @else
+                Data berikut ditampilkan sebagai informasi dan tidak dapat diubah dari akun Anda.
+            @endif
         </div>
     </div>
 
@@ -35,7 +46,7 @@
         <div class="card border-0 shadow-sm border-start border-4 border-success">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <div><h6 class="fw-bold mb-1"><i class="bx bx-user-check text-success me-2"></i>Kehadiran Asprak</h6><small class="text-muted">Digunakan sebagai rekap kehadiran Asisten Praktikum.</small></div>
-                @if($pertemuan->asprakAttendances->isNotEmpty())<button type="button" id="hadirSemuaAsprak" class="btn btn-sm btn-outline-success"><i class="bx bx-check-double me-1"></i>Hadir Semua</button>@endif
+                @if($canManagePertemuan && $pertemuan->asprakAttendances->isNotEmpty())<button type="button" id="hadirSemuaAsprak" class="btn btn-sm btn-outline-success"><i class="bx bx-check-double me-1"></i>Hadir Semua</button>@endif
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -48,9 +59,9 @@
                             <tr>
                                 <td><strong>{{ $asprak?->nama ?? '-' }}</strong><small class="d-block text-muted">{{ $asprak?->nim ?? '-' }}</small>@if($asprakAttendance->status === 'belum diabsen')<span class="badge bg-label-secondary mt-1">Belum Diabsen</span>@endif</td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-asprak" type="radio" name="status_asprak[{{ $asprakAttendance->id }}]" value="{{ $status }}" @checked(old('status_asprak.'.$asprakAttendance->id, $asprakAttendance->status) === $status)></td>
+                                    <td class="text-center"><input class="form-check-input status-asprak" type="radio" name="status_asprak[{{ $asprakAttendance->id }}]" value="{{ $status }}" @checked(old('status_asprak.'.$asprakAttendance->id, $asprakAttendance->status) === $status) @disabled(!$canManagePertemuan)></td>
                                 @endforeach
-                                <td><input class="form-control form-control-sm" name="keterangan_asprak[{{ $asprakAttendance->id }}]" value="{{ old('keterangan_asprak.'.$asprakAttendance->id, $asprakAttendance->keterangan) }}" maxlength="500" placeholder="Opsional"></td>
+                                <td><input class="form-control form-control-sm" name="keterangan_asprak[{{ $asprakAttendance->id }}]" value="{{ old('keterangan_asprak.'.$asprakAttendance->id, $asprakAttendance->keterangan) }}" maxlength="500" placeholder="Opsional" @disabled(!$canManagePertemuan)></td>
                             </tr>
                         @empty
                             <tr><td colspan="6" class="text-center text-muted py-4">Belum ada Asprak yang ditugaskan pada pertemuan ini. Pilih melalui Edit Pertemuan.</td></tr>
@@ -58,7 +69,7 @@
                     </tbody>
                 </table>
             </div>
-            @if($pertemuan->asprakAttendances->isNotEmpty())<div class="card-footer bg-white text-end"><button class="btn btn-success px-4"><i class="bx bx-save me-1"></i>Simpan Absensi Asprak</button></div>@endif
+            @if($canManagePertemuan && $pertemuan->asprakAttendances->isNotEmpty())<div class="card-footer bg-white text-end"><button class="btn btn-success px-4"><i class="bx bx-save me-1"></i>Simpan Absensi Asprak</button></div>@endif
         </div>
     </form>
 
@@ -67,7 +78,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">Daftar Mahasiswa</h6>
-                <button type="button" id="hadirSemua" class="btn btn-sm btn-success"><i class="bx bx-check-double me-1"></i>Hadir Semua</button>
+                @if($canManagePertemuan)<button type="button" id="hadirSemua" class="btn btn-sm btn-success"><i class="bx bx-check-double me-1"></i>Hadir Semua</button>@endif
             </div>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -93,9 +104,9 @@
                                     @endif
                                 </td>
                                 @foreach(['hadir','izin','sakit','tidak hadir'] as $status)
-                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$mahasiswa->mahasiswa_id, $statusAbsensi) === $status) @disabled(!$peserta['boleh_diabsen'])></td>
+                                    <td class="text-center"><input class="form-check-input status-praktik" type="radio" name="status[{{ $mahasiswa->mahasiswa_id }}]" value="{{ $status }}" @checked(old('status.'.$mahasiswa->mahasiswa_id, $statusAbsensi) === $status) @disabled(!$canManagePertemuan || !$peserta['boleh_diabsen'])></td>
                                 @endforeach
-                                <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" value="{{ old('keterangan.'.$mahasiswa->mahasiswa_id, $item?->keterangan) }}" maxlength="500" placeholder="{{ $peserta['boleh_diabsen'] ? 'Opsional' : 'Tidak dapat diabsen' }}" @disabled(!$peserta['boleh_diabsen'])></td>
+                                <td><input class="form-control form-control-sm" name="keterangan[{{ $mahasiswa->mahasiswa_id }}]" value="{{ old('keterangan.'.$mahasiswa->mahasiswa_id, $item?->keterangan) }}" maxlength="500" placeholder="{{ $peserta['boleh_diabsen'] ? 'Opsional' : 'Tidak dapat diabsen' }}" @disabled(!$canManagePertemuan || !$peserta['boleh_diabsen'])></td>
                             </tr>
                         @empty
                             <tr><td colspan="7" class="text-center text-muted py-5">Tidak ada mahasiswa aktif yang sesuai dengan prodi, semester, dan kelas ini.</td></tr>
@@ -103,7 +114,7 @@
                     </tbody>
                 </table>
             </div>
-            @if($daftarPeserta->contains('boleh_diabsen', true))
+            @if($canManagePertemuan && $daftarPeserta->contains('boleh_diabsen', true))
                 <div class="card-footer bg-white text-end"><button class="btn btn-primary px-4"><i class="bx bx-save me-1"></i>Simpan Absensi Praktik</button></div>
             @endif
         </div>

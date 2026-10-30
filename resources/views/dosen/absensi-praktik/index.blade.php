@@ -178,12 +178,13 @@
                         <h6 class="fw-bold border-bottom pb-2">Riwayat Pertemuan</h6>
                         @forelse($item->pertemuan as $pertemuan)
                             @php
+                                $canManageMeeting = (int) $pertemuan->dosen_id === (int) auth('dosen')->id();
                                 $editModalId = 'edit-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id;
                                 $deleteFormId = 'hapus-pertemuan-praktik-'.$pertemuan->pertemuan_praktik_id;
                             @endphp
                             <div class="d-flex align-items-center gap-2 border rounded p-2 mb-2">
                             <a href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}" class="d-flex justify-content-between align-items-center text-decoration-none flex-grow-1 p-1">
-                                <span><strong>{{ $pertemuan->topik ?: 'Tanpa topik' }}</strong><small class="d-block text-muted">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d M Y') }} · {{ substr($pertemuan->jam_mulai,0,5) }} · {{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</small></span>
+                                <span><strong>{{ $pertemuan->topik ?: 'Tanpa topik' }}</strong><small class="d-block text-muted">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d M Y') }} · {{ substr($pertemuan->jam_mulai,0,5) }} · {{ ucfirst($pertemuan->metode_pbm ?: 'offline') }}</small><small class="d-block text-muted"><i class="bx bx-user me-1"></i>{{ $pertemuan->dosen?->nama ?: 'Dosen tidak diketahui' }}</small></span>
                                 <span class="badge bg-label-success">{{ $pertemuan->absensi_count }} mahasiswa</span>
                             </a>
                                 <div class="dropdown flex-shrink-0">
@@ -191,17 +192,22 @@
                                         <i class="bx bx-dots-vertical-rounded"></i>
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-end">
-                                        <a class="dropdown-item" href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}"><i class="bx bx-user-check me-2"></i>Isi Absensi</a>
+                                        <a class="dropdown-item" href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}"><i class="bx bx-{{ $canManageMeeting ? 'user-check' : 'show' }} me-2"></i>{{ $canManageMeeting ? 'Isi Absensi' : 'Lihat Absensi' }}</a>
+                                        @if($canManageMeeting)
                                         <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#{{ $editModalId }}"><i class="bx bx-edit me-2"></i>Edit Pertemuan</button>
                                         <div class="dropdown-divider"></div>
                                         <button type="button" class="dropdown-item text-danger btn-hapus-pertemuan-praktik" data-form-id="{{ $deleteFormId }}" data-topik="{{ $pertemuan->topik ?: 'Tanpa topik' }}"><i class="bx bx-trash me-2"></i>Hapus Pertemuan</button>
+                                        @endif
                                     </div>
                                 </div>
+                                @if($canManageMeeting)
                                 <form id="{{ $deleteFormId }}" method="POST" action="{{ route('dosen.absensi-praktik.pertemuan.destroy', $pertemuan) }}" class="d-none">
                                     @csrf @method('DELETE')
                                 </form>
+                                @endif
                             </div>
 
+                            @if($canManageMeeting)
                             <div class="modal fade" id="{{ $editModalId }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
                                     <form method="POST" action="{{ route('dosen.absensi-praktik.pertemuan.update', $pertemuan) }}">
@@ -233,6 +239,7 @@
                                     </form>
                                 </div></div>
                             </div>
+                            @endif
                         @empty
                             <p class="text-center text-muted py-3 mb-0">Belum ada pertemuan praktik.</p>
                         @endforelse
@@ -326,6 +333,7 @@
                                             <a href="{{ route('dosen.absensi-praktik.show', $pertemuan) }}" class="text-decoration-none flex-grow-1">
                                                 <strong class="d-block text-dark">{{ $pertemuan->topik ?: 'Tanpa topik' }}</strong>
                                                 <small class="text-muted">{{ $pertemuan->tanggal_pertemuan->translatedFormat('d M Y') }} &middot; {{ substr($pertemuan->jam_mulai,0,5) }}&ndash;{{ substr($pertemuan->jam_selesai,0,5) }}</small>
+                                                <small class="d-block text-muted"><i class="bx bx-user me-1"></i>{{ $pertemuan->dosen?->nama ?: 'Dosen tidak diketahui' }}</small>
                                             </a>
                                             <span class="badge bg-label-success">{{ $pertemuan->absensi_count }} mahasiswa</span>
                                         </li>

@@ -35,7 +35,7 @@ class AbsensiPraktikController extends Controller
                     'kurikulum.mataKuliah', 'kurikulum.dosenToMatakuliah.dosen', 'programStudi', 'ruangan',
                     'asprakAssignments' => fn ($query) => $query->where('aktif', true)->with('mahasiswa')->orderBy('id'),
                     'pertemuan' => fn ($query) => $query
-                        ->where('dosen_id', $dosen->dosen_id)
+                        ->with('dosen')
                         ->with('asprakAttendances.assignment.mahasiswa')
                         ->withCount('absensi')
                         ->orderByDesc('tanggal_pertemuan'),
@@ -125,10 +125,14 @@ class AbsensiPraktikController extends Controller
         $pertemuan->load([
             'jadwal.kurikulum.mataKuliah',
             'jadwal.ruangan',
+            'dosen',
             'asprakAttendances.assignment.mahasiswa',
         ]);
-        $this->ensurePertemuanMilikDosen($pertemuan);
-        $this->syncPesertaDisetujui($pertemuan);
+        $this->ensurePertemuanDapatDilihat($pertemuan);
+        $canManagePertemuan = (string) $pertemuan->dosen_id === (string) auth('dosen')->id();
+        if ($canManagePertemuan) {
+            $this->syncPesertaDisetujui($pertemuan);
+        }
 
         $absensi = $pertemuan->absensi()->with('mahasiswa')->get()->keyBy('mahasiswa_id');
         $daftarPeserta = $this->daftarPesertaAbsensi($pertemuan->jadwal)
@@ -138,7 +142,11 @@ class AbsensiPraktikController extends Controller
                 return $peserta;
             });
 
-        return view('dosen.absensi-praktik.show', compact('pertemuan', 'daftarPeserta'));
+        return view('dosen.absensi-praktik.show', compact(
+            'pertemuan',
+            'daftarPeserta',
+            'canManagePertemuan'
+        ));
     }
 
     public function manageAsprak(JadwalPraktik $jadwal)
@@ -374,10 +382,21 @@ class AbsensiPraktikController extends Controller
 
     private function ensurePertemuanMilikDosen(PertemuanPraktik $pertemuan): void
     {
+        $this->ensurePertemuanDapatDilihat($pertemuan);
+
         abort_unless(
-            (string) $pertemuan->dosen_id === (string) auth('dosen')->id()
-                && $this->jadwalDosenQuery()->whereKey($pertemuan->jadwal_praktik_id)->exists(),
-            403
+            (string) $pertemuan->dosen_id === (string) auth('dosen')->id(),
+            403,
+            'Anda hanya dapat mengubah absensi praktik yang Anda buat sendiri.'
+        );
+    }
+
+    private function ensurePertemuanDapatDilihat(PertemuanPraktik $pertemuan): void
+    {
+        abort_unless(
+            $this->jadwalDosenQuery()->whereKey($pertemuan->jadwal_praktik_id)->exists(),
+            403,
+            'Anda tidak ditugaskan pada kelas praktik pertemuan ini.'
         );
     }
 

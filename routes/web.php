@@ -71,6 +71,7 @@ use App\Http\Controllers\Dosen\PermintaanController as DosenPermintaanController
 use App\Http\Controllers\Dosen\ProfileDosenController;
 use App\Http\Controllers\Dosen\QuizDosenController;
 use App\Http\Controllers\Dosen\RpsDosenController;
+use App\Http\Controllers\Dosen\SekprodiRpsController;
 use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
@@ -744,6 +745,10 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             ->name('berkas-program-studi.destroy');
         Route::get('/berkas-program-studi/{berkas}/download', [DosenBerkasProgramStudiController::class, 'download'])
             ->name('berkas-program-studi.download');
+        Route::prefix('sekprodi')->name('sekprodi.')->group(function () {
+            Route::get('/rps', [SekprodiRpsController::class, 'index'])->name('rps.index');
+            Route::get('/rps/{rps}/download', [SekprodiRpsController::class, 'download'])->name('rps.download');
+        });
         // Profil mahasiswa
         Route::middleware(['auth:dosen'])->group(function () {
             // ===== Perkuliahan =====

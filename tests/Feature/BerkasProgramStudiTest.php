@@ -6,6 +6,7 @@ use App\Models\BerkasProgramStudi;
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
+use App\Models\Rps;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
@@ -106,6 +107,36 @@ class BerkasProgramStudiTest extends TestCase
             ->get(route('admin.program-studi.edit', $program))
             ->assertOk()
             ->assertSee('sekprodi_dosen_id');
+    }
+
+    public function test_sekprodi_can_download_rps_only_for_managed_program(): void
+    {
+        Storage::fake('private');
+        $rps = Rps::query()
+            ->with('kurikulum')
+            ->whereNotNull('file')
+            ->whereHas('kurikulum.dosenToMatakuliah', fn ($query) => $query
+                ->whereRaw('LOWER(jenis_dosen) = ?', ['teori']))
+            ->firstOrFail();
+        $program = ProgramStudi::query()->findOrFail($rps->kurikulum->jurusan_id);
+        $sekprodi = Dosen::query()->firstOrFail();
+        $otherLecturer = Dosen::query()->whereKeyNot($sekprodi->dosen_id)->firstOrFail();
+        $program->update(['sekprodi_dosen_id' => $sekprodi->dosen_id]);
+        Storage::disk('private')->put($rps->file, '%PDF-1.4 RPS test');
+
+        $this->actingAs($sekprodi, 'dosen')
+            ->get(route('dosen.sekprodi.rps.index', [
+                'program_studi_id' => $program->jurusan_id,
+                'ta_id' => $rps->kurikulum->ta_id,
+            ]))
+            ->assertOk()
+            ->assertSee('RPS Program Studi');
+        $this->get(route('dosen.sekprodi.rps.download', $rps))->assertOk();
+
+        $this->actingAs($otherLecturer, 'dosen')
+            ->get(route('dosen.sekprodi.rps.index'))
+            ->assertForbidden();
+        $this->get(route('dosen.sekprodi.rps.download', $rps))->assertForbidden();
     }
 
     private function programAndLecturer(): array

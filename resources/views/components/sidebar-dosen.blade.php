@@ -25,14 +25,33 @@
             </a>
         </li>
 
+        @php($isSekprodi = auth('dosen')->user()?->programStudiSebagaiSekprodi()->exists())
+        @if($isSekprodi)
+        <li class="menu-item @if(Route::is('dosen.sekprodi.*') || Route::is('dosen.berkas-program-studi.*')) active open @endif">
+            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon bx bx-folder-open text-primary"></i><div>Sekprodi</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item @if(Route::is('dosen.berkas-program-studi.*')) active @endif">
+                    <a href="{{ route('dosen.berkas-program-studi.index') }}" class="menu-link">
+                        <div>Kelola Berkas</div>
+                    </a>
+                </li>
+                <li class="menu-item @if(Route::is('dosen.sekprodi.rps.*')) active @endif">
+                    <a href="{{ route('dosen.sekprodi.rps.index') }}" class="menu-link">
+                        <div>Download RPS</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        @else
         <li class="menu-item @if(Route::is('dosen.berkas-program-studi.*')) active @endif">
             <a href="{{ route('dosen.berkas-program-studi.index') }}" class="menu-link">
                 <i class="menu-icon bx bxs-folder-open text-primary"></i>
-                <div class="fw-medium">
-                    {{ auth('dosen')->user()?->programStudiSebagaiSekprodi()->exists() ? 'Sekprodi · Kelola Berkas' : 'Berkas Program Studi' }}
-                </div>
+                <div class="fw-medium">Berkas Program Studi</div>
             </a>
         </li>
+        @endif
 
         @if(auth('dosen')->user()?->programStudiDipimpin()->exists())
         <li class="menu-item @if(Route::is('dosen.kaprodi.*')) active open @endif">

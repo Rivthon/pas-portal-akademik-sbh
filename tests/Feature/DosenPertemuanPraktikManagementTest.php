@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AbsensiPraktik;
 use App\Models\Dosen;
+use App\Models\DosenMatakuliah;
 use App\Models\JadwalPraktik;
 use App\Models\Mahasiswa;
 use App\Models\PertemuanPraktik;
@@ -36,7 +37,7 @@ class DosenPertemuanPraktikManagementTest extends TestCase
         [$dosen, $jadwal] = $this->assignedPracticeSchedule();
         $pertemuan = $this->createMeeting($jadwal, $dosen->dosen_id);
         $mahasiswa = Mahasiswa::query()->firstOrFail();
-        $absensi = AbsensiPraktik::create([
+        $absensi = $this->createAttendance([
             'jadwal_praktik_id' => $jadwal->id,
             'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
             'mahasiswa_id' => $mahasiswa->mahasiswa_id,
@@ -76,7 +77,7 @@ class DosenPertemuanPraktikManagementTest extends TestCase
         [$dosen, $jadwal] = $this->assignedPracticeSchedule();
         $pertemuan = $this->createMeeting($jadwal, $dosen->dosen_id);
         $mahasiswa = Mahasiswa::query()->firstOrFail();
-        $absensi = AbsensiPraktik::create([
+        $absensi = $this->createAttendance([
             'jadwal_praktik_id' => $jadwal->id,
             'pertemuan_praktik_id' => $pertemuan->pertemuan_praktik_id,
             'mahasiswa_id' => $mahasiswa->mahasiswa_id,
@@ -123,6 +124,50 @@ class DosenPertemuanPraktikManagementTest extends TestCase
         ]);
     }
 
+    public function test_practice_teaching_team_can_view_but_cannot_change_colleague_attendance(): void
+    {
+        [$owner, $jadwal] = $this->assignedPracticeSchedule();
+        $teamMember = Dosen::query()->whereKeyNot($owner->dosen_id)->firstOrFail();
+        $assignmentAttributes = [
+            'dosen_id' => $teamMember->dosen_id,
+            'kurikulum_id' => $jadwal->kurikulum_id,
+            'jenis_dosen' => 'praktik',
+            'jenis_kelas' => $jadwal->jenis_kelas,
+        ];
+        if (! DosenMatakuliah::query()->where($assignmentAttributes)->exists()) {
+            DosenMatakuliah::query()->forceCreate($assignmentAttributes + [
+                // Database produksi lama belum menjadikan kolom id AUTO_INCREMENT.
+                'id' => ((int) DosenMatakuliah::query()->max('id')) + 1,
+            ]);
+        }
+        $pertemuan = $this->createMeeting($jadwal, $owner->dosen_id);
+
+        $this->actingAs($teamMember, 'dosen')
+            ->get(route('dosen.absensi-praktik.index'))
+            ->assertOk()
+            ->assertSee($pertemuan->topik)
+            ->assertSee($owner->nama);
+
+        $this->get(route('dosen.absensi-praktik.show', $pertemuan))
+            ->assertOk()
+            ->assertSee('Mode hanya lihat')
+            ->assertDontSee('Simpan Absensi Praktik');
+
+        $this->put(route('dosen.absensi-praktik.update', $pertemuan), [
+            'status' => [1 => 'hadir'],
+            'keterangan' => [],
+        ])->assertForbidden();
+
+        $this->putJson(route('dosen.absensi-praktik.pertemuan.update', $pertemuan), [
+            'tanggal_pertemuan' => now()->toDateString(),
+            'jam_mulai' => '09:00',
+            'jam_selesai' => '10:30',
+            'metode_pbm' => 'offline',
+            'topik' => 'Perubahan oleh tim pengajar',
+            'sub_topik' => 'Tidak boleh disimpan',
+        ])->assertForbidden();
+    }
+
     private function assignedPracticeSchedule(): array
     {
         $activeTaId = TahunAkademik::query()->where('status_ta', 1)->value('ta_id');
@@ -144,7 +189,10 @@ class DosenPertemuanPraktikManagementTest extends TestCase
 
     private function createMeeting(JadwalPraktik $jadwal, int $dosenId): PertemuanPraktik
     {
-        return PertemuanPraktik::create([
+        $pertemuanId = ((int) PertemuanPraktik::query()->max('pertemuan_praktik_id')) + 1;
+        PertemuanPraktik::query()->forceCreate([
+            // Database produksi lama belum menjadikan primary key AUTO_INCREMENT.
+            'pertemuan_praktik_id' => $pertemuanId,
             'jadwal_praktik_id' => $jadwal->id,
             'tanggal_pertemuan' => now()->toDateString(),
             'jam_mulai' => '08:00:00',
@@ -154,5 +202,18 @@ class DosenPertemuanPraktikManagementTest extends TestCase
             'sub_topik' => 'Data pengujian otomatis',
             'dosen_id' => $dosenId,
         ]);
+
+        return PertemuanPraktik::query()->findOrFail($pertemuanId);
+    }
+
+    private function createAttendance(array $attributes): AbsensiPraktik
+    {
+        $absensiId = ((int) AbsensiPraktik::query()->max('absensi_praktik_id')) + 1;
+        AbsensiPraktik::query()->forceCreate($attributes + [
+            // Database produksi lama belum menjadikan primary key AUTO_INCREMENT.
+            'absensi_praktik_id' => $absensiId,
+        ]);
+
+        return AbsensiPraktik::query()->findOrFail($absensiId);
     }
 }
