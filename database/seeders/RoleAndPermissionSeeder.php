@@ -118,6 +118,7 @@ class RoleAndPermissionSeeder extends Seeder
         return [
             'settings-edit',
             'activity-log-list', 'activity-log-export',
+            'usage-report-list',
             'mahasiswa-impersonate',
         ];
     }
@@ -136,7 +137,10 @@ class RoleAndPermissionSeeder extends Seeder
     {
         Role::firstOrCreate(['name' => 'Super Admin'])->syncPermissions(Permission::all());
 
-        Role::firstOrCreate(['name' => 'BAAK'])->syncPermissions($this->baakPermissions());
+        Role::firstOrCreate(['name' => 'BAAK'])->syncPermissions(array_merge(
+            $this->baakPermissions(),
+            ['usage-report-list']
+        ));
         Role::firstOrCreate(['name' => 'UPMI'])->syncPermissions($this->upmiPermissions());
         Role::firstOrCreate(['name' => 'BAUK'])->syncPermissions($this->baukPermissions());
         Role::firstOrCreate(['name' => 'Kemahasiswaan'])->syncPermissions($this->kemahasiswaanPermissions());

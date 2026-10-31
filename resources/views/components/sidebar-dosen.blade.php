@@ -42,6 +42,11 @@
                         <div>Download RPS</div>
                     </a>
                 </li>
+                <li class="menu-item @if(Route::is('dosen.sekprodi.materi.*')) active @endif">
+                    <a href="{{ route('dosen.sekprodi.materi.index') }}" class="menu-link">
+                        <div>Download Materi</div>
+                    </a>
+                </li>
             </ul>
         </li>
         @else

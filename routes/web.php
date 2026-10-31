@@ -51,6 +51,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SystemHealthController;
 use App\Http\Controllers\Admin\TeachingHonorController;
+use App\Http\Controllers\Admin\UsageReportController;
 use App\Http\Controllers\Admin\ValidatorController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\MahasiswaLoginController;
@@ -72,6 +73,7 @@ use App\Http\Controllers\Dosen\ProfileDosenController;
 use App\Http\Controllers\Dosen\QuizDosenController;
 use App\Http\Controllers\Dosen\RpsDosenController;
 use App\Http\Controllers\Dosen\SekprodiRpsController;
+use App\Http\Controllers\Dosen\SekprodiMateriController;
 use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
@@ -390,6 +392,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('permission:activity-log-list')->name('activity-logs.index');
         Route::get('/activity-logs/pdf', [ActivityLogController::class, 'exportPdf'])
             ->middleware('permission:activity-log-export')->name('activity-logs.pdf');
+        Route::get('/usage-report', [UsageReportController::class, 'index'])
+            ->middleware('permission:usage-report-list')->name('usage-report.index');
         Route::prefix('system')->name('system.')->group(function () {
             Route::get('/health', [SystemHealthController::class, 'index'])
                 ->middleware('permission:system-health-list')->name('health');
@@ -748,6 +752,8 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
         Route::prefix('sekprodi')->name('sekprodi.')->group(function () {
             Route::get('/rps', [SekprodiRpsController::class, 'index'])->name('rps.index');
             Route::get('/rps/{rps}/download', [SekprodiRpsController::class, 'download'])->name('rps.download');
+            Route::get('/materi', [SekprodiMateriController::class, 'index'])->name('materi.index');
+            Route::get('/materi/{materi}/download', [SekprodiMateriController::class, 'download'])->name('materi.download');
         });
         // Profil mahasiswa
         Route::middleware(['auth:dosen'])->group(function () {

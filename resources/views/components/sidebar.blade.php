@@ -407,6 +407,15 @@
             </li>
         @endcan
 
+        @can('usage-report-list')
+            <li class="menu-item @if(Route::is('admin.usage-report.*')) active @endif">
+                <a href="{{ route('admin.usage-report.index') }}" class="menu-link">
+                    <i class="menu-icon bx bx-line-chart"></i>
+                    <span class="menu-text">Laporan Penggunaan</span>
+                </a>
+            </li>
+        @endcan
+
         @can('system-health-list')
             <li class="menu-item @if(Route::is('admin.system.*')) active @endif">
                 <a href="{{ route('admin.system.health') }}" class="menu-link">
