@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\UsageReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Dosen;
@@ -11,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UsageReportController extends Controller
 {
@@ -120,6 +122,24 @@ class UsageReportController extends Controller
             'endDate' => $endDate,
             'selectedType' => $selectedType,
         ]);
+    }
+
+    public function export(Request $request)
+    {
+        $filters = $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'user_type' => ['nullable', 'in:dosen,mahasiswa'],
+            'program_studi_id' => ['nullable', 'exists:program_studi,jurusan_id'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        activity_log('download_laporan_penggunaan', 'Admin mengunduh laporan penggunaan dosen dan mahasiswa.');
+
+        return Excel::download(
+            new UsageReportExport($filters),
+            'laporan-penggunaan-pas-'.now()->format('Ymd-His').'.xlsx'
+        );
     }
 
     private function usageSubquery(string $userType, Carbon $startDate, Carbon $endDate): Builder

@@ -394,6 +394,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('permission:activity-log-export')->name('activity-logs.pdf');
         Route::get('/usage-report', [UsageReportController::class, 'index'])
             ->middleware('permission:usage-report-list')->name('usage-report.index');
+        Route::get('/usage-report/export', [UsageReportController::class, 'export'])
+            ->middleware('permission:usage-report-list')->name('usage-report.export');
         Route::prefix('system')->name('system.')->group(function () {
             Route::get('/health', [SystemHealthController::class, 'index'])
                 ->middleware('permission:system-health-list')->name('health');

@@ -25,6 +25,10 @@ class SekprodiMateriAndUsageReportTest extends TestCase
             ->assertSeeText('Aktivitas Dosen & Mahasiswa')
             ->assertSee('Penggunaan Dosen')
             ->assertSee('Penggunaan Mahasiswa');
+
+        $this->get(route('admin.usage-report.export'))
+            ->assertOk()
+            ->assertDownload();
     }
 
     public function test_sekprodi_can_only_open_materials_for_managed_program(): void

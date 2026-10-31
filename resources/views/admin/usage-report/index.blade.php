@@ -6,7 +6,12 @@
     <div class="card-body p-4 text-white" style="background:linear-gradient(135deg,#3156a3,#6979f8)">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div><span class="badge bg-white text-primary mb-2">LAPORAN PENGGUNAAN</span><h3 class="text-white fw-bold mb-1">Aktivitas Dosen & Mahasiswa</h3><p class="text-white-50 mb-0">Ringkasan penggunaan PAS berdasarkan aktivitas yang tercatat pada sistem.</p></div>
-            <i class="bx bx-line-chart d-none d-md-block" style="font-size:5rem;opacity:.3"></i>
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ route('admin.usage-report.export', request()->query()) }}" class="btn btn-light text-success">
+                    <i class="bx bx-spreadsheet me-1"></i>Download Excel
+                </a>
+                <i class="bx bx-line-chart d-none d-md-block" style="font-size:5rem;opacity:.3"></i>
+            </div>
         </div>
     </div>
 </div>
