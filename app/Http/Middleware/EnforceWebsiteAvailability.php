@@ -26,8 +26,12 @@ class EnforceWebsiteAvailability
         }
 
         $admin = Auth::guard('web')->user();
-        if ($admin && $admin->can('website-maintenance-toggle')) {
-            return $next($request);
+        if ($admin) {
+            $isAllowedAdministrator = $admin->hasAnyRole(['Super Admin', 'BAAK', 'baak']);
+
+            if ($admin->can('website-maintenance-bypass') && $isAllowedAdministrator) {
+                return $next($request);
+            }
         }
 
         if ($request->expectsJson() || $request->is('api/*')) {

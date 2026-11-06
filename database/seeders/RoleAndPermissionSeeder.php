@@ -121,6 +121,7 @@ class RoleAndPermissionSeeder extends Seeder
             'activity-log-list', 'activity-log-export',
             'usage-report-list',
             'website-maintenance-toggle',
+            'website-maintenance-bypass',
             'mahasiswa-impersonate',
         ];
     }
@@ -171,13 +172,20 @@ class RoleAndPermissionSeeder extends Seeder
 
     private function grantWebsiteMaintenancePermission(): void
     {
-        $permission = Permission::findByName('website-maintenance-toggle');
+        $togglePermission = Permission::findByName('website-maintenance-toggle');
+        $bypassPermission = Permission::findByName('website-maintenance-bypass');
 
         Role::query()
             ->where('guard_name', 'web')
-            ->whereIn('name', ['Admin', 'Super Admin'])
+            ->where('name', 'Super Admin')
             ->get()
-            ->each(fn (Role $role) => $role->givePermissionTo($permission));
+            ->each(fn (Role $role) => $role->givePermissionTo($togglePermission));
+
+        Role::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', ['Super Admin', 'BAAK', 'baak'])
+            ->get()
+            ->each(fn (Role $role) => $role->givePermissionTo($bypassPermission));
     }
 
     private function baakPermissions(): array

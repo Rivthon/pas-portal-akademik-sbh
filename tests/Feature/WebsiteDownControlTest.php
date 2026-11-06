@@ -46,6 +46,7 @@ class WebsiteDownControlTest extends TestCase
         $admin = User::query()->firstOrFail();
         $permission = Permission::query()->where('name', 'website-maintenance-toggle')->firstOrFail();
         $admin->givePermissionTo($permission);
+        $admin->givePermissionTo('website-maintenance-bypass');
         Setting::query()->firstOrFail()->update(['website_down' => true]);
         EnforceWebsiteAvailability::clearCache();
 
@@ -74,5 +75,30 @@ class WebsiteDownControlTest extends TestCase
         $this->actingAs($admin)
             ->patch(route('admin.settings.website-availability'), ['website_down' => true])
             ->assertForbidden();
+    }
+
+    public function test_baak_can_access_but_bauk_cannot_during_website_down(): void
+    {
+        Setting::query()->firstOrFail()->update(['website_down' => true]);
+        EnforceWebsiteAvailability::clearCache();
+
+        $baak = User::query()->role('baak')->first();
+        if ($baak) {
+            $baak->givePermissionTo('website-maintenance-bypass');
+            $this->actingAs($baak)->get(route('admin.home'))->assertOk();
+            $this->patch(route('admin.settings.website-availability'), ['website_down' => false])
+                ->assertForbidden();
+            auth()->logout();
+        }
+
+        $bauk = User::query()->role('bauk')->first();
+        if ($bauk) {
+            // Tetap harus ditolak walaupun permission tersisip secara keliru.
+            $bauk->givePermissionTo('website-maintenance-bypass');
+            $this->actingAs($bauk)
+                ->get(route('admin.home'))
+                ->assertStatus(503)
+                ->assertSee('PAS Sedang Tidak Tersedia');
+        }
     }
 }

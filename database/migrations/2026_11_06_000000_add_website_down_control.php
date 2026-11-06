@@ -40,10 +40,38 @@ return new class extends Migration
 
         Role::query()
             ->where('guard_name', 'web')
-            ->whereIn('name', ['Admin', 'Super Admin'])
+            ->where('name', 'Super Admin')
             ->pluck('id')
             ->each(fn ($roleId) => DB::table('role_has_permissions')->updateOrInsert([
                 'permission_id' => $permissionId,
+                'role_id' => $roleId,
+            ]));
+
+        $bypassPermission = Permission::query()->where([
+            'name' => 'website-maintenance-bypass',
+            'guard_name' => 'web',
+        ])->first();
+
+        if (! $bypassPermission) {
+            $bypassPermission = new Permission([
+                'name' => 'website-maintenance-bypass',
+                'guard_name' => 'web',
+            ]);
+            $bypassPermission->id = ((int) Permission::query()->max('id')) + 1;
+            $bypassPermission->save();
+        }
+
+        $bypassPermissionId = Permission::query()
+            ->where('name', 'website-maintenance-bypass')
+            ->where('guard_name', 'web')
+            ->value('id');
+
+        Role::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', ['Super Admin', 'BAAK', 'baak'])
+            ->pluck('id')
+            ->each(fn ($roleId) => DB::table('role_has_permissions')->updateOrInsert([
+                'permission_id' => $bypassPermissionId,
                 'role_id' => $roleId,
             ]));
 
@@ -52,14 +80,14 @@ return new class extends Migration
 
     public function down(): void
     {
-        $permissionId = Permission::query()
-            ->where('name', 'website-maintenance-toggle')
+        $permissionIds = Permission::query()
+            ->whereIn('name', ['website-maintenance-toggle', 'website-maintenance-bypass'])
             ->where('guard_name', 'web')
-            ->value('id');
+            ->pluck('id');
 
-        if ($permissionId) {
-            DB::table('role_has_permissions')->where('permission_id', $permissionId)->delete();
-            Permission::query()->whereKey($permissionId)->delete();
+        if ($permissionIds->isNotEmpty()) {
+            DB::table('role_has_permissions')->whereIn('permission_id', $permissionIds)->delete();
+            Permission::query()->whereIn('id', $permissionIds)->delete();
         }
 
         if (Schema::hasColumn('settings', 'website_down')) {
