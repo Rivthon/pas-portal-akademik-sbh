@@ -376,6 +376,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/settings', [SettingController::class, 'edit'])->middleware('permission:settings-edit')->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->middleware('permission:settings-edit')->name('settings.update');
+        Route::patch('/settings/website-availability', [SettingController::class, 'toggleWebsiteAvailability'])
+            ->middleware('permission:website-maintenance-toggle')
+            ->name('settings.website-availability');
 
         Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
         Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -29,6 +29,7 @@ class RoleAndPermissionSeeder extends Seeder
 
         $this->syncFinalRoles();
         $this->syncLegacyRoles();
+        $this->grantWebsiteMaintenancePermission();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
@@ -119,6 +120,7 @@ class RoleAndPermissionSeeder extends Seeder
             'settings-edit',
             'activity-log-list', 'activity-log-export',
             'usage-report-list',
+            'website-maintenance-toggle',
             'mahasiswa-impersonate',
         ];
     }
@@ -165,6 +167,17 @@ class RoleAndPermissionSeeder extends Seeder
             'jadwal-list',
             'list-nilai',
         ]);
+    }
+
+    private function grantWebsiteMaintenancePermission(): void
+    {
+        $permission = Permission::findByName('website-maintenance-toggle');
+
+        Role::query()
+            ->where('guard_name', 'web')
+            ->whereIn('name', ['Admin', 'Super Admin'])
+            ->get()
+            ->each(fn (Role $role) => $role->givePermissionTo($permission));
     }
 
     private function baakPermissions(): array

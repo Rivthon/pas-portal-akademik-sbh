@@ -89,4 +89,35 @@
         </form>
     </div>
 </div>
+
+@can('website-maintenance-toggle')
+<div class="card shadow-sm mt-4 border-{{ $setting->website_down ? 'danger' : 'success' }}">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bx bx-power-off fs-3 text-{{ $setting->website_down ? 'danger' : 'success' }}"></i>
+                    <h5 class="mb-0">Website Down</h5>
+                    <span class="badge bg-label-{{ $setting->website_down ? 'danger' : 'success' }}">
+                        {{ $setting->website_down ? 'AKTIF - WEBSITE DITUTUP' : 'NONAKTIF - WEBSITE ONLINE' }}
+                    </span>
+                </div>
+                <p class="text-muted mb-0">
+                    Saat Website Down aktif, mahasiswa, dosen, aplikasi mobile, API, dan pengunjung akan menerima halaman pemeliharaan HTTP 503. Admin tetap dapat masuk untuk mengaktifkan website kembali.
+                </p>
+            </div>
+            <form action="{{ route('admin.settings.website-availability') }}" method="POST"
+                onsubmit="return confirm('{{ $setting->website_down ? 'Aktifkan kembali PAS untuk seluruh pengguna?' : 'Yakin ingin menonaktifkan seluruh akses publik PAS?' }}')">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="website_down" value="{{ $setting->website_down ? 0 : 1 }}">
+                <button type="submit" class="btn btn-{{ $setting->website_down ? 'success' : 'danger' }} px-4">
+                    <i class="bx bx-power-off me-1"></i>
+                    {{ $setting->website_down ? 'Aktifkan Website' : 'Website Down' }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+@endcan
 @endsection

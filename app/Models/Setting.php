@@ -11,12 +11,13 @@ class Setting extends Model
     /** @use HasFactory<SettingFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'logo', 'footer_name', 'copyright', 'favicon', 'edom_enabled'];
+    protected $fillable = ['name', 'logo', 'footer_name', 'copyright', 'favicon', 'edom_enabled', 'website_down'];
 
     protected function casts(): array
     {
         return [
             'edom_enabled' => 'boolean',
+            'website_down' => 'boolean',
         ];
     }
 }

@@ -90,6 +90,7 @@ class PermissionCatalog
             'dosen-impersonate' => 'Login sebagai dosen',
             'dosen-reset-password' => 'Reset password dosen',
             'settings-edit' => 'Ubah pengaturan portal',
+            'website-maintenance-toggle' => 'Aktifkan/nonaktifkan Website Down',
             'system-health-list' => 'Lihat kesehatan sistem',
             'system-error-log-list' => 'Lihat error production',
             'system-backup-list' => 'Lihat daftar backup',

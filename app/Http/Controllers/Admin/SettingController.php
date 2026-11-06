@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnforceWebsiteAvailability;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 
@@ -52,5 +53,33 @@ class SettingController extends Controller
         activity_log('update_setting', 'Admin memperbarui pengaturan aplikasi');
 
         return redirect()->back()->with('success', 'Pengaturan berhasil diperbarui!');
+    }
+
+    public function toggleWebsiteAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'website_down' => ['required', 'boolean'],
+        ]);
+
+        $setting = Setting::query()->firstOrCreate([], [
+            'name' => config('app.name', 'PAS'),
+        ]);
+        $setting->update(['website_down' => (bool) $validated['website_down']]);
+        EnforceWebsiteAvailability::clearCache();
+
+        $isDown = (bool) $validated['website_down'];
+        activity_log(
+            $isDown ? 'aktifkan_website_down' : 'nonaktifkan_website_down',
+            $isDown
+                ? 'Admin menonaktifkan akses publik PAS.'
+                : 'Admin mengaktifkan kembali akses publik PAS.'
+        );
+
+        return redirect()->route('admin.settings.edit')->with(
+            'success',
+            $isDown
+                ? 'Website Down aktif. Hanya Admin yang dapat mengakses PAS.'
+                : 'Website sudah aktif kembali dan dapat diakses seluruh pengguna.'
+        );
     }
 }

@@ -4,6 +4,7 @@ use App\Exceptions\InvalidOrderException;
 use App\Http\Middleware\CaptureProductionErrors;
 use App\Http\Middleware\CheckMahasiswaStatus;
 use App\Http\Middleware\EnsureEdomIsEnabled;
+use App\Http\Middleware\EnforceWebsiteAvailability;
 use App\Http\Middleware\LogActivity;
 use App\Http\Middleware\ProgressiveLoginThrottle;
 use App\Http\Middleware\RestrictMahasiswaCuti;
@@ -31,10 +32,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SecurityHeaders::class,
             CaptureProductionErrors::class,
+            EnforceWebsiteAvailability::class,
         ]);
 
         $middleware->api(append: [
             CaptureProductionErrors::class,
+            EnforceWebsiteAvailability::class,
         ]);
 
         $middleware->alias([
