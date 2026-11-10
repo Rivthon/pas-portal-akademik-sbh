@@ -48,12 +48,12 @@
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label for="jenis_kelas_cari" class="form-label fw-bold">
+                            <label for="jenis_kelas_generate" class="form-label fw-bold">
                                 Pilih Jenis Kelas
                                 <span class="text-danger">*</span>
                             </label>
 
-                            <select id="jenis_kelas_cari" class="form-select">
+                            <select name="jenis_kelas" id="jenis_kelas_generate" class="form-select" required>
                                 <option value="Reguler">Reguler A</option>
                                 <option value="Karyawan">Reguler B</option>
                             </select>
@@ -96,11 +96,11 @@
                     </select>
                 </div>
                 <div class="col-md-4 mb-3">
-                    <label for="jenis_kelas_cari" class="form-label fw-bold">Pilih Jenis Kelas <span
+                    <label for="jenis_kelas_filter" class="form-label fw-bold">Pilih Jenis Kelas <span
                             class="text-danger">*</span></label>
-                    <select id="jenis_kelas_cari" class="form-select">
-                        <option value="reguler">Reguler A</option>
-                        <option value="karyawan">Reguler B</option>
+                    <select id="jenis_kelas_filter" class="form-select">
+                        <option value="Reguler">Reguler A</option>
+                        <option value="Karyawan">Reguler B</option>
                     </select>
                 </div>
             </div>
@@ -152,7 +152,7 @@
         document.getElementById('search-btn').addEventListener('click', function () {
             let programStudi = document.getElementById('program-studi').value;
             let semester = document.getElementById('semester').value;
-            let jenis_kelas = document.getElementById('jenis_kelas_cari').value;
+            let jenis_kelas = document.getElementById('jenis_kelas_filter').value;
             let alertContainer = document.getElementById('alert-container');
             let loading = document.getElementById('loading');
             let table = document.getElementById('jadwal-table');
@@ -513,7 +513,7 @@
         if (document.getElementById('submitBtngenerate')) {
             document.getElementById('submitBtngenerate').addEventListener('click', function () {
                 let jurusan = document.getElementById('jurusan_id').value;
-                let jenis = document.getElementById('jenis_kelas').value;
+                let jenis = document.getElementById('jenis_kelas_generate').value;
 
                 if (!jurusan || !jenis) {
                     Swal.fire('Perhatian', 'Harap lengkapi Program Studi dan Jenis Kelas.', 'warning');
