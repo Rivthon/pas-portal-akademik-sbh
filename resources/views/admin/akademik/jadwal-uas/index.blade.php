@@ -276,8 +276,8 @@
             }
         });
 
-        // Jam dan ruangan langsung tersimpan saat berubah.
-        // Tanggal tidak diproses di event change agar tidak tersimpan saat masih diketik.
+        // Hanya ruangan yang langsung disimpan. Tanggal dan jam menunggu
+        // pengguna keluar dari kolom supaya input dapat dilengkapi dahulu.
         document.addEventListener('change', async function (e) {
             if (!e.target.classList.contains('update-field')) {
                 return;
@@ -285,20 +285,22 @@
 
             const field = e.target.getAttribute('data-field');
 
-            if (field === 'tanggal') {
+            if (field !== 'ruangan_id') {
                 return;
             }
 
             await prosesUpdateField(e.target);
         });
 
-        // Tanggal baru disimpan saat pengguna selesai mengisi dan keluar dari kolom.
+        // Tanggal dan jam baru disimpan saat pengguna berpindah kolom.
         document.addEventListener('focusout', async function (e) {
             if (!e.target.classList.contains('update-field')) {
                 return;
             }
 
-            if (e.target.getAttribute('data-field') !== 'tanggal') {
+            const field = e.target.getAttribute('data-field');
+
+            if (!['tanggal', 'jam_mulai', 'jam_selesai'].includes(field)) {
                 return;
             }
 
@@ -309,11 +311,35 @@
                 return;
             }
 
-            if (!value || !validasiTanggal(value)) {
+            if (!value) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Tanggal Belum Lengkap',
-                    text: 'Silakan isi tanggal, bulan, dan tahun secara lengkap.'
+                    title: field === 'tanggal' ? 'Tanggal Belum Lengkap' : 'Jam Belum Lengkap',
+                    text: field === 'tanggal'
+                        ? 'Silakan isi tanggal, bulan, dan tahun secara lengkap.'
+                        : 'Silakan isi jam dan menit secara lengkap.'
+                });
+
+                e.target.value = previousValue;
+                return;
+            }
+
+            if (field === 'tanggal' && !validasiTanggal(value)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tanggal Tidak Valid',
+                    text: 'Silakan masukkan tanggal, bulan, dan tahun yang valid.'
+                });
+
+                e.target.value = previousValue;
+                return;
+            }
+
+            if (field !== 'tanggal' && !validasiWaktu(value)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Jam Tidak Valid',
+                    text: 'Silakan isi jam dan menit secara lengkap.'
                 });
 
                 e.target.value = previousValue;
@@ -336,6 +362,10 @@
             return date.getFullYear() === year
                 && date.getMonth() === month - 1
                 && date.getDate() === day;
+        }
+
+        function validasiWaktu(value) {
+            return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
         }
 
         async function prosesUpdateField(element) {

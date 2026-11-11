@@ -517,11 +517,9 @@
         });
 
         /**
-         * Jam dan ruangan langsung tersimpan saat berubah.
-         *
-         * Tanggal tidak disimpan melalui event change karena pada beberapa
-         * browser event change dapat terpanggil ketika pengguna masih
-         * mengisi bagian tanggal, bulan, atau tahun.
+         * Hanya pilihan ruangan yang langsung disimpan saat berubah.
+         * Input tanggal dan jam menunggu pengguna keluar dari kolom agar
+         * bagian jam dan menit dapat diisi lengkap terlebih dahulu.
          */
         document.addEventListener('change', async function (event) {
             const element = event.target;
@@ -532,7 +530,7 @@
 
             const field = element.dataset.field;
 
-            if (field === 'tanggal') {
+            if (field !== 'ruangan_id') {
                 return;
             }
 
@@ -540,8 +538,8 @@
         });
 
         /**
-         * Tanggal hanya disimpan setelah pengguna selesai mengisi
-         * dan keluar dari kolom tanggal.
+         * Tanggal dan jam disimpan setelah pengguna selesai mengisi lalu
+         * berpindah kolom (klik kolom lain atau menekan Tab).
          */
         document.addEventListener('focusout', async function (event) {
             const element = event.target;
@@ -550,7 +548,9 @@
                 return;
             }
 
-            if (element.dataset.field !== 'tanggal') {
+            const field = element.dataset.field;
+
+            if (!['tanggal', 'jam_mulai', 'jam_selesai'].includes(field)) {
                 return;
             }
 
@@ -565,19 +565,32 @@
             if (!value) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Tanggal Belum Diisi',
-                    text: 'Silakan isi tanggal, bulan, dan tahun secara lengkap.'
+                    title: field === 'tanggal' ? 'Tanggal Belum Diisi' : 'Jam Belum Diisi',
+                    text: field === 'tanggal'
+                        ? 'Silakan isi tanggal, bulan, dan tahun secara lengkap.'
+                        : 'Silakan isi jam dan menit secara lengkap.'
                 });
 
                 element.value = previousValue;
                 return;
             }
 
-            if (!validasiTanggal(value)) {
+            if (field === 'tanggal' && !validasiTanggal(value)) {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Tanggal Tidak Valid',
                     text: 'Silakan masukkan tanggal, bulan, dan tahun yang valid.'
+                });
+
+                element.value = previousValue;
+                return;
+            }
+
+            if (field !== 'tanggal' && !validasiWaktu(value)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Jam Tidak Valid',
+                    text: 'Silakan isi jam dan menit secara lengkap.'
                 });
 
                 element.value = previousValue;
@@ -607,6 +620,10 @@
                 date.getMonth() === month - 1 &&
                 date.getDate() === day
             );
+        }
+
+        function validasiWaktu(value) {
+            return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
         }
 
         /**
