@@ -1,5 +1,47 @@
 @extends('layouts.dosen')
 
+@push('head')
+    <style>
+        .submission-grading-modal .modal-content {
+            max-height: calc(100dvh - 2rem);
+            overflow: hidden;
+        }
+
+        .submission-grading-modal form {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            max-height: inherit;
+        }
+
+        .submission-grading-modal .modal-header,
+        .submission-grading-modal .modal-footer {
+            flex-shrink: 0;
+        }
+
+        .submission-grading-modal .modal-body {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-gutter: stable;
+        }
+
+        .submission-grading-modal .submission-answer-text {
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 575.98px) {
+            .submission-grading-modal {
+                margin: .5rem;
+            }
+
+            .submission-grading-modal .modal-content {
+                max-height: calc(100dvh - 1rem);
+            }
+        }
+    </style>
+@endpush
+
 @section('content')
 <div class="row">
     <div class="col-xxl-12 mt-auto mb-auto order-0">
@@ -232,7 +274,7 @@
 
     @if($pengumpulan)
         <div class="modal fade" id="modalNilai{{ $mhsId }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable submission-grading-modal">
                 <div class="modal-content border-0 shadow-lg">
                     <form action="{{ route('dosen.lms.pengumpulan.nilai', $pengumpulan->pengumpulan_id) }}" method="POST">
                         @csrf
@@ -273,7 +315,7 @@
                             @elseif($tugas->tipe === 'teks')
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-dark">Jawaban Teks Mahasiswa</label>
-                                    <div class="bg-white border rounded-3 p-3 text-body" style="white-space: pre-wrap;">{{ $pengumpulan->jawaban_teks }}</div>
+                                    <div class="submission-answer-text bg-white border rounded-3 p-3 text-body" style="white-space: pre-wrap;">{{ $pengumpulan->jawaban_teks }}</div>
                                 </div>
                             @elseif($pengumpulan->file)
                                 <div class="mb-3">
