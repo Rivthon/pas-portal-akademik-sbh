@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\Krs;
 use App\Models\TahunAkademik;
+use App\Services\ApprovedGradeVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -70,7 +71,7 @@ class UjianController extends Controller
         ));
     }
 
-    public function tampilkanNilaiUts()
+    public function tampilkanNilaiUts(ApprovedGradeVisibilityService $gradeVisibility)
     {
         $mahasiswa = Auth::guard('mahasiswa')->user();
         if (! $mahasiswa) {
@@ -84,21 +85,23 @@ class UjianController extends Controller
 
             $nilai = Krs::with(['kurikulum.mataKuliah'])
                 ->where('mahasiswa_id', $mahasiswaId)
+                ->where('ta_id', $taId)
                 ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
                     $query->where('smt', $mahasiswa->semester);
                 })
                 ->get();
+            $approvedKrsIds = $gradeVisibility->approvedKrsIds($mahasiswa, $nilai);
 
             activity_log('lihat_nilai', 'Mahasiswa melihat nilai UTS');
 
-            return view('mahasiswa.nilai-uts.index', compact('nilai', 'ta', 'mahasiswa'));
+            return view('mahasiswa.nilai-uts.index', compact('nilai', 'ta', 'mahasiswa', 'approvedKrsIds'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: '.$e->getMessage());
         }
     }
 
-    public function tampilkanNilaiUas()
+    public function tampilkanNilaiUas(ApprovedGradeVisibilityService $gradeVisibility)
     {
         $mahasiswa = Auth::guard('mahasiswa')->user();
         if (! $mahasiswa) {
@@ -112,14 +115,16 @@ class UjianController extends Controller
 
             $nilai = Krs::with(['kurikulum.mataKuliah'])
                 ->where('mahasiswa_id', $mahasiswaId)
+                ->where('ta_id', $taId)
                 ->whereHas('kurikulum.mataKuliah', function ($query) use ($mahasiswa) {
                     $query->where('smt', $mahasiswa->semester);
                 })
                 ->get();
+            $approvedKrsIds = $gradeVisibility->approvedKrsIds($mahasiswa, $nilai);
 
             activity_log('lihat_nilai', 'Mahasiswa melihat nilai UAS');
 
-            return view('mahasiswa.nilai-uas.index', compact('nilai', 'ta', 'mahasiswa'));
+            return view('mahasiswa.nilai-uas.index', compact('nilai', 'ta', 'mahasiswa', 'approvedKrsIds'));
         } catch (\Exception $e) {
             // Redirect dengan pesan error jika terjadi kesalahan
             return redirect()->back()->with('error', 'Gagal memuat data KRS: '.$e->getMessage());

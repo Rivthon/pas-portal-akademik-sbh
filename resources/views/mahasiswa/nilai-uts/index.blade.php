@@ -113,7 +113,13 @@
                                 <td>{{ $item->kurikulum->mataKuliah->matakuliah_id }}</td>
                                 <td>{{ $item->kurikulum->mataKuliah->nama }}</td>
                                 <td class="text-center">{{ $item->kurikulum->mataKuliah->sks }}</td>
-                                <td class="text-center">{{ $item->uts }}</td>
+                                <td class="text-center">
+                                    @if($approvedKrsIds->contains((int) $item->krs_id))
+                                        {{ filled($item->uts) ? $item->uts : '-' }}
+                                    @else
+                                        <span class="badge bg-label-warning">Menunggu ACC Kaprodi</span>
+                                    @endif
+                                </td>
                             </tr>
                             @empty
                             <tr>

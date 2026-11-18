@@ -10,6 +10,7 @@ use App\Models\Kurikulum;
 use App\Models\Mahasiswa;
 use App\Models\PengajuanTranskrip;
 use App\Models\TahunAkademik;
+use App\Services\ApprovedGradeVisibilityService;
 use App\Services\EdomCompletionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,10 @@ use Illuminate\Support\Facades\DB;
 
 class AcademicController extends Controller
 {
-    public function __construct(private readonly EdomCompletionService $edomCompletion) {}
+    public function __construct(
+        private readonly EdomCompletionService $edomCompletion,
+        private readonly ApprovedGradeVisibilityService $gradeVisibility
+    ) {}
 
     public function krs(Request $request): JsonResponse
     {
@@ -444,6 +448,7 @@ class AcademicController extends Controller
                 ->sortBy(fn (Krs $item) => $item->kurikulum?->mataKuliah?->nama)
                 ->values();
         }
+        $approvedCurrentKrsIds = $this->gradeVisibility->approvedKrsIds($mahasiswa, $currentItems);
 
         $historyItems = Krs::query()
             ->where('mahasiswa_id', $mahasiswa->mahasiswa_id)
@@ -494,13 +499,15 @@ class AcademicController extends Controller
                 $currentItems,
                 (int) $mahasiswa->status_nilai_uts === 1,
                 'uts',
-                $ta
+                $ta,
+                $approvedCurrentKrsIds
             ),
             'uas' => $this->currentExamPayload(
                 $currentItems,
                 (int) $mahasiswa->status_nilai_uas === 1,
                 'uas',
-                $ta
+                $ta,
+                $approvedCurrentKrsIds
             ),
             'riwayat' => $historyItems->map(function (Collection $items) {
                 $period = $items->first()?->tahunAjaran;
@@ -644,7 +651,8 @@ class AcademicController extends Controller
         Collection $items,
         bool $enabled,
         string $component,
-        ?TahunAkademik $ta
+        ?TahunAkademik $ta,
+        Collection $approvedKrsIds
     ): array {
         $label = strtoupper($component);
 
@@ -656,10 +664,16 @@ class AcademicController extends Controller
                 default => null,
             },
             'mata_kuliah' => $enabled && $ta
-                ? $items->map(fn (Krs $item) => [
-                    ...$this->courseIdentityPayload($item),
-                    'nilai' => $this->numericScore($item->{$component}),
-                ])->values()
+                ? $items->map(function (Krs $item) use ($component, $approvedKrsIds) {
+                    $approved = $approvedKrsIds->contains((int) $item->krs_id);
+
+                    return [
+                        ...$this->courseIdentityPayload($item),
+                        'nilai' => $approved ? $this->numericScore($item->{$component}) : null,
+                        'disetujui_kaprodi' => $approved,
+                        'status' => $approved ? 'disetujui_kaprodi' : 'menunggu_acc_kaprodi',
+                    ];
+                })->values()
                 : [],
         ];
     }
