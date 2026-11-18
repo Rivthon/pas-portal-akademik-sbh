@@ -14,6 +14,7 @@ use App\Models\NilaiSubmission;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ModulAkademikController extends Controller
@@ -300,69 +301,89 @@ class ModulAkademikController extends Controller
         };
 
         try {
-            foreach ($krsIds as $mahasiswaId => $krsId) {
-                $krs = Krs::with(['kurikulum.mataKuliah', 'mahasiswa'])
-                    ->whereKey($krsId)
-                    ->where('ta_id', $jadwal->ta_id)
-                    ->where('kurikulum_id', $jadwal->kurikulum_id)
-                    ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
-                        $query->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'");
-                        if ($kelasJadwal === 'karyawan') {
-                            $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
-                        } else {
-                            $query->where(fn ($kelas) => $kelas->whereNull('kelas')
-                                ->orWhereRaw('LOWER(kelas) != ?', ['karyawan']));
-                        }
-                    })
-                    ->first();
-                if (! $krs || (int) $krs->mahasiswa_id !== (int) $mahasiswaId) {
-                    \Log::error("KRS atau relasi tidak ditemukan untuk ID $krsId (mahasiswa $mahasiswaId)");
+            DB::transaction(function () use (
+                $krsIds,
+                $jadwal,
+                $kelasJadwal,
+                $uts,
+                $uas,
+                $tugas,
+                $absensi,
+                $praktik,
+                $bobotUTS,
+                $bobotUAS,
+                $bobotTugas,
+                $bobotAbsensi,
+                $bobotPraktik,
+                $getMutu,
+                $programStudi,
+                $dosen
+            ) {
+                foreach ($krsIds as $mahasiswaId => $krsId) {
+                    $krs = Krs::with(['kurikulum.mataKuliah', 'mahasiswa'])
+                        ->whereKey($krsId)
+                        ->where('ta_id', $jadwal->ta_id)
+                        ->where('kurikulum_id', $jadwal->kurikulum_id)
+                        ->whereHas('mahasiswa', function ($query) use ($kelasJadwal) {
+                            $query->whereRaw("LOWER(TRIM(status_mhs)) = 'aktif'");
+                            if ($kelasJadwal === 'karyawan') {
+                                $query->whereRaw('LOWER(kelas) = ?', ['karyawan']);
+                            } else {
+                                $query->where(fn ($kelas) => $kelas->whereNull('kelas')
+                                    ->orWhereRaw('LOWER(kelas) != ?', ['karyawan']));
+                            }
+                        })
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $krs || (int) $krs->mahasiswa_id !== (int) $mahasiswaId) {
+                        \Log::error("KRS atau relasi tidak ditemukan untuk ID $krsId (mahasiswa $mahasiswaId)");
 
-                    continue;
+                        continue;
+                    }
+
+                    // Ambil nilai input
+                    $nilaiUTS = $uts[$mahasiswaId] ?? 0;
+                    $nilaiUAS = $uas[$mahasiswaId] ?? 0;
+                    $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
+                    $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
+                    $nilaiPraktik = $praktik[$mahasiswaId] ?? 0;
+
+                    // Hitung nilai akhir otomatis
+                    $nilaiAkhir = round(
+                        ($nilaiUTS * $bobotUTS / 100) +
+                        ($nilaiUAS * $bobotUAS / 100) +
+                        ($nilaiTugas * $bobotTugas / 100) +
+                        ($nilaiPraktik * $bobotPraktik / 100) +
+                        ($nilaiAbsensi * $bobotAbsensi / 100),
+                        2
+                    );
+
+                    // Konversi ke huruf mutu
+                    $nilaiKhs = $getMutu($nilaiAkhir);
+
+                    // Update ke database
+                    $krs->update([
+                        'uts' => $nilaiUTS,
+                        'uas' => $nilaiUAS,
+                        'akhir' => $nilaiAkhir,
+                        'khs' => $nilaiKhs,
+                        'tugas' => $nilaiTugas,
+                        'absen' => $nilaiAbsensi,
+                        'praktik' => $nilaiPraktik,
+                        'updated_at' => now(),
+                    ]);
                 }
 
-                // Ambil nilai input
-                $nilaiUTS = $uts[$mahasiswaId] ?? 0;
-                $nilaiUAS = $uas[$mahasiswaId] ?? 0;
-                $nilaiTugas = $tugas[$mahasiswaId] ?? 0;
-                $nilaiAbsensi = $absensi[$mahasiswaId] ?? 0;
-                $nilaiPraktik = $praktik[$mahasiswaId] ?? 0;
-
-                // Hitung nilai akhir otomatis
-                $nilaiAkhir = round(
-                    ($nilaiUTS * $bobotUTS / 100) +
-                    ($nilaiUAS * $bobotUAS / 100) +
-                    ($nilaiTugas * $bobotTugas / 100) +
-                    ($nilaiPraktik * $bobotPraktik / 100) +
-                    ($nilaiAbsensi * $bobotAbsensi / 100),
-                    2
-                );
-
-                // Konversi ke huruf mutu
-                $nilaiKhs = $getMutu($nilaiAkhir);
-
-                // Update ke database
-                $krs->update([
-                    'uts' => $nilaiUTS,
-                    'uas' => $nilaiUAS,
-                    'akhir' => $nilaiAkhir,
-                    'khs' => $nilaiKhs,
-                    'tugas' => $nilaiTugas,
-                    'absen' => $nilaiAbsensi,
-                    'praktik' => $nilaiPraktik,
-                    'updated_at' => now(),
+                NilaiSubmission::updateOrCreate(['jadwal_id' => $jadwal->id], [
+                    'program_studi_id' => $programStudi->jurusan_id,
+                    'submitted_by_dosen_id' => $dosen->dosen_id,
+                    'status' => 'submitted',
+                    'submitted_at' => now(),
+                    'reviewed_by_dosen_id' => null,
+                    'reviewed_at' => null,
+                    'review_note' => null,
                 ]);
-            }
-
-            NilaiSubmission::updateOrCreate(['jadwal_id' => $jadwal->id], [
-                'program_studi_id' => $programStudi->jurusan_id,
-                'submitted_by_dosen_id' => $dosen->dosen_id,
-                'status' => 'submitted',
-                'submitted_at' => now(),
-                'reviewed_by_dosen_id' => null,
-                'reviewed_at' => null,
-                'review_note' => null,
-            ]);
+            });
 
             activity_log('input_nilai', 'Dosen menyimpan nilai mahasiswa ('.count($krsIds).' mahasiswa)');
 
