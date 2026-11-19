@@ -74,6 +74,7 @@ use App\Http\Controllers\Dosen\QuizDosenController;
 use App\Http\Controllers\Dosen\RpsDosenController;
 use App\Http\Controllers\Dosen\SekprodiRpsController;
 use App\Http\Controllers\Dosen\SekprodiMateriController;
+use App\Http\Controllers\Dosen\SekprodiAbsensiController;
 use App\Http\Controllers\LmsCalendarNoteController;
 use App\Http\Controllers\Mahasiswa\AbsensiPraktikController as MahasiswaAbsensiPraktikController;
 use App\Http\Controllers\Mahasiswa\AdministrasiController;
@@ -759,6 +760,9 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/rps/{rps}/download', [SekprodiRpsController::class, 'download'])->name('rps.download');
             Route::get('/materi', [SekprodiMateriController::class, 'index'])->name('materi.index');
             Route::get('/materi/{materi}/download', [SekprodiMateriController::class, 'download'])->name('materi.download');
+            Route::get('/absensi', [SekprodiAbsensiController::class, 'index'])->name('absensi.index');
+            Route::get('/absensi/{jenis}/{id}', [SekprodiAbsensiController::class, 'show'])->name('absensi.show');
+            Route::get('/absensi/{jenis}/{id}/download', [LaporanAbsensiController::class, 'generateSekprodiPDF'])->name('absensi.download');
         });
         // Profil mahasiswa
         Route::middleware(['auth:dosen'])->group(function () {

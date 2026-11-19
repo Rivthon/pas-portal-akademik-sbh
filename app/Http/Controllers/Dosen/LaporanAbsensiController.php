@@ -87,6 +87,44 @@ class LaporanAbsensiController extends Controller
             ->stream('BAP-Praktik-'.$this->namaFile($jadwal).'.pdf');
     }
 
+    public function generateSekprodiPDF(Request $request, string $jenis, int $id)
+    {
+        abort_unless(in_array($jenis, ['teori', 'praktik'], true), 404);
+
+        $programStudiIds = $request->user('dosen')->programStudiSebagaiSekprodi()
+            ->pluck('jurusan_id');
+        abort_if($programStudiIds->isEmpty(), 403, 'Akun Anda belum ditetapkan sebagai Sekprodi.');
+
+        $model = $jenis === 'praktik' ? JadwalPraktik::class : Jadwal::class;
+        $jadwal = $model::query()
+            ->whereIn('jurusan_id', $programStudiIds)
+            ->with([
+                'kurikulum.mataKuliah',
+                'kurikulum.programStudi',
+                'kurikulum.dosenToMatakuliah.dosen',
+                'pertemuan' => fn ($query) => $query
+                    ->with('absensi.mahasiswa')
+                    ->orderBy('tanggal_pertemuan')
+                    ->orderBy('jam_mulai'),
+            ])
+            ->findOrFail($id);
+
+        [$mahasiswa, $rekapAbsensi, $totalPertemuan] = $this->rekapJadwal($jadwal);
+        if ($totalPertemuan === 0 || $mahasiswa->isEmpty()) {
+            return back()->with('error', 'Data absensi belum tersedia untuk jadwal ini.');
+        }
+
+        activity_log('download_absensi_sekprodi', 'Sekprodi mengunduh rekap absensi '.$jenis.' ID '.$id);
+
+        return $this->rekapPdf(
+            $jadwal,
+            $mahasiswa,
+            $rekapAbsensi,
+            $totalPertemuan,
+            $jenis === 'praktik'
+        );
+    }
+
     private function queryJadwalTeori($dosenId)
     {
         return Jadwal::query()->assignedToDosen($dosenId, 'teori');
