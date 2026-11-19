@@ -47,11 +47,13 @@
                         <div>Download Materi</div>
                     </a>
                 </li>
-                <li class="menu-item @if(Route::is('dosen.sekprodi.absensi.*')) active @endif">
-                    <a href="{{ route('dosen.sekprodi.absensi.index') }}" class="menu-link">
-                        <div>Rekap Absensi Dosen</div>
-                    </a>
-                </li>
+                @if(Route::has('dosen.sekprodi.absensi.index'))
+                    <li class="menu-item @if(Route::is('dosen.sekprodi.absensi.*')) active @endif">
+                        <a href="{{ route('dosen.sekprodi.absensi.index') }}" class="menu-link">
+                            <div>Rekap Absensi Dosen</div>
+                        </a>
+                    </li>
+                @endif
             </ul>
         </li>
         @else
