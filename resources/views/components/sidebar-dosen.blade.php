@@ -54,6 +54,13 @@
                         </a>
                     </li>
                 @endif
+                @if(Route::has('dosen.sekprodi.absensi-mahasiswa.index'))
+                    <li class="menu-item @if(Route::is('dosen.sekprodi.absensi-mahasiswa.*')) active @endif">
+                        <a href="{{ route('dosen.sekprodi.absensi-mahasiswa.index') }}" class="menu-link">
+                            <div>Absensi Mahasiswa</div>
+                        </a>
+                    </li>
+                @endif
             </ul>
         </li>
         @else

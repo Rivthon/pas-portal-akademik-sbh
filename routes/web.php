@@ -761,6 +761,8 @@ Route::prefix('dosen')->name('dosen.')->group(function () {
             Route::get('/materi', [SekprodiMateriController::class, 'index'])->name('materi.index');
             Route::get('/materi/{materi}/download', [SekprodiMateriController::class, 'download'])->name('materi.download');
             Route::get('/absensi', [SekprodiAbsensiController::class, 'index'])->name('absensi.index');
+            Route::get('/absensi-mahasiswa', [SekprodiAbsensiController::class, 'mahasiswa'])->name('absensi-mahasiswa.index');
+            Route::get('/absensi-mahasiswa/download', [SekprodiAbsensiController::class, 'downloadMahasiswa'])->name('absensi-mahasiswa.download');
             Route::get('/absensi/{jenis}/{id}', [SekprodiAbsensiController::class, 'show'])->name('absensi.show');
             Route::get('/absensi/{jenis}/{id}/download', [LaporanAbsensiController::class, 'generateSekprodiPDF'])->name('absensi.download');
         });
