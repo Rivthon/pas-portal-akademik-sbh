@@ -14,7 +14,7 @@
             @if($managedPrograms->count() > 1)
                 <div class="col-lg-2">
                     <label class="form-label">Program Studi</label>
-                    <select name="program_studi_id" class="form-select" onchange="document.getElementById('pilihMahasiswa').value=''; this.form.submit()">
+                    <select name="program_studi_id" class="form-select" onchange="document.getElementById('mahasiswaId').value=''; this.form.submit()">
                         @foreach($managedPrograms as $program)
                             <option value="{{ $program->jurusan_id }}" @selected((string)$selectedProgramId === (string)$program->jurusan_id)>{{ $program->nama }}</option>
                         @endforeach
@@ -31,26 +31,19 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-lg-3">
-                <label class="form-label" for="cariMahasiswa">Cari NIM / Nama</label>
+            <div class="col-lg-6 position-relative">
+                <label class="form-label" for="cariMahasiswa">Cari Mahasiswa (NIM / Nama)</label>
                 <div class="input-group">
-                    <input type="search" id="cariMahasiswa" class="form-control" placeholder="Contoh: 0225002 atau Fani">
-                    <button type="button" id="tombolCariMahasiswa" class="btn btn-outline-primary">
-                        <i class="bx bx-search me-1"></i>Cari
-                    </button>
+                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                    <input type="search" id="cariMahasiswa" class="form-control"
+                        value="{{ $selectedMahasiswa ? $selectedMahasiswa->nim.' - '.$selectedMahasiswa->nama.' ('.$selectedMahasiswa->label_kelas.')' : '' }}"
+                        placeholder="Ketik NIM atau nama mahasiswa..." autocomplete="off">
+                    <button type="button" id="tombolCariMahasiswa" class="btn btn-outline-primary">Cari</button>
                 </div>
-                <small id="hasilCariMahasiswa" class="text-muted">Ketik NIM atau nama mahasiswa.</small>
-            </div>
-            <div class="col-lg-3">
-                <label class="form-label">Mahasiswa</label>
-                <select name="mahasiswa_id" id="pilihMahasiswa" class="form-select" required>
-                    <option value="">-- Pilih mahasiswa --</option>
-                    @foreach($mahasiswaList as $mahasiswa)
-                        <option value="{{ $mahasiswa->mahasiswa_id }}" @selected((int)request('mahasiswa_id') === (int)$mahasiswa->mahasiswa_id)>
-                            {{ $mahasiswa->nim }} - {{ $mahasiswa->nama }} ({{ $mahasiswa->label_kelas }})
-                        </option>
-                    @endforeach
-                </select>
+                <input type="hidden" name="mahasiswa_id" id="mahasiswaId" value="{{ $selectedMahasiswa?->mahasiswa_id }}">
+                <div id="hasilCariMahasiswa" class="list-group position-absolute start-0 end-0 mx-3 shadow d-none"
+                    style="z-index:1080;max-height:280px;overflow-y:auto"></div>
+                <small id="pesanCariMahasiswa" class="text-muted">Ketik minimal dua karakter, lalu pilih mahasiswa.</small>
             </div>
             <div class="col-lg-2 d-grid">
                 <button class="btn btn-primary"><i class="bx bx-bar-chart-alt-2 me-1"></i>Tampilkan</button>
@@ -127,51 +120,84 @@
 document.addEventListener('DOMContentLoaded', function () {
     const input = document.getElementById('cariMahasiswa');
     const button = document.getElementById('tombolCariMahasiswa');
-    const select = document.getElementById('pilihMahasiswa');
-    const feedback = document.getElementById('hasilCariMahasiswa');
+    const mahasiswaId = document.getElementById('mahasiswaId');
+    const results = document.getElementById('hasilCariMahasiswa');
+    const feedback = document.getElementById('pesanCariMahasiswa');
+    const form = input?.closest('form');
 
-    if (!input || !button || !select) return;
+    if (!input || !button || !mahasiswaId || !results || !form) return;
 
-    const mahasiswa = Array.from(select.options)
-        .filter(option => option.value)
-        .map(option => ({ value: option.value, text: option.textContent.trim() }));
+    const mahasiswa = @json($mahasiswaList->map(fn ($item) => [
+        'value' => (string) $item->mahasiswa_id,
+        'text' => $item->nim.' - '.$item->nama.' ('.$item->label_kelas.')',
+    ])->values());
 
     function normalize(value) {
         return value.toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     }
 
+    function pilihMahasiswa(item) {
+        input.value = item.text;
+        mahasiswaId.value = item.value;
+        results.classList.add('d-none');
+        feedback.textContent = 'Mahasiswa terpilih. Klik Tampilkan untuk melihat absensi.';
+        feedback.classList.remove('text-danger');
+        feedback.classList.add('text-success');
+    }
+
     function cariMahasiswa() {
         const keyword = normalize(input.value.trim());
-        const selectedValue = select.value;
-        const hasil = keyword
-            ? mahasiswa.filter(item => normalize(item.text).includes(keyword))
-            : mahasiswa;
-
-        select.replaceChildren(new Option(
-            hasil.length ? '-- Pilih mahasiswa --' : '-- Mahasiswa tidak ditemukan --',
-            ''
-        ));
-        hasil.forEach(item => select.add(new Option(item.text, item.value)));
-
-        if (hasil.some(item => item.value === selectedValue)) {
-            select.value = selectedValue;
-        } else if (hasil.length === 1) {
-            select.value = hasil[0].value;
+        if (keyword.length < 2) {
+            results.classList.add('d-none');
+            feedback.textContent = 'Ketik minimal dua karakter untuk mencari.';
+            feedback.classList.add('text-danger');
+            return;
         }
 
-        feedback.textContent = keyword
-            ? `${hasil.length} mahasiswa ditemukan.`
-            : `${hasil.length} mahasiswa tersedia.`;
+        const hasil = mahasiswa.filter(item => normalize(item.text).includes(keyword)).slice(0, 50);
+        results.replaceChildren();
+        hasil.forEach(item => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'list-group-item list-group-item-action text-start';
+            option.textContent = item.text;
+            option.addEventListener('click', () => pilihMahasiswa(item));
+            results.appendChild(option);
+        });
+
+        results.classList.toggle('d-none', hasil.length === 0);
+        feedback.textContent = hasil.length
+            ? `${hasil.length} mahasiswa ditemukan. Klik salah satu nama.`
+            : 'Mahasiswa tidak ditemukan.';
         feedback.classList.toggle('text-danger', hasil.length === 0);
         feedback.classList.toggle('text-muted', hasil.length > 0);
-        select.focus();
     }
 
     button.addEventListener('click', cariMahasiswa);
+    input.addEventListener('input', function () {
+        mahasiswaId.value = '';
+        feedback.classList.remove('text-success');
+        if (input.value.trim().length >= 2) cariMahasiswa();
+        else results.classList.add('d-none');
+    });
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
             event.preventDefault();
             cariMahasiswa();
+        }
+    });
+    form.addEventListener('submit', function (event) {
+        if (!mahasiswaId.value) {
+            event.preventDefault();
+            feedback.textContent = 'Cari dan pilih mahasiswa terlebih dahulu.';
+            feedback.classList.remove('text-muted', 'text-success');
+            feedback.classList.add('text-danger');
+            input.focus();
+        }
+    });
+    document.addEventListener('click', function (event) {
+        if (!results.contains(event.target) && event.target !== input && event.target !== button) {
+            results.classList.add('d-none');
         }
     });
 });
