@@ -41,8 +41,8 @@
                     <button type="button" id="tombolCariMahasiswa" class="btn btn-outline-primary">Cari</button>
                 </div>
                 <input type="hidden" name="mahasiswa_id" id="mahasiswaId" value="{{ $selectedMahasiswa?->mahasiswa_id }}">
-                <div id="hasilCariMahasiswa" class="list-group position-absolute start-0 end-0 mx-3 shadow d-none"
-                    style="z-index:1080;max-height:280px;overflow-y:auto"></div>
+                <div id="hasilCariMahasiswa" class="list-group position-absolute start-0 end-0 mx-3 border rounded-3 shadow-lg d-none"
+                    style="z-index:2000;max-height:280px;overflow-y:auto;background:#fff!important;opacity:1"></div>
                 <small id="pesanCariMahasiswa" class="text-muted">Ketik minimal dua karakter, lalu pilih mahasiswa.</small>
             </div>
             <div class="col-lg-2 d-grid">
@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
         input.value = item.text;
         mahasiswaId.value = item.value;
         results.classList.add('d-none');
+        feedback.classList.remove('invisible');
         feedback.textContent = 'Mahasiswa terpilih. Klik Tampilkan untuk melihat absensi.';
         feedback.classList.remove('text-danger');
         feedback.classList.add('text-success');
@@ -149,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const keyword = normalize(input.value.trim());
         if (keyword.length < 2) {
             results.classList.add('d-none');
+            feedback.classList.remove('invisible');
             feedback.textContent = 'Ketik minimal dua karakter untuk mencari.';
             feedback.classList.add('text-danger');
             return;
@@ -160,12 +162,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const option = document.createElement('button');
             option.type = 'button';
             option.className = 'list-group-item list-group-item-action text-start';
+            option.style.cssText = 'background:#fff!important;opacity:1;color:#566a7f';
             option.textContent = item.text;
             option.addEventListener('click', () => pilihMahasiswa(item));
             results.appendChild(option);
         });
 
         results.classList.toggle('d-none', hasil.length === 0);
+        feedback.classList.toggle('invisible', hasil.length > 0);
         feedback.textContent = hasil.length
             ? `${hasil.length} mahasiswa ditemukan. Klik salah satu nama.`
             : 'Mahasiswa tidak ditemukan.';
@@ -178,7 +182,10 @@ document.addEventListener('DOMContentLoaded', function () {
         mahasiswaId.value = '';
         feedback.classList.remove('text-success');
         if (input.value.trim().length >= 2) cariMahasiswa();
-        else results.classList.add('d-none');
+        else {
+            results.classList.add('d-none');
+            feedback.classList.remove('invisible');
+        }
     });
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter') {
@@ -189,8 +196,9 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (event) {
         if (!mahasiswaId.value) {
             event.preventDefault();
+            results.classList.add('d-none');
             feedback.textContent = 'Cari dan pilih mahasiswa terlebih dahulu.';
-            feedback.classList.remove('text-muted', 'text-success');
+            feedback.classList.remove('text-muted', 'text-success', 'invisible');
             feedback.classList.add('text-danger');
             input.focus();
         }
@@ -198,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('click', function (event) {
         if (!results.contains(event.target) && event.target !== input && event.target !== button) {
             results.classList.add('d-none');
+            feedback.classList.remove('invisible');
         }
     });
 });
