@@ -12,9 +12,9 @@
     <div class="card-body">
         <form method="GET" action="{{ route('dosen.sekprodi.absensi-mahasiswa.index') }}" class="row g-3 align-items-end">
             @if($managedPrograms->count() > 1)
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <label class="form-label">Program Studi</label>
-                    <select name="program_studi_id" class="form-select" onchange="this.form.submit()">
+                    <select name="program_studi_id" class="form-select" onchange="document.getElementById('pilihMahasiswa').value=''; this.form.submit()">
                         @foreach($managedPrograms as $program)
                             <option value="{{ $program->jurusan_id }}" @selected((string)$selectedProgramId === (string)$program->jurusan_id)>{{ $program->nama }}</option>
                         @endforeach
@@ -23,7 +23,7 @@
             @else
                 <input type="hidden" name="program_studi_id" value="{{ $selectedProgramId }}">
             @endif
-            <div class="col-lg-3">
+            <div class="col-lg-2">
                 <label class="form-label">Tahun Akademik</label>
                 <select name="ta_id" class="form-select">
                     @foreach($tahunAkademik as $ta)
@@ -31,9 +31,19 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-lg-5">
+            <div class="col-lg-3">
+                <label class="form-label" for="cariMahasiswa">Cari NIM / Nama</label>
+                <div class="input-group">
+                    <input type="search" id="cariMahasiswa" class="form-control" placeholder="Contoh: 0225002 atau Fani">
+                    <button type="button" id="tombolCariMahasiswa" class="btn btn-outline-primary">
+                        <i class="bx bx-search me-1"></i>Cari
+                    </button>
+                </div>
+                <small id="hasilCariMahasiswa" class="text-muted">Ketik NIM atau nama mahasiswa.</small>
+            </div>
+            <div class="col-lg-3">
                 <label class="form-label">Mahasiswa</label>
-                <select name="mahasiswa_id" class="form-select" required>
+                <select name="mahasiswa_id" id="pilihMahasiswa" class="form-select" required>
                     <option value="">-- Pilih mahasiswa --</option>
                     @foreach($mahasiswaList as $mahasiswa)
                         <option value="{{ $mahasiswa->mahasiswa_id }}" @selected((int)request('mahasiswa_id') === (int)$mahasiswa->mahasiswa_id)>
@@ -42,8 +52,8 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-lg-1 d-grid">
-                <button class="btn btn-primary" title="Tampilkan"><i class="bx bx-search"></i></button>
+            <div class="col-lg-2 d-grid">
+                <button class="btn btn-primary"><i class="bx bx-bar-chart-alt-2 me-1"></i>Tampilkan</button>
             </div>
         </form>
     </div>
@@ -111,4 +121,60 @@
         </div>
     </div>
 @endif
+
+@push('script')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('cariMahasiswa');
+    const button = document.getElementById('tombolCariMahasiswa');
+    const select = document.getElementById('pilihMahasiswa');
+    const feedback = document.getElementById('hasilCariMahasiswa');
+
+    if (!input || !button || !select) return;
+
+    const mahasiswa = Array.from(select.options)
+        .filter(option => option.value)
+        .map(option => ({ value: option.value, text: option.textContent.trim() }));
+
+    function normalize(value) {
+        return value.toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function cariMahasiswa() {
+        const keyword = normalize(input.value.trim());
+        const selectedValue = select.value;
+        const hasil = keyword
+            ? mahasiswa.filter(item => normalize(item.text).includes(keyword))
+            : mahasiswa;
+
+        select.replaceChildren(new Option(
+            hasil.length ? '-- Pilih mahasiswa --' : '-- Mahasiswa tidak ditemukan --',
+            ''
+        ));
+        hasil.forEach(item => select.add(new Option(item.text, item.value)));
+
+        if (hasil.some(item => item.value === selectedValue)) {
+            select.value = selectedValue;
+        } else if (hasil.length === 1) {
+            select.value = hasil[0].value;
+        }
+
+        feedback.textContent = keyword
+            ? `${hasil.length} mahasiswa ditemukan.`
+            : `${hasil.length} mahasiswa tersedia.`;
+        feedback.classList.toggle('text-danger', hasil.length === 0);
+        feedback.classList.toggle('text-muted', hasil.length > 0);
+        select.focus();
+    }
+
+    button.addEventListener('click', cariMahasiswa);
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            cariMahasiswa();
+        }
+    });
+});
+</script>
+@endpush
 @endsection
