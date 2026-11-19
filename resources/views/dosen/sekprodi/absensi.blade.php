@@ -96,6 +96,10 @@
             </tbody>
         </table>
     </div>
-    @if($jadwals->hasPages())<div class="card-footer bg-white">{{ $jadwals->links() }}</div>@endif
+    @if($jadwals->hasPages())
+        <div class="card-footer bg-white d-flex justify-content-center py-3">
+            {{ $jadwals->onEachSide(1)->links('pagination::bootstrap-5') }}
+        </div>
+    @endif
 </div>
 @endsection
